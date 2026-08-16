@@ -15,12 +15,14 @@ export interface AuthUser {
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
+  login: (token: string) => void;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
+  login: () => {},
   logout: () => {},
 });
 
@@ -65,6 +67,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, [pathname]);
 
+  const login = (token: string) => {
+    localStorage.setItem("token", token);
+    try {
+      const decoded: any = jwtDecode(token);
+      let role = decoded.role || decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
+      if (Array.isArray(role)) role = role[0];
+      if (!role) role = "Student";
+      
+      let email = decoded.email || decoded.unique_name || "";
+      if (Array.isArray(email)) email = email[0];
+      
+      setUser({
+        id: decoded.sub || decoded.nameid || "",
+        email: email,
+        role: role,
+      });
+    } catch (err) {
+      console.error("Failed to decode token", err);
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem("token");
     setUser(null);
@@ -72,7 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -5,9 +5,11 @@ import { postIdentityTokenGenerate, postIdentityTokenGoogle } from "@/client";
 import { GoogleLogin } from '@react-oauth/google';
 import { client } from "@/client/client.gen";
 import { jwtDecode } from "jwt-decode";
+import { useAuth } from "@/components/AuthProvider";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -31,7 +33,9 @@ export default function LoginPage() {
 
       if (response.data?.isSuccess && response.data?.value?.accessToken) {
         const token = response.data.value.accessToken;
-        localStorage.setItem("token", token);
+        
+        // Use the auth context login method to update global state immediately
+        login(token);
         
         try {
           const decoded: any = jwtDecode(token);
@@ -75,7 +79,9 @@ export default function LoginPage() {
 
       if (response.data?.isSuccess && response.data?.value?.accessToken) {
         const token = response.data.value.accessToken;
-        localStorage.setItem("token", token);
+        
+        // Use the auth context login method to update global state immediately
+        login(token);
         
         try {
           const decoded: any = jwtDecode(token);
