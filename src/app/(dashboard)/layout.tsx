@@ -1,5 +1,5 @@
-import Sidebar from "@/components/Sidebar";
 import { ClientRouteGuard } from "@/components/ClientRouteGuard";
+import { DashboardLayoutWrapper } from "@/components/DashboardLayoutWrapper";
 
 export default function DashboardLayout({
   children,
@@ -8,14 +8,9 @@ export default function DashboardLayout({
 }) {
   return (
     <ClientRouteGuard>
-      <div className="dashboard-container">
-        <Sidebar />
-        <main className="dashboard-main">
-          <div className="dashboard-content">
-            {children}
-          </div>
-        </main>
-      </div>
+      <DashboardLayoutWrapper>
+        {children}
+      </DashboardLayoutWrapper>
     </ClientRouteGuard>
   );
 }

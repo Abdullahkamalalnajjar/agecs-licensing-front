@@ -100,7 +100,7 @@ const themeOptions: { value: Theme; label: string; icon: React.ReactNode }[] = [
   },
 ];
 
-function SidebarInner() {
+function SidebarInner({ isOpen, onClose }: { isOpen?: boolean; onClose?: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
   const { theme, setTheme } = useTheme();
@@ -119,7 +119,7 @@ function SidebarInner() {
   });
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${isOpen ? "open" : ""}`}>
       {/* Brand */}
       <div className="sidebar-header">
         <div className="sidebar-logo">
@@ -131,6 +131,18 @@ function SidebarInner() {
           <span className="sidebar-brand-name">Agecs</span>
           <span className="sidebar-brand-sub">Licensing</span>
         </div>
+        {onClose && (
+          <button 
+            onClick={onClose} 
+            className="mobile-close-btn"
+            style={{ marginLeft: 'auto', background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '0.25rem' }}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Navigation */}
@@ -189,10 +201,10 @@ function SidebarInner() {
   );
 }
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () => void }) {
   return (
     <ThemeProvider>
-      <SidebarInner />
+      <SidebarInner isOpen={isOpen} onClose={onClose} />
     </ThemeProvider>
   );
 }

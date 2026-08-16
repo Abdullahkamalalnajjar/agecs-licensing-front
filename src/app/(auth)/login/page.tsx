@@ -112,23 +112,9 @@ export default function LoginPage() {
 
 
   return (
-    <main style={{
-      minHeight: "100vh",
-      display: "flex",
-      background: "var(--bg-base)",
-    }}>
+    <main className="login-container">
       {/* Left — Branding panel */}
-      <div style={{
-        flex: "0 0 45%",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        padding: "4rem",
-        background: "linear-gradient(145deg, #0d0f1a 0%, #110d20 50%, #0a0a0f 100%)",
-        borderRight: "1px solid var(--border)",
-        position: "relative",
-        overflow: "hidden",
-      }}>
+      <div className="login-left">
         {/* Glow orbs */}
         <div style={{
           position: "absolute", top: "-80px", left: "-80px",
@@ -214,13 +200,7 @@ export default function LoginPage() {
       </div>
 
       {/* Right — Login form */}
-      <div style={{
-        flex: 1,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "4rem 3rem",
-      }}>
+      <div className="login-right">
         <div style={{ width: "100%", maxWidth: "400px" }}>
           {/* Header */}
           <div style={{ marginBottom: "2.5rem" }}>
