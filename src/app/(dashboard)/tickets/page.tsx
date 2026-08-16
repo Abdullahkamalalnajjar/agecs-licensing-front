@@ -7,12 +7,30 @@ import TicketFormModal from "@/components/TicketFormModal";
 import { TicketDto, TicketCategoryDto } from "@/client/types.gen";
 import Link from "next/link";
 
+const getPriorityClass = (priority: string) => {
+  switch (priority?.toLowerCase()) {
+    case "low":      return "badge-info";
+    case "medium":   return "badge-warning";
+    case "high":     return "badge-danger";
+    case "critical": return "badge-danger";
+    default:         return "badge-neutral";
+  }
+};
+
+const getStatusClass = (status: string) => {
+  switch (status?.toLowerCase()) {
+    case "open":       return "badge-success";
+    case "inprogress": return "badge-accent";
+    case "closed":     return "badge-neutral";
+    default:           return "badge-neutral";
+  }
+};
+
 export default function TicketsPage() {
   const [tickets, setTickets] = useState<TicketDto[]>([]);
   const [categories, setCategories] = useState<TicketCategoryDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const router = useRouter();
 
@@ -20,19 +38,16 @@ export default function TicketsPage() {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      if (!token) {
-        router.push("/login");
-        return;
-      }
+      if (!token) { router.push("/login"); return; }
 
       client.setConfig({
         baseUrl: (process.env.NEXT_PUBLIC_API_URL || "https://localhost:5003"),
-        auth: token
+        auth: token,
       });
 
       const [ticketsRes, categoriesRes] = await Promise.all([
         getApiTickets({ throwOnError: false }),
-        getApiTicketCategories({ throwOnError: false })
+        getApiTicketCategories({ throwOnError: false }),
       ]);
 
       if (ticketsRes.data) {
@@ -46,56 +61,39 @@ export default function TicketsPage() {
         setCategories(categoriesRes.data as any || []);
       }
     } catch (err: any) {
-      setError(err.message || "An error occurred while fetching data.");
+      setError(err.message || "An error occurred.");
     } finally {
       setLoading(false);
     }
   }, [router]);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  const handleModalSuccess = () => {
-    setIsFormModalOpen(false);
-    fetchData();
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority?.toLowerCase()) {
-      case "low": return { bg: "#dbeafe", text: "#2563eb" };
-      case "medium": return { bg: "#fef3c7", text: "#d97706" };
-      case "high": return { bg: "#fee2e2", text: "#dc2626" };
-      case "critical": return { bg: "#991b1b", text: "#fca5a5" };
-      default: return { bg: "#f3f4f6", text: "#4b5563" };
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case "open": return { bg: "#d1fae5", text: "#059669" };
-      case "inprogress": return { bg: "#e0e7ff", text: "#4338ca" };
-      case "closed": return { bg: "#f3f4f6", text: "#6b7280" };
-      default: return { bg: "#f3f4f6", text: "#4b5563" };
-    }
-  };
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   return (
     <div>
       <div className="page-header">
-        <h1 className="page-title">My Tickets</h1>
-        <button className="btn-primary" style={{ padding: "0.5rem 1rem", fontSize: "0.95rem" }} onClick={() => setIsFormModalOpen(true)}>
-          + Create Ticket
+        <div className="page-header-left">
+          <h1 className="page-title">Support Tickets</h1>
+          <p className="page-subtitle">{loading ? "Loading…" : `${tickets.length} ticket${tickets.length !== 1 ? "s" : ""}`}</p>
+        </div>
+        <button id="create-ticket-btn" className="btn-primary" onClick={() => setIsFormModalOpen(true)}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Create Ticket
         </button>
       </div>
 
       {error && (
-        <div style={{ padding: "1rem", backgroundColor: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.2)", borderRadius: "8px", color: "#ef4444", marginBottom: "1.5rem" }}>
+        <div className="alert-error">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
           {error}
         </div>
       )}
 
-      <div className="data-table-wrapper" style={{ overflowX: "auto" }}>
+      <div className="data-table-wrapper">
         <table className="data-table">
           <thead>
             <tr>
@@ -105,61 +103,60 @@ export default function TicketsPage() {
               <th>Priority</th>
               <th>Status</th>
               <th>Created</th>
-              <th style={{ minWidth: "100px" }}>Actions</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr>
-                <td colSpan={7} style={{ textAlign: "center", padding: "2rem" }}>Loading tickets...</td>
-              </tr>
+              Array.from({ length: 5 }).map((_, i) => (
+                <tr key={i}>
+                  {Array.from({ length: 7 }).map((__, j) => (
+                    <td key={j}><div className="skeleton" style={{ height: "20px", width: j === 1 ? "140px" : "80px" }} /></td>
+                  ))}
+                </tr>
+              ))
             ) : tickets.length === 0 ? (
               <tr>
-                <td colSpan={7} style={{ textAlign: "center", padding: "2rem", color: "var(--text-secondary)" }}>
-                  No tickets found.
+                <td colSpan={7}>
+                  <div className="empty-state">
+                    <svg className="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/>
+                    </svg>
+                    <p className="empty-state-title">No tickets found</p>
+                    <p className="empty-state-sub">Create a ticket to track customer issues</p>
+                  </div>
                 </td>
               </tr>
             ) : (
-              tickets.map((ticket) => {
-                const pColor = getPriorityColor(ticket.priority!);
-                const sColor = getStatusColor(ticket.status!);
-                
-                return (
-                  <tr key={ticket.id}>
-                    <td style={{ fontFamily: "monospace", fontSize: "0.85rem", color: "#6b7280" }}>
-                      #{ticket.id?.substring(0, 8)}
-                    </td>
-                    <td style={{ fontWeight: "500" }}>{ticket.title}</td>
-                    <td>{ticket.categoryName || "-"}</td>
-                    <td>
-                      <span style={{ padding: "4px 8px", borderRadius: "4px", backgroundColor: pColor.bg, color: pColor.text, fontSize: "0.75rem", fontWeight: "600", textTransform: "uppercase" }}>
-                        {ticket.priority}
-                      </span>
-                    </td>
-                    <td>
-                      <span style={{ padding: "4px 8px", borderRadius: "4px", backgroundColor: sColor.bg, color: sColor.text, fontSize: "0.75rem", fontWeight: "600", textTransform: "uppercase" }}>
-                        {ticket.status}
-                      </span>
-                    </td>
-                    <td>{new Date(ticket.createdAt!).toLocaleDateString()}</td>
-                    <td>
-                      <Link href={`/tickets/${ticket.id}`} style={{ color: "var(--accent)", textDecoration: "none", fontSize: "0.85rem", fontWeight: "500" }}>
+              tickets.map((ticket) => (
+                <tr key={ticket.id}>
+                  <td className="mono">#{ticket.id?.substring(0, 8)}</td>
+                  <td className="fw-medium">{ticket.title}</td>
+                  <td style={{ color: "var(--text-secondary)" }}>{ticket.categoryName || "—"}</td>
+                  <td><span className={`badge ${getPriorityClass(ticket.priority!)}`}>{ticket.priority}</span></td>
+                  <td><span className={`badge ${getStatusClass(ticket.status!)}`}>{ticket.status}</span></td>
+                  <td style={{ color: "var(--text-secondary)", fontSize: "0.85rem" }}>
+                    {new Date(ticket.createdAt!).toLocaleDateString()}
+                  </td>
+                  <td>
+                    <div className="table-actions">
+                      <Link href={`/tickets/${ticket.id}`} className="btn-ghost" style={{ color: "var(--accent-light)", borderColor: "var(--accent-border)" }}>
                         View Details
                       </Link>
-                    </td>
-                  </tr>
-                );
-              })
+                    </div>
+                  </td>
+                </tr>
+              ))
             )}
           </tbody>
         </table>
       </div>
 
       {isFormModalOpen && (
-        <TicketFormModal 
+        <TicketFormModal
           categories={categories}
-          onClose={() => setIsFormModalOpen(false)} 
-          onSuccess={handleModalSuccess} 
+          onClose={() => setIsFormModalOpen(false)}
+          onSuccess={() => { setIsFormModalOpen(false); fetchData(); }}
         />
       )}
     </div>

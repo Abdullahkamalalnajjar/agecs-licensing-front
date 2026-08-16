@@ -13,55 +13,40 @@ export default function PromocodesPage() {
   const [selectedPromocode, setSelectedPromocode] = useState<any>(null);
   const router = useRouter();
 
-  useEffect(() => {
-    const fetchPromocodes = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          router.push("/login");
-          return;
-        }
+  const fetchPromocodes = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) { router.push("/login"); return; }
 
-        client.setConfig({
-          baseUrl: (process.env.NEXT_PUBLIC_API_URL || "https://localhost:5003"),
-          auth: token
-        });
+      client.setConfig({
+        baseUrl: (process.env.NEXT_PUBLIC_API_URL || "https://localhost:5003"),
+        auth: token,
+      });
 
-        const response = await getApiPromocodes({ throwOnError: false });
-        if (response.data?.isSuccess) {
-          setPromocodes(response.data.value || []);
-        } else if (response.error || response.data?.isError) {
-          const errorMsg = response.data?.errors?.map(e => e.description).join(", ") || "Failed to load promocodes.";
-          setError(errorMsg);
-        }
-      } catch (err: any) {
-        setError(err.message || "An error occurred while fetching promocodes.");
-      } finally {
-        setLoading(false);
+      const response = await getApiPromocodes({ throwOnError: false });
+      if (response.data?.isSuccess) {
+        setPromocodes(response.data.value || []);
+      } else if (response.error || response.data?.isError) {
+        setError(response.data?.errors?.map((e) => e.description).join(", ") || "Failed to load promocodes.");
       }
-    };
-
-    fetchPromocodes();
-  }, [router]);
-
-  const handleCreateNew = () => {
-    setSelectedPromocode(null);
-    setIsModalOpen(true);
+    } catch (err: any) {
+      setError(err.message || "An error occurred.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleEdit = (promo: any) => {
-    setSelectedPromocode(promo);
-    setIsModalOpen(true);
-  };
+  useEffect(() => { fetchPromocodes(); }, [router]);
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this promocode?")) return;
+    if (!confirm("Delete this promocode?")) return;
     try {
       const response = await deleteApiPromocodesById({ path: { id }, throwOnError: false });
       if (response.data?.isSuccess) {
-        setPromocodes(promocodes.filter(p => p.id !== id));
+        setPromocodes(promocodes.filter((p) => p.id !== id));
       } else {
-        alert(response.data?.errors?.map(e => e.description).join(", ") || "Failed to delete.");
+        alert(response.data?.errors?.map((e) => e.description).join(", ") || "Failed to delete.");
       }
     } catch (err: any) {
       alert(err.message || "Error deleting promocode.");
@@ -70,25 +55,29 @@ export default function PromocodesPage() {
 
   const handleModalSuccess = () => {
     setIsModalOpen(false);
-    // Re-fetch
-    setLoading(true);
-    getApiPromocodes({ throwOnError: false }).then(res => {
-      if (res.data?.isSuccess) setPromocodes(res.data.value || []);
-      setLoading(false);
-    });
+    fetchPromocodes();
   };
 
   return (
     <div>
       <div className="page-header">
-        <h1 className="page-title">Promocodes</h1>
-        <button className="btn-primary" onClick={handleCreateNew} style={{ padding: "0.5rem 1rem", fontSize: "0.95rem" }}>
-          + New Promocode
+        <div className="page-header-left">
+          <h1 className="page-title">Promocodes</h1>
+          <p className="page-subtitle">{loading ? "Loading…" : `${promocodes.length} code${promocodes.length !== 1 ? "s" : ""}`}</p>
+        </div>
+        <button id="create-promocode-btn" className="btn-primary" onClick={() => { setSelectedPromocode(null); setIsModalOpen(true); }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          New Promocode
         </button>
       </div>
 
       {error && (
-        <div style={{ padding: "1rem", backgroundColor: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.2)", borderRadius: "8px", color: "#ef4444", marginBottom: "1.5rem" }}>
+        <div className="alert-error">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
           {error}
         </div>
       )}
@@ -97,7 +86,6 @@ export default function PromocodesPage() {
         <table className="data-table">
           <thead>
             <tr>
-              <th>ID</th>
               <th>Code</th>
               <th>Discount</th>
               <th>Usage</th>
@@ -107,37 +95,64 @@ export default function PromocodesPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr>
-                <td colSpan={6} style={{ textAlign: "center", padding: "2rem" }}>Loading promocodes...</td>
-              </tr>
+              Array.from({ length: 5 }).map((_, i) => (
+                <tr key={i}>
+                  {Array.from({ length: 5 }).map((__, j) => (
+                    <td key={j}><div className="skeleton" style={{ height: "20px", width: j === 0 ? "120px" : "80px" }} /></td>
+                  ))}
+                </tr>
+              ))
             ) : promocodes.length === 0 ? (
               <tr>
-                <td colSpan={6} style={{ textAlign: "center", padding: "2rem", color: "var(--text-secondary)" }}>
-                  No promocodes found.
+                <td colSpan={5}>
+                  <div className="empty-state">
+                    <svg className="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <polyline points="9 11 12 14 22 4"/>
+                      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                    </svg>
+                    <p className="empty-state-title">No promocodes yet</p>
+                    <p className="empty-state-sub">Create your first promo code to offer discounts</p>
+                  </div>
                 </td>
               </tr>
             ) : (
               promocodes.map((promo) => (
                 <tr key={promo.id}>
-                  <td>{promo.id}</td>
-                  <td style={{ fontWeight: "600", fontFamily: "monospace", letterSpacing: "1px" }}>{promo.code}</td>
-                  <td>{promo.fixedDiscount ? `$${promo.fixedDiscount}` : promo.defaultPriceMultiplier ? `${promo.defaultPriceMultiplier}x` : '-'}</td>
-                  <td>{promo.useCount || 0} / {promo.maxUses || "∞"}</td>
                   <td>
-                    <span style={{ 
-                      padding: "0.25rem 0.5rem", 
-                      borderRadius: "4px", 
-                      fontSize: "0.8rem", 
-                      fontWeight: "600",
-                      backgroundColor: !promo.hidden ? "rgba(34, 197, 94, 0.1)" : "rgba(107, 114, 128, 0.1)",
-                      color: !promo.hidden ? "#22c55e" : "#6b7280" 
+                    <span style={{
+                      fontFamily: "var(--font-mono)", fontSize: "0.875rem", fontWeight: "600",
+                      background: "var(--accent-dim)", color: "var(--accent-light)",
+                      padding: "0.2rem 0.6rem", borderRadius: "var(--radius-sm)",
+                      border: "1px solid var(--accent-border)", letterSpacing: "0.05em",
                     }}>
-                      {!promo.hidden ? "Active" : "Hidden"}
+                      {promo.code}
                     </span>
                   </td>
+                  <td style={{ fontFamily: "var(--font-mono)", fontSize: "0.875rem" }}>
+                    {promo.fixedDiscount
+                      ? `$${promo.fixedDiscount}`
+                      : promo.defaultPriceMultiplier
+                      ? `×${promo.defaultPriceMultiplier}`
+                      : "—"}
+                  </td>
+                  <td style={{ color: "var(--text-secondary)" }}>
+                    {promo.useCount || 0} / {promo.maxUses || "∞"}
+                  </td>
                   <td>
-                    <button onClick={() => handleEdit(promo)} style={{ background: "none", border: "none", color: "var(--accent)", cursor: "pointer", marginRight: "1rem", fontWeight: "500" }}>Edit</button>
-                    <button onClick={() => handleDelete(promo.id)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontWeight: "500" }}>Delete</button>
+                    {!promo.hidden
+                      ? <span className="badge badge-success">Active</span>
+                      : <span className="badge badge-neutral">Hidden</span>}
+                  </td>
+                  <td>
+                    <div className="table-actions">
+                      <button className="btn-ghost" style={{ color: "var(--accent-light)", borderColor: "var(--accent-border)" }}
+                        onClick={() => { setSelectedPromocode(promo); setIsModalOpen(true); }}>
+                        Edit
+                      </button>
+                      <button className="btn-danger-ghost" onClick={() => handleDelete(promo.id)}>
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -146,7 +161,7 @@ export default function PromocodesPage() {
         </table>
       </div>
 
-      <PromocodeFormModal 
+      <PromocodeFormModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSuccess={handleModalSuccess}

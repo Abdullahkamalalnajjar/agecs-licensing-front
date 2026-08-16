@@ -10,51 +10,39 @@ export default function TicketCategoriesPage() {
   const [categories, setCategories] = useState<TicketCategoryDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  
-  // Modals state
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<TicketCategoryDto | null>(null);
-
   const router = useRouter();
 
   const fetchCategories = useCallback(async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      if (!token) {
-        router.push("/login");
-        return;
-      }
+      if (!token) { router.push("/login"); return; }
 
       client.setConfig({
         baseUrl: (process.env.NEXT_PUBLIC_API_URL || "https://localhost:5003"),
-        auth: token
+        auth: token,
       });
 
       const response = await getApiTicketCategories({ throwOnError: false });
-      // The response structure might be different based on result pattern
-      // Usually it's response.data
       if (response.data) {
         setCategories(response.data as any || []);
       } else if (response.error) {
         // @ts-ignore
-        const errorMsg = response.error?.title || "Failed to load categories.";
-        setError(errorMsg);
+        setError(response.error?.title || "Failed to load categories.");
       }
     } catch (err: any) {
-      setError(err.message || "An error occurred while fetching categories.");
+      setError(err.message || "An error occurred.");
     } finally {
       setLoading(false);
     }
   }, [router]);
 
-  useEffect(() => {
-    fetchCategories();
-  }, [fetchCategories]);
+  useEffect(() => { fetchCategories(); }, [fetchCategories]);
 
-  const handleDeleteCategory = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this category?")) return;
-    
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this category?")) return;
     setError("");
     try {
       const response = await deleteApiTicketCategoriesById({ path: { id }, throwOnError: false });
@@ -62,82 +50,93 @@ export default function TicketCategoriesPage() {
         fetchCategories();
       } else if (response.error) {
         // @ts-ignore
-        const errorMsg = response.error?.title || "Failed to delete category.";
-        setError(errorMsg);
+        setError(response.error?.title || "Failed to delete.");
       }
     } catch (err: any) {
-      setError(err.message || "An error occurred while deleting category.");
+      setError(err.message || "Error deleting category.");
     }
   };
 
-  const openEditModal = (category: TicketCategoryDto) => {
-    setEditingCategory(category);
-    setIsFormModalOpen(true);
-  };
-
-  const openCreateModal = () => {
-    setEditingCategory(null);
-    setIsFormModalOpen(true);
-  };
-
-  const handleModalSuccess = () => {
-    setIsFormModalOpen(false);
-    fetchCategories();
-  };
+  const openEdit = (c: TicketCategoryDto) => { setEditingCategory(c); setIsFormModalOpen(true); };
+  const openCreate = () => { setEditingCategory(null); setIsFormModalOpen(true); };
 
   return (
     <div>
       <div className="page-header">
-        <h1 className="page-title">Ticket Categories</h1>
-        <button className="btn-primary" style={{ padding: "0.5rem 1rem", fontSize: "0.95rem" }} onClick={openCreateModal}>
-          + New Category
+        <div className="page-header-left">
+          <h1 className="page-title">Ticket Categories</h1>
+          <p className="page-subtitle">{loading ? "Loading…" : `${categories.length} categor${categories.length !== 1 ? "ies" : "y"}`}</p>
+        </div>
+        <button id="create-category-btn" className="btn-primary" onClick={openCreate}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          New Category
         </button>
       </div>
 
       {error && (
-        <div style={{ padding: "1rem", backgroundColor: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.2)", borderRadius: "8px", color: "#ef4444", marginBottom: "1.5rem" }}>
+        <div className="alert-error">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
           {error}
         </div>
       )}
 
-      <div className="data-table-wrapper" style={{ overflowX: "auto" }}>
+      <div className="data-table-wrapper">
         <table className="data-table">
           <thead>
             <tr>
               <th>Name</th>
               <th>Description</th>
               <th>Order</th>
-              <th>Active</th>
-              <th style={{ minWidth: "150px" }}>Actions</th>
+              <th>Status</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr>
-                <td colSpan={5} style={{ textAlign: "center", padding: "2rem" }}>Loading categories...</td>
-              </tr>
+              Array.from({ length: 4 }).map((_, i) => (
+                <tr key={i}>
+                  {Array.from({ length: 5 }).map((__, j) => (
+                    <td key={j}><div className="skeleton" style={{ height: "20px", width: j === 0 ? "120px" : "80px" }} /></td>
+                  ))}
+                </tr>
+              ))
             ) : categories.length === 0 ? (
               <tr>
-                <td colSpan={5} style={{ textAlign: "center", padding: "2rem", color: "var(--text-secondary)" }}>
-                  No categories found.
+                <td colSpan={5}>
+                  <div className="empty-state">
+                    <svg className="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                      <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+                    </svg>
+                    <p className="empty-state-title">No categories yet</p>
+                    <p className="empty-state-sub">Create categories to organize your tickets</p>
+                  </div>
                 </td>
               </tr>
             ) : (
               categories.map((category) => (
                 <tr key={category.id}>
-                  <td style={{ fontWeight: "500" }}>{category.name}</td>
-                  <td>{category.description || "-"}</td>
-                  <td>{category.order}</td>
+                  <td className="fw-medium">{category.name}</td>
+                  <td style={{ color: "var(--text-secondary)" }}>{category.description || "—"}</td>
+                  <td><span className="badge badge-neutral">#{category.order}</span></td>
                   <td>
-                    {category.isActive ? (
-                      <span style={{ padding: "4px 8px", borderRadius: "4px", backgroundColor: "#d1fae5", color: "#059669", fontSize: "0.8rem", fontWeight: "600" }}>Yes</span>
-                    ) : (
-                      <span style={{ padding: "4px 8px", borderRadius: "4px", backgroundColor: "#fee2e2", color: "#dc2626", fontSize: "0.8rem", fontWeight: "600" }}>No</span>
-                    )}
+                    {category.isActive
+                      ? <span className="badge badge-success">Active</span>
+                      : <span className="badge badge-danger">Inactive</span>}
                   </td>
                   <td>
-                    <button onClick={() => openEditModal(category)} style={{ background: "none", border: "none", color: "var(--accent)", cursor: "pointer", marginRight: "1rem", fontSize: "0.85rem", fontWeight: "500" }}>Edit</button>
-                    <button onClick={() => handleDeleteCategory(category.id!)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: "0.85rem", fontWeight: "500" }}>Delete</button>
+                    <div className="table-actions">
+                      <button className="btn-ghost" style={{ color: "var(--accent-light)", borderColor: "var(--accent-border)" }} onClick={() => openEdit(category)}>
+                        Edit
+                      </button>
+                      <button className="btn-danger-ghost" onClick={() => handleDelete(category.id!)}>
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -147,10 +146,10 @@ export default function TicketCategoriesPage() {
       </div>
 
       {isFormModalOpen && (
-        <TicketCategoryFormModal 
-          initialData={editingCategory} 
-          onClose={() => setIsFormModalOpen(false)} 
-          onSuccess={handleModalSuccess} 
+        <TicketCategoryFormModal
+          initialData={editingCategory}
+          onClose={() => setIsFormModalOpen(false)}
+          onSuccess={() => { setIsFormModalOpen(false); fetchCategories(); }}
         />
       )}
     </div>

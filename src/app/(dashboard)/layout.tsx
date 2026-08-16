@@ -9,7 +9,7 @@ export default function DashboardLayout({
     <div className="dashboard-container">
       <Sidebar />
       <main className="dashboard-main">
-        <div className="dashboard-content glass-panel">
+        <div className="dashboard-content">
           {children}
         </div>
       </main>
