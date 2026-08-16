@@ -147,10 +147,10 @@
   --glass-bg:     rgba(255,255,255,0.08);
   --glass-border: rgba(255,255,255,0.18);
 
-  --body-bg: linear-gradient(135deg, #12003a 0%, #0d1b5c 30%, #001a3a 60%, #0a002e 100%);
-  --mesh-color-1: rgba(167,139,250,0.2);
-  --mesh-color-2: rgba(96,165,250,0.14);
-  --mesh-color-3: rgba(52,211,153,0.08);
+  --body-bg: #000000;
+  --mesh-color-1: rgba(255,255,255,0.03);
+  --mesh-color-2: rgba(255,255,255,0.02);
+  --mesh-color-3: rgba(255,255,255,0.015);
 }
 
 /* ============================================================
@@ -172,9 +172,9 @@ body {
   transition: background 0.3s ease, color 0.3s ease;
 }
 
-/* Fixed gradient background for glass theme */
+/* Fixed black background for glass theme */
 [data-theme="glass"] body {
-  background: linear-gradient(135deg, #12003a 0%, #0d1b5c 30%, #001a3a 60%, #0a002e 100%);
+  background: #000000;
   background-attachment: fixed;
 }
 
@@ -191,14 +191,14 @@ body::before {
   z-index: 0;
 }
 
-/* Extra glass orbs for glass theme */
+/* Subtle white orbs for glass theme */
 [data-theme="glass"] body::after {
   content: '';
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(ellipse 35% 35% at 75% 20%, rgba(167,139,250,0.15) 0%, transparent 60%),
-    radial-gradient(ellipse 30% 30% at 10% 70%, rgba(96,165,250,0.12) 0%, transparent 60%);
+    radial-gradient(ellipse 40% 40% at 70% 15%, rgba(255,255,255,0.05) 0%, transparent 70%),
+    radial-gradient(ellipse 30% 30% at 15% 75%, rgba(255,255,255,0.04) 0%, transparent 70%);
   pointer-events: none;
   z-index: 0;
 }
