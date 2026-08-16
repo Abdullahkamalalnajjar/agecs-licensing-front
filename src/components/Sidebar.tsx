@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { ThemeProvider, useTheme, type Theme } from "./ThemeProvider";
 
 const navItems = [
   {
@@ -48,9 +49,50 @@ const navItems = [
   },
 ];
 
-export default function Sidebar() {
+const themeOptions: { value: Theme; label: string; icon: React.ReactNode }[] = [
+  {
+    value: "light",
+    label: "Light",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="5"/>
+        <line x1="12" y1="1" x2="12" y2="3"/>
+        <line x1="12" y1="21" x2="12" y2="23"/>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+        <line x1="1" y1="12" x2="3" y2="12"/>
+        <line x1="21" y1="12" x2="23" y2="12"/>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+      </svg>
+    ),
+  },
+  {
+    value: "dark",
+    label: "Dark",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+    ),
+  },
+  {
+    value: "glass",
+    label: "Glass",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 22C6.5 22 2 17.5 2 12S6.5 2 12 2s10 4.5 10 10-4.5 10-10 10z"/>
+        <path d="M12 2a10 10 0 0 1 7 17"/>
+        <path d="M12 2a10 10 0 0 0-4 19.2"/>
+      </svg>
+    ),
+  },
+];
+
+function SidebarInner() {
   const pathname = usePathname();
   const router = useRouter();
+  const { theme, setTheme } = useTheme();
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -59,7 +101,7 @@ export default function Sidebar() {
 
   return (
     <aside className="sidebar">
-      {/* Header / Brand */}
+      {/* Brand */}
       <div className="sidebar-header">
         <div className="sidebar-logo">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -90,8 +132,24 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Footer / Logout */}
+      {/* Footer */}
       <div className="sidebar-footer">
+        {/* Theme switcher */}
+        <div className="theme-switcher" title="Switch theme">
+          {themeOptions.map((opt) => (
+            <button
+              key={opt.value}
+              id={`theme-${opt.value}`}
+              className={`theme-btn ${theme === opt.value ? "active" : ""}`}
+              onClick={() => setTheme(opt.value)}
+              title={opt.label}
+            >
+              {opt.icon}
+            </button>
+          ))}
+        </div>
+
+        {/* Logout */}
         <button onClick={handleLogout} className="sidebar-link danger">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -102,5 +160,13 @@ export default function Sidebar() {
         </button>
       </div>
     </aside>
+  );
+}
+
+export default function Sidebar() {
+  return (
+    <ThemeProvider>
+      <SidebarInner />
+    </ThemeProvider>
   );
 }
