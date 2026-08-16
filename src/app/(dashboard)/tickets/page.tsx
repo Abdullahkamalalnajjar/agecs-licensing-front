@@ -4,7 +4,7 @@ import { getApiTickets, getApiTicketCategories } from "@/client";
 import { client } from "@/client/client.gen";
 import { useRouter } from "next/navigation";
 import TicketFormModal from "@/components/TicketFormModal";
-import { TicketDto, TicketCategoryDto } from "@/client/types.gen";
+import { TicketCategoryDto } from "@/client/types.gen";
 import Link from "next/link";
 
 const getPriorityClass = (priority: string) => {
@@ -27,7 +27,7 @@ const getStatusClass = (status: string) => {
 };
 
 export default function TicketsPage() {
-  const [tickets, setTickets] = useState<TicketDto[]>([]);
+  const [tickets, setTickets] = useState<any[]>([]);
   const [categories, setCategories] = useState<TicketCategoryDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");

@@ -73,6 +73,19 @@ export type CreateChildProductRequest = {
     prices?: Array<ProductPriceRequest> | null;
 };
 
+export type CreateLicenseCommand = {
+    userId?: string;
+    productId?: string;
+    name?: string | null;
+    email?: string | null;
+    licenseCount?: number;
+    migrationLimit?: number;
+    expiryDate?: string | null;
+    serial?: string | null;
+    janDrozdId?: string | null;
+    isTrial?: boolean;
+};
+
 export type CreateProductCommand = {
     name?: string | null;
     fullName?: string | null;
@@ -107,10 +120,6 @@ export type CreateTicketRequest = {
     priority?: string | null;
 };
 
-export type UpdateTicketStatusRequest = {
-    status?: string | null;
-};
-
 export type Deleted = {
     [key: string]: never;
 };
@@ -129,6 +138,10 @@ export type Error = {
 };
 
 export type ErrorKind = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
+export type GoogleLoginRequest = {
+    idToken?: string | null;
+};
 
 export type LoginRequest = {
     email: string;
@@ -324,6 +337,10 @@ export type RegisterUserRequest = {
     phoneNumber?: string | null;
 };
 
+export type ResetLicenseHwidRequest = {
+    reason?: string | null;
+};
+
 export type RestoreDeletedUserRequest = {
     email: string;
     password: string;
@@ -362,6 +379,17 @@ export type TokenResponseResult = {
     readonly isError?: boolean;
     value?: TokenResponse;
     readonly errors?: Array<Error> | null;
+};
+
+export type UpdateLicenseCommand = {
+    id?: string;
+    licenseCount?: number;
+    migrationLimit?: number;
+    expiryDate?: string | null;
+    isTrial?: boolean;
+    isActive?: boolean;
+    serial?: string | null;
+    janDrozdId?: string | null;
 };
 
 export type UpdateProductCommand = {
@@ -406,6 +434,10 @@ export type UpdateTicketCategoryCommand = {
     description?: string | null;
     order?: number;
     isActive?: boolean;
+};
+
+export type UpdateTicketStatusRequest = {
+    status?: string | null;
 };
 
 export type Updated = {
@@ -565,6 +597,38 @@ export type PostIdentityTokenGenerateResponses = {
 };
 
 export type PostIdentityTokenGenerateResponse = PostIdentityTokenGenerateResponses[keyof PostIdentityTokenGenerateResponses];
+
+export type PostIdentityTokenGoogleData = {
+    /**
+     * The Google login credentials containing the IdToken.
+     */
+    body?: GoogleLoginRequest;
+    path?: never;
+    query?: never;
+    url: '/identity/token/google';
+};
+
+export type PostIdentityTokenGoogleErrors = {
+    /**
+     * Bad Request
+     */
+    400: ObjectResult;
+    /**
+     * Unauthorized
+     */
+    401: ObjectResult;
+};
+
+export type PostIdentityTokenGoogleError = PostIdentityTokenGoogleErrors[keyof PostIdentityTokenGoogleErrors];
+
+export type PostIdentityTokenGoogleResponses = {
+    /**
+     * OK
+     */
+    200: TokenResponseResult;
+};
+
+export type PostIdentityTokenGoogleResponse = PostIdentityTokenGoogleResponses[keyof PostIdentityTokenGoogleResponses];
 
 export type PostIdentityTokenRefreshTokenData = {
     /**
@@ -908,6 +972,85 @@ export type DeleteIdentityByUserIdResponses = {
 };
 
 export type DeleteIdentityByUserIdResponse = DeleteIdentityByUserIdResponses[keyof DeleteIdentityByUserIdResponses];
+
+export type GetApiLicensesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        productId?: string;
+        isActive?: boolean;
+    };
+    url: '/api/licenses';
+};
+
+export type GetApiLicensesResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type PostApiLicensesData = {
+    body?: CreateLicenseCommand;
+    path?: never;
+    query?: never;
+    url: '/api/licenses';
+};
+
+export type PostApiLicensesResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type GetApiLicensesByIdData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/licenses/{id}';
+};
+
+export type GetApiLicensesByIdResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type PutApiLicensesByIdData = {
+    body?: UpdateLicenseCommand;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/licenses/{id}';
+};
+
+export type PutApiLicensesByIdResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type PostApiLicensesClientsByClientIdResetData = {
+    body?: ResetLicenseHwidRequest;
+    path: {
+        clientId: string;
+    };
+    query?: never;
+    url: '/api/licenses/clients/{clientId}/reset';
+};
+
+export type PostApiLicensesClientsByClientIdResetResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
 
 export type PostApiPaymentsCheckoutData = {
     /**
@@ -1698,8 +1841,6 @@ export type PostApiTicketsByIdCommentsResponses = {
     200: unknown;
 };
 
-export type PostApiTicketsByIdCommentsResponse = (unknown);
-
 export type PutApiTicketsByIdStatusData = {
     body?: UpdateTicketStatusRequest;
     path: {
@@ -1714,23 +1855,4 @@ export type PutApiTicketsByIdStatusResponses = {
      * OK
      */
     200: unknown;
-};
-
-export type PutApiTicketsByIdStatusResponse = (unknown);
-
-export type TicketDto = {
-    id?: string;
-    title?: string;
-    description?: string;
-    categoryId?: string;
-    categoryName?: string;
-    priority?: string;
-    status?: string;
-    createdAt?: string;
-    comments?: Array<{
-        id?: string;
-        userName?: string;
-        content?: string;
-        createdAt?: string;
-    }>;
 };

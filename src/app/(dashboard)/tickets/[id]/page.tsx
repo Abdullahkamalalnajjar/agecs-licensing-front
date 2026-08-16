@@ -3,14 +3,14 @@ import { useEffect, useState, useCallback } from "react";
 import { getApiTicketsById, postApiTicketsByIdComments, putApiTicketsByIdStatus } from "@/client";
 import { client } from "@/client/client.gen";
 import { useRouter, useParams } from "next/navigation";
-import { TicketDto } from "@/client/types.gen";
+
 import Link from "next/link";
 
 export default function TicketDetailsPage() {
   const params = useParams();
   const ticketId = params.id as string;
   
-  const [ticket, setTicket] = useState<TicketDto | null>(null);
+  const [ticket, setTicket] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   
@@ -175,7 +175,7 @@ export default function TicketDetailsPage() {
           {(!ticket.comments || ticket.comments.length === 0) ? (
             <p style={{ color: "#6b7280", fontStyle: "italic", margin: 0, textAlign: "center", padding: "20px 0" }}>No comments yet.</p>
           ) : (
-            ticket.comments.map((comment) => (
+            ticket.comments.map((comment: any) => (
               <div key={comment.id} style={{ display: "flex", gap: "16px" }}>
                 <div style={{ width: "40px", height: "40px", borderRadius: "50%", backgroundColor: "#e0e7ff", display: "flex", alignItems: "center", justifyContent: "center", color: "#4338ca", fontWeight: "bold", flexShrink: 0 }}>
                   {comment.userName?.substring(0, 2).toUpperCase() || "U"}

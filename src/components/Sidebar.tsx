@@ -2,8 +2,19 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ThemeProvider, useTheme, type Theme } from "./ThemeProvider";
+import { useAuth } from "./AuthProvider";
 
 const navItems = [
+  {
+    name: "Licenses",
+    path: "/licenses",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
+    ),
+  },
   {
     name: "Products",
     path: "/products",
@@ -93,11 +104,19 @@ function SidebarInner() {
   const pathname = usePathname();
   const router = useRouter();
   const { theme, setTheme } = useTheme();
+  const { user, logout } = useAuth();
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    router.push("/login");
+    logout();
   };
+
+  // Filter nav items based on role
+  const filteredNavItems = navItems.filter(item => {
+    if (user?.role === "Student") {
+      return item.name === "Tickets";
+    }
+    return true; // SuperAdmin/Admin sees all
+  });
 
   return (
     <aside className="sidebar">
@@ -117,7 +136,7 @@ function SidebarInner() {
       {/* Navigation */}
       <nav className="sidebar-nav">
         <span className="sidebar-section-label">Management</span>
-        {navItems.map((item) => {
+        {filteredNavItems.map((item) => {
           const isActive = pathname.startsWith(item.path);
           return (
             <Link
@@ -134,6 +153,13 @@ function SidebarInner() {
 
       {/* Footer */}
       <div className="sidebar-footer">
+        {user && (
+          <div style={{ marginBottom: "1rem", padding: "0.5rem", background: "var(--bg-elevated)", borderRadius: "8px", fontSize: "0.85rem" }}>
+            <div style={{ fontWeight: 600, color: "var(--text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user.email}</div>
+            <div style={{ color: "var(--text-muted)", fontSize: "0.75rem", marginTop: "2px" }}>Role: {user.role}</div>
+          </div>
+        )}
+
         {/* Theme switcher */}
         <div className="theme-switcher" title="Switch theme">
           {themeOptions.map((opt) => (

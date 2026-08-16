@@ -2,7 +2,7 @@
 
 import { type Client, type ClientMeta, formDataBodySerializer, type Options as Options2, type RequestResult, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { DeleteApiProductsByIdData, DeleteApiProductsByIdErrors, DeleteApiProductsByIdResponses, DeleteApiProductsByProductIdMediaByMediaIdData, DeleteApiProductsByProductIdMediaByMediaIdErrors, DeleteApiProductsByProductIdMediaByMediaIdResponses, DeleteApiPromocodesByIdData, DeleteApiPromocodesByIdErrors, DeleteApiPromocodesByIdResponses, DeleteApiTicketCategoriesByIdData, DeleteApiTicketCategoriesByIdResponses, DeleteIdentityByUserIdData, DeleteIdentityByUserIdErrors, DeleteIdentityByUserIdResponses, DeleteIdentityCurrentUserData, DeleteIdentityCurrentUserErrors, DeleteIdentityCurrentUserResponses, GetApiProductsByIdData, GetApiProductsByIdErrors, GetApiProductsByIdResponses, GetApiProductsData, GetApiProductsErrors, GetApiProductsResponses, GetApiPromocodesByIdData, GetApiPromocodesByIdErrors, GetApiPromocodesByIdResponses, GetApiPromocodesData, GetApiPromocodesErrors, GetApiPromocodesResponses, GetApiTicketCategoriesData, GetApiTicketCategoriesResponses, GetApiTicketsByIdData, GetApiTicketsByIdResponses, GetApiTicketsData, GetApiTicketsResponses, GetIdentityAllPermissionsData, GetIdentityAllPermissionsErrors, GetIdentityAllPermissionsResponses, GetIdentityCurrentUserData, GetIdentityCurrentUserErrors, GetIdentityCurrentUserResponses, GetIdentityMyPermissionsData, GetIdentityMyPermissionsErrors, GetIdentityMyPermissionsResponses, GetIdentityUsersByUserIdPermissionsData, GetIdentityUsersByUserIdPermissionsErrors, GetIdentityUsersByUserIdPermissionsResponses, GetIdentityUsersData, GetIdentityUsersDeletedData, GetIdentityUsersDeletedErrors, GetIdentityUsersDeletedResponses, GetIdentityUsersErrors, GetIdentityUsersResponses, PostApiPaymentsCheckoutData, PostApiPaymentsCheckoutErrors, PostApiPaymentsCheckoutResponses, PostApiPaymobWebhookData, PostApiPaymobWebhookErrors, PostApiPaymobWebhookResponses, PostApiProductsByParentIdChildrenData, PostApiProductsByParentIdChildrenErrors, PostApiProductsByParentIdChildrenResponses, PostApiProductsByProductIdMediaData, PostApiProductsByProductIdMediaErrors, PostApiProductsByProductIdMediaResponses, PostApiProductsByProductIdMediaUrlData, PostApiProductsByProductIdMediaUrlErrors, PostApiProductsByProductIdMediaUrlResponses, PostApiProductsData, PostApiProductsErrors, PostApiProductsResponses, PostApiPromocodesData, PostApiPromocodesErrors, PostApiPromocodesResponses, PostApiTicketCategoriesData, PostApiTicketCategoriesResponses, PostApiTicketsByIdCommentsData, PostApiTicketsByIdCommentsResponses, PostApiTicketsData, PostApiTicketsResponses, PostIdentityRestoreDeletedUserData, PostIdentityRestoreDeletedUserErrors, PostIdentityRestoreDeletedUserResponses, PostIdentitySignupData, PostIdentitySignupErrors, PostIdentitySignupResponses, PostIdentityTokenGenerateData, PostIdentityTokenGenerateErrors, PostIdentityTokenGenerateResponses, PostIdentityTokenRefreshTokenData, PostIdentityTokenRefreshTokenErrors, PostIdentityTokenRefreshTokenResponses, PutApiProductsByIdData, PutApiProductsByIdErrors, PutApiProductsByIdResponses, PutApiPromocodesByIdAudienceData, PutApiPromocodesByIdAudienceErrors, PutApiPromocodesByIdAudienceResponses, PutApiPromocodesByIdDiscountsData, PutApiPromocodesByIdDiscountsErrors, PutApiPromocodesByIdDiscountsResponses, PutApiTicketCategoriesByIdData, PutApiTicketCategoriesByIdResponses, PutIdentityUsersByUserIdPermissionsData, PutIdentityUsersByUserIdPermissionsErrors, PutIdentityUsersByUserIdPermissionsResponses, PutApiTicketsByIdStatusData, PutApiTicketsByIdStatusResponses } from './types.gen';
+import type { DeleteApiProductsByIdData, DeleteApiProductsByIdErrors, DeleteApiProductsByIdResponses, DeleteApiProductsByProductIdMediaByMediaIdData, DeleteApiProductsByProductIdMediaByMediaIdErrors, DeleteApiProductsByProductIdMediaByMediaIdResponses, DeleteApiPromocodesByIdData, DeleteApiPromocodesByIdErrors, DeleteApiPromocodesByIdResponses, DeleteApiTicketCategoriesByIdData, DeleteApiTicketCategoriesByIdResponses, DeleteIdentityByUserIdData, DeleteIdentityByUserIdErrors, DeleteIdentityByUserIdResponses, DeleteIdentityCurrentUserData, DeleteIdentityCurrentUserErrors, DeleteIdentityCurrentUserResponses, GetApiLicensesByIdData, GetApiLicensesByIdResponses, GetApiLicensesData, GetApiLicensesResponses, GetApiProductsByIdData, GetApiProductsByIdErrors, GetApiProductsByIdResponses, GetApiProductsData, GetApiProductsErrors, GetApiProductsResponses, GetApiPromocodesByIdData, GetApiPromocodesByIdErrors, GetApiPromocodesByIdResponses, GetApiPromocodesData, GetApiPromocodesErrors, GetApiPromocodesResponses, GetApiTicketCategoriesData, GetApiTicketCategoriesResponses, GetApiTicketsByIdData, GetApiTicketsByIdResponses, GetApiTicketsData, GetApiTicketsResponses, GetIdentityAllPermissionsData, GetIdentityAllPermissionsErrors, GetIdentityAllPermissionsResponses, GetIdentityCurrentUserData, GetIdentityCurrentUserErrors, GetIdentityCurrentUserResponses, GetIdentityMyPermissionsData, GetIdentityMyPermissionsErrors, GetIdentityMyPermissionsResponses, GetIdentityUsersByUserIdPermissionsData, GetIdentityUsersByUserIdPermissionsErrors, GetIdentityUsersByUserIdPermissionsResponses, GetIdentityUsersData, GetIdentityUsersDeletedData, GetIdentityUsersDeletedErrors, GetIdentityUsersDeletedResponses, GetIdentityUsersErrors, GetIdentityUsersResponses, PostApiLicensesClientsByClientIdResetData, PostApiLicensesClientsByClientIdResetResponses, PostApiLicensesData, PostApiLicensesResponses, PostApiPaymentsCheckoutData, PostApiPaymentsCheckoutErrors, PostApiPaymentsCheckoutResponses, PostApiPaymobWebhookData, PostApiPaymobWebhookErrors, PostApiPaymobWebhookResponses, PostApiProductsByParentIdChildrenData, PostApiProductsByParentIdChildrenErrors, PostApiProductsByParentIdChildrenResponses, PostApiProductsByProductIdMediaData, PostApiProductsByProductIdMediaErrors, PostApiProductsByProductIdMediaResponses, PostApiProductsByProductIdMediaUrlData, PostApiProductsByProductIdMediaUrlErrors, PostApiProductsByProductIdMediaUrlResponses, PostApiProductsData, PostApiProductsErrors, PostApiProductsResponses, PostApiPromocodesData, PostApiPromocodesErrors, PostApiPromocodesResponses, PostApiTicketCategoriesData, PostApiTicketCategoriesResponses, PostApiTicketsByIdCommentsData, PostApiTicketsByIdCommentsResponses, PostApiTicketsData, PostApiTicketsResponses, PostIdentityRestoreDeletedUserData, PostIdentityRestoreDeletedUserErrors, PostIdentityRestoreDeletedUserResponses, PostIdentitySignupData, PostIdentitySignupErrors, PostIdentitySignupResponses, PostIdentityTokenGenerateData, PostIdentityTokenGenerateErrors, PostIdentityTokenGenerateResponses, PostIdentityTokenGoogleData, PostIdentityTokenGoogleErrors, PostIdentityTokenGoogleResponses, PostIdentityTokenRefreshTokenData, PostIdentityTokenRefreshTokenErrors, PostIdentityTokenRefreshTokenResponses, PutApiLicensesByIdData, PutApiLicensesByIdResponses, PutApiProductsByIdData, PutApiProductsByIdErrors, PutApiProductsByIdResponses, PutApiPromocodesByIdAudienceData, PutApiPromocodesByIdAudienceErrors, PutApiPromocodesByIdAudienceResponses, PutApiPromocodesByIdDiscountsData, PutApiPromocodesByIdDiscountsErrors, PutApiPromocodesByIdDiscountsResponses, PutApiTicketCategoriesByIdData, PutApiTicketCategoriesByIdResponses, PutApiTicketsByIdStatusData, PutApiTicketsByIdStatusResponses, PutIdentityUsersByUserIdPermissionsData, PutIdentityUsersByUserIdPermissionsErrors, PutIdentityUsersByUserIdPermissionsResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -37,6 +37,19 @@ export const postIdentitySignup = <ThrowOnError extends boolean = false>(options
 export const postIdentityTokenGenerate = <ThrowOnError extends boolean = false>(options?: Options<PostIdentityTokenGenerateData, ThrowOnError>): RequestResult<PostIdentityTokenGenerateResponses, PostIdentityTokenGenerateErrors, ThrowOnError> => (options?.client ?? client).post<PostIdentityTokenGenerateResponses, PostIdentityTokenGenerateErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/identity/token/generate',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options?.headers
+    }
+});
+
+/**
+ * Authenticates a user using a Google ID token.
+ */
+export const postIdentityTokenGoogle = <ThrowOnError extends boolean = false>(options?: Options<PostIdentityTokenGoogleData, ThrowOnError>): RequestResult<PostIdentityTokenGoogleResponses, PostIdentityTokenGoogleErrors, ThrowOnError> => (options?.client ?? client).post<PostIdentityTokenGoogleResponses, PostIdentityTokenGoogleErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/identity/token/google',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -153,6 +166,48 @@ export const deleteIdentityByUserId = <ThrowOnError extends boolean = false>(opt
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/identity/{userId}',
     ...options
+});
+
+export const getApiLicenses = <ThrowOnError extends boolean = false>(options?: Options<GetApiLicensesData, ThrowOnError>): RequestResult<GetApiLicensesResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetApiLicensesResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/licenses',
+    ...options
+});
+
+export const postApiLicenses = <ThrowOnError extends boolean = false>(options?: Options<PostApiLicensesData, ThrowOnError>): RequestResult<PostApiLicensesResponses, unknown, ThrowOnError> => (options?.client ?? client).post<PostApiLicensesResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/licenses',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options?.headers
+    }
+});
+
+export const getApiLicensesById = <ThrowOnError extends boolean = false>(options: Options<GetApiLicensesByIdData, ThrowOnError>): RequestResult<GetApiLicensesByIdResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetApiLicensesByIdResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/licenses/{id}',
+    ...options
+});
+
+export const putApiLicensesById = <ThrowOnError extends boolean = false>(options: Options<PutApiLicensesByIdData, ThrowOnError>): RequestResult<PutApiLicensesByIdResponses, unknown, ThrowOnError> => (options.client ?? client).put<PutApiLicensesByIdResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/licenses/{id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const postApiLicensesClientsByClientIdReset = <ThrowOnError extends boolean = false>(options: Options<PostApiLicensesClientsByClientIdResetData, ThrowOnError>): RequestResult<PostApiLicensesClientsByClientIdResetResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostApiLicensesClientsByClientIdResetResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/licenses/clients/{clientId}/reset',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });
 
 /**

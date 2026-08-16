@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { GoogleAuthProviderWrapper } from "@/components/GoogleAuthProviderWrapper";
+import { AuthProvider } from "@/components/AuthProvider";
 
 export const metadata: Metadata = {
   title: "Agecs Licensing | Admin Dashboard",
@@ -12,7 +14,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" data-theme="dark">
+    <html lang="en" data-theme="dark" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -27,7 +29,13 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <AuthProvider>
+          <GoogleAuthProviderWrapper>
+            {children}
+          </GoogleAuthProviderWrapper>
+        </AuthProvider>
+      </body>
     </html>
   );
 }

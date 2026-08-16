@@ -1,4 +1,5 @@
 import Sidebar from "@/components/Sidebar";
+import { ClientRouteGuard } from "@/components/ClientRouteGuard";
 
 export default function DashboardLayout({
   children,
@@ -6,13 +7,15 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="dashboard-container">
-      <Sidebar />
-      <main className="dashboard-main">
-        <div className="dashboard-content">
-          {children}
-        </div>
-      </main>
-    </div>
+    <ClientRouteGuard>
+      <div className="dashboard-container">
+        <Sidebar />
+        <main className="dashboard-main">
+          <div className="dashboard-content">
+            {children}
+          </div>
+        </main>
+      </div>
+    </ClientRouteGuard>
   );
 }
