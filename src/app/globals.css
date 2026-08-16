@@ -637,3 +637,65 @@ a { color: inherit; text-decoration: none; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 99px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ============================================================
+   MODALS
+   ============================================================ */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex; justify-content: center; align-items: center;
+  padding: 1rem;
+}
+
+.modal-container {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  width: 100%; max-width: 500px;
+  max-height: 90vh;
+  box-shadow: var(--shadow-lg);
+  display: flex; flex-direction: column;
+}
+
+[data-theme="glass"] .modal-container {
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-color: var(--glass-border);
+}
+
+[data-theme="light"] .modal-container {
+  box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+}
+
+.modal-container.wide { max-width: 800px; }
+.modal-container.medium { max-width: 600px; }
+
+.modal-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 1.5rem 1.75rem;
+  border-bottom: 1px solid var(--border);
+}
+.modal-title { font-size: 1.25rem; font-weight: 700; color: var(--text-primary); letter-spacing: -0.01em; margin: 0; }
+.modal-close {
+  background: transparent; border: none; cursor: pointer;
+  color: var(--text-muted); padding: 0.25rem; border-radius: var(--radius-sm);
+  transition: all 0.18s ease; display: flex; align-items: center; justify-content: center;
+}
+.modal-close:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+.modal-body { padding: 1.75rem; overflow-y: auto; }
+
+.modal-footer {
+  padding: 1.25rem 1.75rem;
+  border-top: 1px solid var(--border);
+  display: flex; justify-content: flex-end; gap: 0.75rem;
+  background: var(--bg-elevated);
+  border-bottom-left-radius: var(--radius-xl);
+  border-bottom-right-radius: var(--radius-xl);
+}
+[data-theme="glass"] .modal-footer { background: rgba(255,255,255,0.03); }
+[data-theme="light"] .modal-footer { background: #f8fafc; }

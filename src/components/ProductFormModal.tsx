@@ -78,102 +78,119 @@ export default function ProductFormModal({ initialData, onClose, onSuccess }: Pr
   };
 
   return (
-    <div style={{
-      position: "fixed", top: 0, left: 0, width: "100%", height: "100%",
-      backgroundColor: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000
-    }}>
-      <div style={{ backgroundColor: "#ffffff", color: "#111827", width: "100%", maxWidth: "600px", padding: "24px", borderRadius: "12px", maxHeight: "90vh", overflowY: "auto", boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
-          <h2 style={{ margin: 0, fontSize: "1.25rem", fontWeight: "700" }}>{isEditing ? "Edit Product" : "Add Product"}</h2>
-          <button type="button" onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.5rem", color: "#6b7280", lineHeight: 1 }}>&times;</button>
+    <div className="modal-overlay">
+      <div className="modal-container medium">
+        <div className="modal-header">
+          <h2 className="modal-title">{isEditing ? "Edit Product" : "Add Product"}</h2>
+          <button type="button" className="modal-close" onClick={onClose}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
         </div>
 
-        {error && (
-          <div style={{ padding: "1rem", backgroundColor: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.2)", borderRadius: "8px", color: "#ef4444", marginBottom: "1.5rem" }}>
-            {error}
-          </div>
-        )}
-        
-        <form onSubmit={handleSubmit}>
-          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              <label htmlFor="name" style={{ fontSize: "0.875rem", fontWeight: "600", color: "#111827" }}>Name</label>
-              <input id="name" type="text" value={productData.name} onChange={(e) => setProductData({ ...productData, name: e.target.value })} required style={{ padding: "10px 12px", borderRadius: "6px", border: "1px solid #e5e7eb", fontSize: "0.875rem", outline: "none", color: "#111827" }} />
+        <div className="modal-body">
+          {error && (
+            <div className="alert-error">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              {error}
             </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              <label htmlFor="fullName" style={{ fontSize: "0.875rem", fontWeight: "600", color: "#111827" }}>Full Name</label>
-              <input id="fullName" type="text" value={productData.fullName} onChange={(e) => setProductData({ ...productData, fullName: e.target.value })} style={{ padding: "10px 12px", borderRadius: "6px", border: "1px solid #e5e7eb", fontSize: "0.875rem", outline: "none", color: "#111827" }} />
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              <label htmlFor="description" style={{ fontSize: "0.875rem", fontWeight: "600", color: "#111827" }}>Description</label>
-              <textarea id="description" value={productData.description} onChange={(e) => setProductData({ ...productData, description: e.target.value })} rows={3} style={{ padding: "10px 12px", borderRadius: "6px", border: "1px solid #e5e7eb", fontSize: "0.875rem", outline: "none", resize: "vertical", color: "#111827" }} />
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                <label htmlFor="family" style={{ fontSize: "0.875rem", fontWeight: "600", color: "#111827" }}>Family</label>
-                <select id="family" value={productData.family} onChange={(e) => setProductData({ ...productData, family: e.target.value })} style={{ padding: "10px 12px", borderRadius: "6px", border: "1px solid #e5e7eb", fontSize: "0.875rem", outline: "none", backgroundColor: "white", color: "#111827", appearance: "auto" }}>
-                  <option value="SES">SES</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                <label htmlFor="version" style={{ fontSize: "0.875rem", fontWeight: "600", color: "#111827" }}>Version</label>
-                <input id="version" type="text" value={productData.version} onChange={(e) => setProductData({ ...productData, version: e.target.value })} style={{ padding: "10px 12px", borderRadius: "6px", border: "1px solid #e5e7eb", fontSize: "0.875rem", outline: "none", color: "#111827" }} />
-              </div>
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                <label htmlFor="price" style={{ fontSize: "0.875rem", fontWeight: "600", color: "#111827" }}>Price</label>
-                <input id="price" type="number" value={productData.price} onChange={(e) => setProductData({ ...productData, price: Number(e.target.value) })} style={{ padding: "10px 12px", borderRadius: "6px", border: "1px solid #e5e7eb", fontSize: "0.875rem", outline: "none", color: "#111827" }} />
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                <label htmlFor="janDrozdId" style={{ fontSize: "0.875rem", fontWeight: "600", color: "#111827" }}>JanDrozd ID</label>
-                <input id="janDrozdId" type="text" value={productData.janDrozdId} onChange={(e) => setProductData({ ...productData, janDrozdId: e.target.value })} style={{ padding: "10px 12px", borderRadius: "6px", border: "1px solid #e5e7eb", fontSize: "0.875rem", outline: "none", color: "#111827" }} />
-              </div>
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                <label htmlFor="trialPeriod" style={{ fontSize: "0.875rem", fontWeight: "600", color: "#111827" }}>Trial Period (days)</label>
-                <input id="trialPeriod" type="number" value={productData.trialPeriod} onChange={(e) => setProductData({ ...productData, trialPeriod: Number(e.target.value) })} style={{ padding: "10px 12px", borderRadius: "6px", border: "1px solid #e5e7eb", fontSize: "0.875rem", outline: "none", color: "#111827" }} />
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                <label htmlFor="expiryDate" style={{ fontSize: "0.875rem", fontWeight: "600", color: "#111827" }}>Expiry Date</label>
-                <input id="expiryDate" type="date" value={productData.expiryDate} onChange={(e) => setProductData({ ...productData, expiryDate: e.target.value })} style={{ padding: "10px 12px", borderRadius: "6px", border: "1px solid #e5e7eb", fontSize: "0.875rem", outline: "none", color: "#111827" }} />
-              </div>
-            </div>
-
-            <div style={{ display: "flex", gap: "16px", marginTop: "8px", alignItems: "center", flexWrap: "wrap" }}>
-              <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.875rem", color: "#111827", cursor: "pointer", fontWeight: "500" }}>
-                <input type="checkbox" checked={productData.allowTrial} onChange={(e) => setProductData({ ...productData, allowTrial: e.target.checked })} style={{ width: "16px", height: "16px", borderRadius: "4px", accentColor: "#0ea5e9" }} /> Allow Trial
-              </label>
-              <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.875rem", color: "#111827", cursor: "pointer", fontWeight: "500" }}>
-                <input type="checkbox" checked={productData.comingSoon} onChange={(e) => setProductData({ ...productData, comingSoon: e.target.checked })} style={{ width: "16px", height: "16px", borderRadius: "4px", accentColor: "#0ea5e9" }} /> Coming Soon
-              </label>
-              <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.875rem", color: "#111827", cursor: "pointer", fontWeight: "500" }}>
-                <input type="checkbox" checked={productData.hidden} onChange={(e) => setProductData({ ...productData, hidden: e.target.checked })} style={{ width: "16px", height: "16px", borderRadius: "4px", accentColor: "#0ea5e9" }} /> Hidden
-              </label>
-              <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.875rem", color: "#111827", cursor: "pointer", fontWeight: "500" }}>
-                <input type="checkbox" checked={productData.withTaxes} onChange={(e) => setProductData({ ...productData, withTaxes: e.target.checked })} style={{ width: "16px", height: "16px", borderRadius: "4px", accentColor: "#0ea5e9" }} /> With Taxes
-              </label>
-            </div>
-
-          </div>
+          )}
           
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "32px" }}>
-            <button type="button" onClick={onClose} style={{ padding: "10px 20px", background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: "8px", cursor: "pointer", color: "#111827", fontSize: "0.875rem", fontWeight: "600", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              Cancel
-            </button>
-            <button type="submit" disabled={saving} style={{ padding: "10px 20px", background: "#f97316", border: "none", borderRadius: "8px", cursor: "pointer", color: "#ffffff", fontSize: "0.875rem", fontWeight: "600", display: "flex", alignItems: "center", gap: "8px", justifyContent: "center" }}>
-              {saving ? "Saving..." : isEditing ? "Save Changes" : "Create Product"}
-            </button>
-          </div>
-        </form>
+          <form id="productForm" onSubmit={handleSubmit}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+              
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" htmlFor="name">Name</label>
+                <input id="name" type="text" className="form-input" value={productData.name} onChange={(e) => setProductData({ ...productData, name: e.target.value })} required />
+              </div>
+
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" htmlFor="fullName">Full Name</label>
+                <input id="fullName" type="text" className="form-input" value={productData.fullName} onChange={(e) => setProductData({ ...productData, fullName: e.target.value })} />
+              </div>
+
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" htmlFor="description">Description</label>
+                <textarea id="description" className="form-input" value={productData.description} onChange={(e) => setProductData({ ...productData, description: e.target.value })} rows={3} style={{ resize: "vertical" }} />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" htmlFor="family">Family</label>
+                  <select id="family" className="form-input" value={productData.family} onChange={(e) => setProductData({ ...productData, family: e.target.value })} style={{ appearance: "auto" }}>
+                    <option value="SES">SES</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" htmlFor="version">Version</label>
+                  <input id="version" type="text" className="form-input" value={productData.version} onChange={(e) => setProductData({ ...productData, version: e.target.value })} />
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" htmlFor="price">Price</label>
+                  <input id="price" type="number" className="form-input" value={productData.price} onChange={(e) => setProductData({ ...productData, price: Number(e.target.value) })} />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" htmlFor="janDrozdId">JanDrozd ID</label>
+                  <input id="janDrozdId" type="text" className="form-input" value={productData.janDrozdId} onChange={(e) => setProductData({ ...productData, janDrozdId: e.target.value })} />
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" htmlFor="trialPeriod">Trial Period (days)</label>
+                  <input id="trialPeriod" type="number" className="form-input" value={productData.trialPeriod} onChange={(e) => setProductData({ ...productData, trialPeriod: Number(e.target.value) })} />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" htmlFor="expiryDate">Expiry Date</label>
+                  <input id="expiryDate" type="date" className="form-input" value={productData.expiryDate} onChange={(e) => setProductData({ ...productData, expiryDate: e.target.value })} />
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" htmlFor="order">Display Order</label>
+                  <input id="order" type="number" className="form-input" value={productData.order} onChange={(e) => setProductData({ ...productData, order: Number(e.target.value) })} />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" htmlFor="link">Link</label>
+                  <input id="link" type="text" className="form-input" value={productData.link} onChange={(e) => setProductData({ ...productData, link: e.target.value })} />
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginTop: "0.5rem" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.875rem", cursor: "pointer", color: "var(--text-primary)" }}>
+                  <input type="checkbox" checked={productData.allowTrial} onChange={(e) => setProductData({ ...productData, allowTrial: e.target.checked })} style={{ width: "16px", height: "16px" }} />
+                  Allow Trial
+                </label>
+                <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.875rem", cursor: "pointer", color: "var(--text-primary)" }}>
+                  <input type="checkbox" checked={productData.comingSoon} onChange={(e) => setProductData({ ...productData, comingSoon: e.target.checked })} style={{ width: "16px", height: "16px" }} />
+                  Coming Soon
+                </label>
+                <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.875rem", cursor: "pointer", color: "var(--text-primary)" }}>
+                  <input type="checkbox" checked={productData.hidden} onChange={(e) => setProductData({ ...productData, hidden: e.target.checked })} style={{ width: "16px", height: "16px" }} />
+                  Hidden
+                </label>
+                <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.875rem", cursor: "pointer", color: "var(--text-primary)" }}>
+                  <input type="checkbox" checked={productData.withTaxes} onChange={(e) => setProductData({ ...productData, withTaxes: e.target.checked })} style={{ width: "16px", height: "16px" }} />
+                  With Taxes
+                </label>
+              </div>
+
+            </div>
+          </form>
+        </div>
+
+        <div className="modal-footer">
+          <button type="button" className="btn-ghost" onClick={onClose} disabled={saving}>Cancel</button>
+          <button type="submit" form="productForm" className="btn-primary" disabled={saving}>
+            {saving ? "Saving..." : "Save Product"}
+          </button>
+        </div>
       </div>
     </div>
   );

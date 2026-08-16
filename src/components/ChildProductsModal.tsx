@@ -73,95 +73,102 @@ export default function ChildProductsModal({ product, onClose, onSuccess }: Chil
   };
 
   return (
-    <div style={{
-      position: "fixed", top: 0, left: 0, width: "100%", height: "100%",
-      backgroundColor: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000
-    }}>
-      <div style={{ backgroundColor: "#ffffff", color: "#111827", width: "100%", maxWidth: "700px", padding: "24px", borderRadius: "12px", maxHeight: "90vh", overflowY: "auto", boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
-          <h2 style={{ margin: 0, fontSize: "1.25rem", fontWeight: "700" }}>Child Products for {product.name}</h2>
-          <button type="button" onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.5rem", color: "#6b7280", lineHeight: 1 }}>&times;</button>
+    <div className="modal-overlay">
+      <div className="modal-container wide">
+        <div className="modal-header">
+          <h2 className="modal-title">Child Products for {product.name}</h2>
+          <button type="button" className="modal-close" onClick={onClose}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
         </div>
 
-        {error && (
-          <div style={{ padding: "1rem", backgroundColor: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.2)", borderRadius: "8px", color: "#ef4444", marginBottom: "1.5rem" }}>
-            {error}
-          </div>
-        )}
-
-        <div style={{ marginBottom: "20px", display: "flex", justifyContent: "flex-end" }}>
-          {!isAdding && (
-            <button 
-              onClick={() => setIsAdding(true)} 
-              style={{ padding: "8px 16px", background: "#0ea5e9", border: "none", borderRadius: "6px", color: "white", fontSize: "0.875rem", fontWeight: "600", cursor: "pointer" }}
-            >
-              + Add Child Product
-            </button>
+        <div className="modal-body">
+          {error && (
+            <div className="alert-error">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              {error}
+            </div>
           )}
-        </div>
 
-        {isAdding && (
-          <div style={{ padding: "16px", border: "1px solid #e5e7eb", borderRadius: "8px", marginBottom: "24px", backgroundColor: "#f9fafb" }}>
-            <h3 style={{ margin: "0 0 16px 0", fontSize: "1rem", fontWeight: "600" }}>New Child Product</h3>
-            <form onSubmit={handleAddChild}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "16px" }}>
-                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <label style={{ fontSize: "0.875rem", fontWeight: "500" }}>Name</label>
-                  <input required type="text" value={newChild.name} onChange={e => setNewChild({...newChild, name: e.target.value})} style={{ padding: "8px", borderRadius: "4px", border: "1px solid #d1d5db" }} />
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <label style={{ fontSize: "0.875rem", fontWeight: "500" }}>Family</label>
-                  <select value={newChild.family} onChange={e => setNewChild({...newChild, family: e.target.value})} style={{ padding: "8px", borderRadius: "4px", border: "1px solid #d1d5db" }}>
-                    <option value="SES">SES</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <label style={{ fontSize: "0.875rem", fontWeight: "500" }}>Price</label>
-                  <input type="number" value={newChild.price} onChange={e => setNewChild({...newChild, price: Number(e.target.value)})} style={{ padding: "8px", borderRadius: "4px", border: "1px solid #d1d5db" }} />
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <label style={{ fontSize: "0.875rem", fontWeight: "500" }}>Trial Period (days)</label>
-                  <input type="number" value={newChild.trialPeriod} onChange={e => setNewChild({...newChild, trialPeriod: Number(e.target.value)})} style={{ padding: "8px", borderRadius: "4px", border: "1px solid #d1d5db" }} />
-                </div>
-              </div>
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
-                <button type="button" onClick={() => setIsAdding(false)} style={{ padding: "6px 12px", background: "white", border: "1px solid #d1d5db", borderRadius: "4px", cursor: "pointer" }}>Cancel</button>
-                <button type="submit" disabled={loading} style={{ padding: "6px 12px", background: "#f97316", color: "white", border: "none", borderRadius: "4px", cursor: loading ? "not-allowed" : "pointer" }}>{loading ? "Adding..." : "Add"}</button>
-              </div>
-            </form>
+          <div style={{ marginBottom: "1.5rem", display: "flex", justifyContent: "flex-end" }}>
+            {!isAdding && (
+              <button className="btn-primary" onClick={() => setIsAdding(true)}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add Child Product
+              </button>
+            )}
           </div>
-        )}
 
-        <div className="data-table-wrapper" style={{ overflowX: "auto" }}>
-          <table className="data-table" style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ borderBottom: "2px solid #e5e7eb", textAlign: "left" }}>
-                <th style={{ padding: "12px 8px", fontSize: "0.875rem", color: "#6b7280" }}>Name</th>
-                <th style={{ padding: "12px 8px", fontSize: "0.875rem", color: "#6b7280" }}>Family</th>
-                <th style={{ padding: "12px 8px", fontSize: "0.875rem", color: "#6b7280" }}>Price</th>
-              </tr>
-            </thead>
-            <tbody>
-              {childrenList.length === 0 ? (
+          {isAdding && (
+            <div style={{ padding: "1.5rem", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", marginBottom: "2rem", background: "var(--bg-elevated)" }}>
+              <h3 style={{ margin: "0 0 1rem 0", fontSize: "1rem", fontWeight: "600", color: "var(--text-primary)" }}>New Child Product</h3>
+              <form onSubmit={handleAddChild}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "1rem", marginBottom: "1.5rem" }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label">Name</label>
+                    <input required type="text" className="form-input" value={newChild.name} onChange={e => setNewChild({...newChild, name: e.target.value})} />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label">Family</label>
+                    <select className="form-input" value={newChild.family} onChange={e => setNewChild({...newChild, family: e.target.value})} style={{ appearance: "auto" }}>
+                      <option value="SES">SES</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label">Price</label>
+                    <input type="number" className="form-input" value={newChild.price} onChange={e => setNewChild({...newChild, price: Number(e.target.value)})} />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label">Trial (days)</label>
+                    <input type="number" className="form-input" value={newChild.trialPeriod} onChange={e => setNewChild({...newChild, trialPeriod: Number(e.target.value)})} />
+                  </div>
+                </div>
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
+                  <button type="button" className="btn-ghost" onClick={() => setIsAdding(false)}>Cancel</button>
+                  <button type="submit" className="btn-primary" disabled={loading}>{loading ? "Adding..." : "Add"}</button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          <div className="data-table-wrapper">
+            <table className="data-table">
+              <thead>
                 <tr>
-                  <td colSpan={3} style={{ textAlign: "center", padding: "24px", color: "#6b7280", fontSize: "0.875rem" }}>No child products found.</td>
+                  <th>Name</th>
+                  <th>Family</th>
+                  <th>Price</th>
                 </tr>
-              ) : (
-                childrenList.map(child => (
-                  <tr key={child.id} style={{ borderBottom: "1px solid #e5e7eb" }}>
-                    <td style={{ padding: "12px 8px", fontSize: "0.875rem", fontWeight: "500" }}>{child.name}</td>
-                    <td style={{ padding: "12px 8px", fontSize: "0.875rem" }}>{child.family}</td>
-                    <td style={{ padding: "12px 8px", fontSize: "0.875rem" }}>
-                      ${child.prices && child.prices.length > 0 ? (child.prices[0].price || 0).toFixed(2) : "0.00"}
+              </thead>
+              <tbody>
+                {childrenList.length === 0 ? (
+                  <tr>
+                    <td colSpan={3}>
+                      <div className="empty-state" style={{ padding: "2rem" }}>
+                        <p className="empty-state-sub">No child products found.</p>
+                      </div>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  childrenList.map((child) => (
+                    <tr key={child.id}>
+                      <td className="fw-medium">{child.name}</td>
+                      <td><span className="badge badge-neutral">{child.family}</span></td>
+                      <td className="mono">${child.prices && child.prices.length > 0 ? child.prices[0].price : "0"}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
+        <div className="modal-footer">
+          <button type="button" className="btn-ghost" onClick={onClose}>Close</button>
+        </div>
       </div>
     </div>
   );
