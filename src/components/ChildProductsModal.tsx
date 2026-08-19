@@ -93,9 +93,9 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
 
       if (response?.data?.isSuccess && response.data.value) {
         if (newChild.id) {
-          setChildrenList(childrenList.map(c => c.id === newChild.id ? response.data.value : c));
+          setChildrenList(childrenList.map(c => c.id === newChild.id ? response.data!.value! : c));
         } else {
-          setChildrenList([...childrenList, response.data.value]);
+          setChildrenList([...childrenList, response.data!.value!]);
         }
         setIsAddingChild(false);
         setNewChild({ id: "", name: "", fullName: "", janDrozdId: "" });
