@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { postApiProductsByProductIdMedia, deleteApiProductsByProductIdMediaByMediaId } from "@/client";
 import { ProductDto } from "@/client/types.gen";
+import { resolveMediaUrl } from "@/lib/mediaUrl";
 
 type ProductMediaModalProps = {
   product: ProductDto;
@@ -134,8 +135,7 @@ export default function ProductMediaModal({ product, onClose, onSuccess }: Produ
             ) : (
               <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                 {mediaList.map((media) => {
-                  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:5003";
-                  const fullUrl = media.url?.startsWith("http") ? media.url : `${apiUrl}${media.url?.startsWith("/") ? "" : "/"}${media.url}`;
+                  const fullUrl = resolveMediaUrl(media.url);
                   return (
                     <li key={media.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.75rem 1rem", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", background: "var(--bg-elevated)" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "1rem", overflow: "hidden" }}>

@@ -2,21 +2,19 @@
 import { useEffect, useState, useCallback } from "react";
 import { getApiProducts, deleteApiProductsById } from "@/client";
 import { client } from "@/client/client.gen";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import ProductFormModal from "@/components/ProductFormModal";
-import ProductMediaModal from "@/components/ProductMediaModal";
-import ChildProductsModal from "@/components/ChildProductsModal";
 import { ProductDto } from "@/client/types.gen";
+import { resolveMediaUrl } from "@/lib/mediaUrl";
+import ProductFormModal from "@/components/ProductFormModal";
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<ProductDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<ProductDto | null>(null);
-  const [mediaProduct, setMediaProduct] = useState<ProductDto | null>(null);
-  const [childrenProduct, setChildrenProduct] = useState<ProductDto | null>(null);
+  const openCreateModal = () => setIsCreateModalOpen(true);
 
   const router = useRouter();
 
@@ -46,25 +44,6 @@ export default function ProductsPage() {
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this product?")) return;
-    setError("");
-    try {
-      const response = await deleteApiProductsById({ path: { id }, throwOnError: false });
-      if (response.data?.isSuccess) {
-        fetchProducts();
-      } else {
-        setError(response.data?.errors?.map((e: any) => e.description).join(", ") || "Failed to delete.");
-      }
-    } catch (err: any) {
-      setError(err.message || "Error deleting product.");
-    }
-  };
-
-  const openEditModal = (product: ProductDto) => { setEditingProduct(product); setIsFormModalOpen(true); };
-  const openCreateModal = () => { setEditingProduct(null); setIsFormModalOpen(true); };
-  const handleModalSuccess = () => { setIsFormModalOpen(false); setMediaProduct(null); setChildrenProduct(null); fetchProducts(); };
-
   const rootProducts = products.filter((p) => !p.parentProductId);
 
   return (
@@ -91,90 +70,152 @@ export default function ProductsPage() {
         </div>
       )}
 
-      <div className="data-table-wrapper">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Family</th>
-              <th>Version</th>
-              <th>Price</th>
-              <th>Visibility</th>
-              <th>Coming Soon</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <tr key={i}>
-                  {Array.from({ length: 7 }).map((__, j) => (
-                    <td key={j}><div className="skeleton" style={{ height: "20px", width: j === 0 ? "120px" : "80px" }} /></td>
-                  ))}
-                </tr>
-              ))
-            ) : rootProducts.length === 0 ? (
-              <tr>
-                <td colSpan={7}>
-                  <div className="empty-state">
-                    <svg className="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "1.75rem" }}>
+        {loading ? (
+          Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="skeleton" style={{ height: "340px", borderRadius: "var(--radius-lg)" }} />
+          ))
+        ) : rootProducts.length === 0 ? (
+          <div style={{ gridColumn: "1 / -1" }}>
+            <div className="empty-state">
+              <svg className="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+              </svg>
+              <p className="empty-state-title">No products yet</p>
+              <p className="empty-state-sub">Create your first product to get started</p>
+            </div>
+          </div>
+        ) : (
+          rootProducts.map((product) => (
+            <Link key={product.id} href={`/products/${product.id}`} style={{
+              background: "var(--bg-elevated)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--radius-lg)",
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
+              textDecoration: "none",
+              transition: "transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = "translateY(-6px)";
+              e.currentTarget.style.boxShadow = "0 20px 40px rgba(0,0,0,0.4)";
+              e.currentTarget.style.borderColor = "var(--accent-border)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "none";
+              e.currentTarget.style.boxShadow = "none";
+              e.currentTarget.style.borderColor = "var(--border)";
+            }}
+            >
+              {/* ── Product Image Area ── */}
+              <div style={{
+                position: "relative",
+                background: "linear-gradient(145deg, var(--bg-surface) 0%, var(--bg-elevated) 100%)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "2rem 1.5rem",
+                minHeight: 200,
+                borderBottom: "1px solid var(--border)",
+              }}>
+                {/* Decorative dot grid */}
+                <div style={{
+                  position: "absolute", inset: 0,
+                  backgroundImage: "radial-gradient(circle, var(--border) 1px, transparent 1px)",
+                  backgroundSize: "20px 20px",
+                  opacity: 0.5,
+                  pointerEvents: "none",
+                }} />
+
+                {product.media && product.media.length > 0 && product.media[0].url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={resolveMediaUrl(product.media[0].url)}
+                    alt={product.name || "Product"}
+                    style={{
+                      position: "relative",
+                      maxHeight: 160,
+                      maxWidth: "100%",
+                      objectFit: "contain",
+                      display: "block",
+                      filter: "drop-shadow(0 12px 24px rgba(0,0,0,0.4))",
+                      transition: "transform 0.3s ease",
+                    }}
+                    onMouseEnter={(e) => { (e.target as HTMLImageElement).style.transform = "scale(1.06)"; }}
+                    onMouseLeave={(e) => { (e.target as HTMLImageElement).style.transform = "scale(1)"; }}
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                  />
+                ) : (
+                  <div style={{
+                    position: "relative",
+                    width: 110, height: 110,
+                    background: "linear-gradient(135deg, var(--accent) 0%, #312e81 100%)",
+                    borderRadius: "var(--radius-lg)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    boxShadow: "0 12px 32px rgba(124,58,237,0.35)",
+                  }}>
+                    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>
                     </svg>
-                    <p className="empty-state-title">No products yet</p>
-                    <p className="empty-state-sub">Create your first product to get started</p>
                   </div>
-                </td>
-              </tr>
-            ) : (
-              rootProducts.map((product) => (
-                <tr key={product.id}>
-                  <td className="fw-medium">{product.name}</td>
-                  <td style={{ color: "var(--text-secondary)" }}>{product.family || "—"}</td>
-                  <td><span className="badge badge-neutral">{product.version || "—"}</span></td>
-                  <td style={{ fontFamily: "var(--font-mono)", fontSize: "0.85rem" }}>
+                )}
+
+                {/* Status badges */}
+                <div style={{ position: "absolute", top: "0.75rem", right: "0.75rem", display: "flex", flexDirection: "column", gap: "0.3rem", alignItems: "flex-end" }}>
+                  {product.hidden
+                    ? <span className="badge badge-neutral">Hidden</span>
+                    : <span className="badge badge-success">Visible</span>}
+                  {product.comingSoon && <span className="badge badge-warning">Soon</span>}
+                </div>
+              </div>
+
+              {/* ── Info ── */}
+              <div style={{ padding: "1.1rem 1.25rem 1rem", display: "flex", flexDirection: "column", gap: "0.7rem", flex: 1 }}>
+
+                {/* Title */}
+                <div>
+                  <h3 style={{ margin: "0 0 0.15rem", fontSize: "1.1rem", fontWeight: 700, color: "var(--accent-light)" }}>
+                    {product.name}
+                  </h3>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                    {product.family && <span>{product.family}</span>}
+                    {product.family && product.version && <span>·</span>}
+                    {product.version && <span>v{product.version}</span>}
+                  </div>
+                </div>
+
+                {/* Price */}
+                <div style={{ display: "flex", alignItems: "baseline", gap: "0.4rem", flexWrap: "wrap", marginTop: "auto" }}>
+                  <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>Starts from</span>
+                  <span style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "0.88rem",
+                    fontWeight: 700,
+                    color: "var(--text-primary)",
+                    background: "var(--accent-dim)",
+                    border: "1px solid var(--accent-border)",
+                    borderRadius: "var(--radius-sm)",
+                    padding: "0.1rem 0.45rem",
+                  }}>
                     ${product.prices && product.prices.length > 0 ? (product.prices[0].price || 0).toFixed(2) : "0.00"}
-                  </td>
-                  <td>
-                    {product.hidden
-                      ? <span className="badge badge-neutral">Hidden</span>
-                      : <span className="badge badge-success">Visible</span>}
-                  </td>
-                  <td>
-                    {product.comingSoon
-                      ? <span className="badge badge-warning">Soon</span>
-                      : <span className="badge badge-neutral">No</span>}
-                  </td>
-                  <td>
-                    <div className="table-actions">
-                      <button className="btn-ghost" onClick={() => setChildrenProduct(product)}>
-                        Children ({product.children?.length || 0})
-                      </button>
-                      <button className="btn-ghost" onClick={() => setMediaProduct(product)}>
-                        Media ({product.media?.length || 0})
-                      </button>
-                      <button className="btn-ghost" style={{ color: "var(--accent-light)", borderColor: "var(--accent-border)" }} onClick={() => openEditModal(product)}>
-                        Edit
-                      </button>
-                      <button className="btn-danger-ghost" onClick={() => handleDelete(product.id!)}>
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                  </span>
+                  <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>per year</span>
+                </div>
+              </div>
+            </Link>
+          ))
+        )}
       </div>
 
-      {isFormModalOpen && (
-        <ProductFormModal initialData={editingProduct} onClose={() => setIsFormModalOpen(false)} onSuccess={handleModalSuccess} />
-      )}
-      {mediaProduct && (
-        <ProductMediaModal product={mediaProduct} onClose={() => setMediaProduct(null)} onSuccess={handleModalSuccess} />
-      )}
-      {childrenProduct && (
-        <ChildProductsModal product={childrenProduct} onClose={() => setChildrenProduct(null)} onSuccess={handleModalSuccess} />
+      {isCreateModalOpen && (
+        <ProductFormModal
+          onClose={() => setIsCreateModalOpen(false)}
+          onSuccess={() => {
+            setIsCreateModalOpen(false);
+            fetchProducts();
+          }}
+        />
       )}
     </div>
   );

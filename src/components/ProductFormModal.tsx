@@ -118,10 +118,28 @@ export default function ProductFormModal({ initialData, onClose, onSuccess }: Pr
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label" htmlFor="family">Family</label>
-                  <select id="family" className="form-input" value={productData.family} onChange={(e) => setProductData({ ...productData, family: e.target.value })} style={{ appearance: "auto" }}>
+                  <select id="family" className="form-input" value={["SES", "NanoCAD"].includes(productData.family) ? productData.family : "Other"} onChange={(e) => {
+                      if (e.target.value === "Other") {
+                        setProductData({ ...productData, family: "" });
+                      } else {
+                        setProductData({ ...productData, family: e.target.value });
+                      }
+                  }} style={{ appearance: "auto" }}>
                     <option value="SES">SES</option>
+                    <option value="NanoCAD">NanoCAD</option>
                     <option value="Other">Other</option>
                   </select>
+                  {!["SES", "NanoCAD"].includes(productData.family) && (
+                      <input 
+                          type="text" 
+                          className="form-input" 
+                          placeholder="Enter custom family"
+                          value={productData.family === "Other" ? "" : productData.family}
+                          onChange={(e) => setProductData({ ...productData, family: e.target.value })}
+                          style={{ marginTop: "0.5rem" }}
+                          required
+                      />
+                  )}
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label" htmlFor="version">Version</label>

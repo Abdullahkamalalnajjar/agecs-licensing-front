@@ -3,12 +3,14 @@ import { useEffect, useState, useCallback } from "react";
 import { getApiTicketsById, postApiTicketsByIdComments, putApiTicketsByIdStatus } from "@/client";
 import { client } from "@/client/client.gen";
 import { useRouter, useParams } from "next/navigation";
+import { useAuth } from "@/components/AuthProvider";
 
 import Link from "next/link";
 
 export default function TicketDetailsPage() {
   const params = useParams();
   const ticketId = params.id as string;
+  const { user } = useAuth();
   
   const [ticket, setTicket] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
@@ -152,20 +154,22 @@ export default function TicketDetailsPage() {
           </p>
         </div>
 
-        <div style={{ marginTop: "24px", display: "flex", gap: "12px", alignItems: "center" }}>
-          <span style={{ fontSize: "0.85rem", fontWeight: "600", color: "#4b5563" }}>Change Status:</span>
-          <select 
-            value={ticket.status} 
-            onChange={(e) => handleChangeStatus(e.target.value)}
-            disabled={changingStatus}
-            style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #d1d5db", fontSize: "0.85rem", backgroundColor: "white", outline: "none" }}
-          >
-            <option value="Open">Open</option>
-            <option value="InProgress">In Progress</option>
-            <option value="Closed">Closed</option>
-          </select>
-          {changingStatus && <span style={{ fontSize: "0.8rem", color: "#6b7280" }}>Updating...</span>}
-        </div>
+        {user?.role !== "Student" && (
+          <div style={{ marginTop: "24px", display: "flex", gap: "12px", alignItems: "center" }}>
+            <span style={{ fontSize: "0.85rem", fontWeight: "600", color: "#4b5563" }}>Change Status:</span>
+            <select 
+              value={ticket.status} 
+              onChange={(e) => handleChangeStatus(e.target.value)}
+              disabled={changingStatus}
+              style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #d1d5db", fontSize: "0.85rem", backgroundColor: "white", outline: "none" }}
+            >
+              <option value="Open">Open</option>
+              <option value="InProgress">In Progress</option>
+              <option value="Closed">Closed</option>
+            </select>
+            {changingStatus && <span style={{ fontSize: "0.8rem", color: "#6b7280" }}>Updating...</span>}
+          </div>
+        )}
       </div>
 
       <div style={{ backgroundColor: "#ffffff", borderRadius: "12px", padding: "24px", boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)" }}>
