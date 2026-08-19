@@ -139,11 +139,10 @@ export default function ProductMediaModal({ product, onClose, onSuccess }: Produ
                   return (
                     <li key={media.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.75rem 1rem", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", background: "var(--bg-elevated)" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "1rem", overflow: "hidden" }}>
-                        <div style={{ width: "40px", height: "40px", background: "var(--bg-hover)", borderRadius: "var(--radius-sm)", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid var(--border)" }}>
-                          <img src={fullUrl} alt="Media Thumbnail" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => { (e.target as any).style.display = 'none'; }} />
-                        </div>
-                        <a href={fullUrl} target="_blank" rel="noopener noreferrer" className="mono" style={{ color: "var(--accent-light)", fontSize: "0.85rem", textDecoration: "none", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "250px" }}>
-                          {media.url}
+                        <a href={fullUrl} target="_blank" rel="noopener noreferrer" style={{ display: "block", textDecoration: "none" }} title="Click to view full image">
+                          <div style={{ width: "40px", height: "40px", background: "var(--bg-hover)", borderRadius: "var(--radius-sm)", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid var(--border)" }}>
+                            <img src={fullUrl} alt="Media Thumbnail" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => { (e.target as any).style.display = 'none'; }} />
+                          </div>
                         </a>
                       </div>
                       <button 

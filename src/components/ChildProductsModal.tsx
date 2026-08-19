@@ -173,40 +173,42 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
               </div>
             )}
 
-            <div className="data-table-wrapper">
-              <table className="data-table">
-                <thead style={{ background: "var(--bg-elevated)" }}>
+            <div className="data-table-wrapper" style={{ overflowX: "auto", borderRadius: "var(--radius-md)", border: "1px solid var(--border)", background: "var(--bg-surface)" }}>
+              <table className="data-table" style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "0.875rem" }}>
+                <thead style={{ background: "var(--bg-elevated)", borderBottom: "1px solid var(--border)" }}>
                   <tr>
-                    <th style={{ width: "25%" }}>Name</th>
-                    <th style={{ width: "40%" }}>Full Name</th>
-                    <th style={{ width: "20%" }}>JanDrozd ID</th>
-                    <th style={{ width: "15%", textAlign: "right" }}>Actions</th>
+                    <th style={{ width: "30%", padding: "0.875rem 1.25rem", color: "var(--text-muted)", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>Name</th>
+                    <th style={{ width: "40%", padding: "0.875rem 1.25rem", color: "var(--text-muted)", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>Full Name</th>
+                    <th style={{ width: "15%", padding: "0.875rem 1.25rem", color: "var(--text-muted)", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>JanDrozd ID</th>
+                    <th style={{ width: "15%", padding: "0.875rem 1.25rem", color: "var(--text-muted)", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600, textAlign: "right" }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {childrenList.length === 0 ? (
                     <tr>
-                      <td colSpan={4}>
-                        <div className="empty-state" style={{ padding: "2rem" }}>
-                          <p className="empty-state-sub">No variants found.</p>
+                      <td colSpan={4} style={{ padding: "1rem" }}>
+                        <div className="empty-state" style={{ padding: "2rem", textAlign: "center" }}>
+                          <p className="empty-state-sub" style={{ margin: 0 }}>No variants found.</p>
                         </div>
                       </td>
                     </tr>
                   ) : (
                     childrenList.map((child) => (
-                      <tr key={child.id}>
-                        <td className="fw-medium" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--text-secondary)" }}><polyline points="6 9 12 15 18 9"></polyline></svg>
-                          {child.name}
+                      <tr key={child.id} style={{ borderBottom: "1px solid var(--border)" }}>
+                        <td className="fw-medium" style={{ padding: "1rem 1.25rem" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--text-secondary)", flexShrink: 0 }}><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            {child.name}
+                          </div>
                         </td>
-                        <td style={{ color: "var(--text-secondary)" }}>{child.fullName || "—"}</td>
-                        <td style={{ color: "var(--text-secondary)" }}>{child.janDrozdId || "—"}</td>
-                        <td style={{ textAlign: "right" }}>
-                          <div className="table-actions" style={{ justifyContent: "flex-end" }}>
-                            <button className="btn-icon" title="Edit Variant" onClick={() => handleEditClick(child)} style={{ padding: "0.25rem", color: "var(--text-secondary)" }}>
+                        <td style={{ color: "var(--text-secondary)", padding: "1rem 1.25rem" }}>{child.fullName || "—"}</td>
+                        <td style={{ color: "var(--text-secondary)", padding: "1rem 1.25rem" }}>{child.janDrozdId || "—"}</td>
+                        <td style={{ textAlign: "right", padding: "1rem 1.25rem" }}>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "0.5rem" }}>
+                            <button type="button" title="Edit Variant" onClick={() => handleEditClick(child)} style={{ padding: "0.25rem", color: "var(--text-secondary)", background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                             </button>
-                            <button className="btn-icon" title="Delete Variant" onClick={() => handleDeleteChild(child.id!)} style={{ padding: "0.25rem", color: "var(--danger)" }}>
+                            <button type="button" title="Delete Variant" onClick={() => handleDeleteChild(child.id!)} style={{ padding: "0.25rem", color: "var(--danger)", background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                             </button>
                           </div>
