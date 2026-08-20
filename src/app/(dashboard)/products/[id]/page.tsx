@@ -123,7 +123,7 @@ export default function ProductDetailsPage() {
     <div style={{ maxWidth: "1200px", margin: "0 auto", animation: "fadeIn 0.4s ease" }}>
       
       {/* ── Hero Banner ─────────────────────────────────── */}
-      <div style={{
+      <div className="product-hero-banner" style={{
         background: "linear-gradient(135deg, #0a1628 0%, #1949a1 50%, #0d2e6b 100%)",
         borderRadius: "var(--radius-xl)",
         padding: "2.5rem 3rem",
@@ -172,7 +172,7 @@ export default function ProductDetailsPage() {
         </Link>
 
         {/* Product Image */}
-        <div style={{
+        <div className="product-hero-image" style={{
           width: "220px", height: "220px", flexShrink: 0,
           display: "flex", alignItems: "center", justifyContent: "center",
           position: "relative",
@@ -325,7 +325,7 @@ export default function ProductDetailsPage() {
       </div>
 
       {/* ── Content Grid ──────────────────────────────── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "2rem" }}>
+      <div className="product-content-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "2rem" }}>
         
         {/* Description Card */}
         <div style={{
@@ -427,7 +427,7 @@ export default function ProductDetailsPage() {
             <h3 style={{ margin: 0, fontSize: "1.05rem", fontWeight: 700, color: "var(--text-primary)" }}>Management</h3>
           </div>
           
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
+          <div className="product-management-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
             {[
               { label: "Variants", count: product.children?.length || 0, onClick: () => setIsChildrenModalOpen(true), icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6"/></svg> },
               { label: "Media", count: product.media?.length || 0, onClick: () => setIsMediaModalOpen(true), icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg> },
