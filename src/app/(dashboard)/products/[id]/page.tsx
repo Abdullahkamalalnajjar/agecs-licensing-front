@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
-import { getApiProductsById, deleteApiProductsById } from "@/client";
+import { getApiProductsById, deleteApiProductsById, getApiProductsByIdVersions } from "@/client";
 import { client } from "@/client/client.gen";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
@@ -8,7 +8,8 @@ import ProductFormModal from "@/components/ProductFormModal";
 import ProductMediaModal from "@/components/ProductMediaModal";
 import ChildProductsModal from "@/components/ChildProductsModal";
 import ProductFeaturesModal from "@/components/ProductFeaturesModal";
-import { ProductDto } from "@/client/types.gen";
+import ProductVersionsModal from "@/components/ProductVersionsModal";
+import { ProductDto, ProductVersionDto } from "@/client/types.gen";
 import { resolveMediaUrl } from "@/lib/mediaUrl";
 import { useAuth } from "@/components/AuthProvider";
 
@@ -19,6 +20,8 @@ export default function ProductDetailsPage() {
   const { user } = useAuth();
 
   const [product, setProduct] = useState<ProductDto | null>(null);
+  const [activeVersions, setActiveVersions] = useState<ProductVersionDto[]>([]);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -26,6 +29,7 @@ export default function ProductDetailsPage() {
   const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
   const [isChildrenModalOpen, setIsChildrenModalOpen] = useState(false);
   const [isFeaturesModalOpen, setIsFeaturesModalOpen] = useState(false);
+  const [isVersionsModalOpen, setIsVersionsModalOpen] = useState(false);
 
   const fetchProduct = useCallback(async () => {
     if (!productId) return;
@@ -42,6 +46,15 @@ export default function ProductDetailsPage() {
       const response = await getApiProductsById({ path: { id: productId }, throwOnError: false });
       if (response.data?.isSuccess) {
         setProduct(response.data.value || null);
+        
+        try {
+          const versionsResp = await getApiProductsByIdVersions({ path: { id: productId }, query: { onlyActive: true }, throwOnError: false });
+          if (versionsResp.data?.isSuccess) {
+            setActiveVersions(versionsResp.data.value || []);
+          }
+        } catch (e) {
+          console.error("Failed to fetch versions", e);
+        }
       } else if (response.error || response.data?.isError) {
         setError(response.data?.errors?.map((e) => e.description).join(", ") || "Failed to load product.");
       }
@@ -74,6 +87,19 @@ export default function ProductDetailsPage() {
     setIsMediaModalOpen(false);
     setIsChildrenModalOpen(false);
     setIsFeaturesModalOpen(false);
+    setIsVersionsModalOpen(false);
+  };
+
+  const handleDownload = () => {
+    if (activeVersions.length === 0) return;
+    const versionToDownload = activeVersions[0];
+    if (versionToDownload.id) {
+      const baseUrl = client.getConfig().baseUrl || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5004";
+      // Ensure baseUrl does not end with a slash if we append /api
+      const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+      const downloadUrl = `${cleanBaseUrl}/api/products/${productId}/versions/${versionToDownload.id}/download`;
+      window.open(downloadUrl, '_blank');
+    }
   };
 
   if (loading) {
@@ -94,281 +120,346 @@ export default function ProductDetailsPage() {
   }
 
   return (
-    <div style={{ padding: "2rem", maxWidth: "1200px", margin: "0 auto", animation: "fadeIn 0.4s ease" }}>
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2.5rem", flexWrap: "wrap", gap: "1rem" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "1.2rem" }}>
-          <Link href="/products" className="btn btn-secondary" style={{ padding: "0.6rem", borderRadius: "50%", background: "var(--bg-elevated)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", transition: "transform 0.2s ease, border-color 0.2s" }} onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.borderColor = 'var(--accent-light)'; }} onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.borderColor = 'var(--border)'; }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="19" y1="12" x2="5" y2="12"></line>
-              <polyline points="12 19 5 12 12 5"></polyline>
-            </svg>
-          </Link>
-          <h1 style={{ margin: 0, fontSize: "2rem", fontWeight: 800, letterSpacing: "-0.5px", background: "linear-gradient(90deg, var(--text-primary) 0%, var(--accent-light) 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+    <div style={{ maxWidth: "1200px", margin: "0 auto", animation: "fadeIn 0.4s ease" }}>
+      
+      {/* ── Hero Banner ─────────────────────────────────── */}
+      <div style={{
+        background: "linear-gradient(135deg, #0a1628 0%, #1949a1 50%, #0d2e6b 100%)",
+        borderRadius: "var(--radius-xl)",
+        padding: "2.5rem 3rem",
+        marginBottom: "2rem",
+        position: "relative",
+        overflow: "hidden",
+        display: "flex",
+        alignItems: "center",
+        gap: "3rem",
+        minHeight: "300px",
+      }}>
+        {/* Decorative elements */}
+        <div style={{
+          position: "absolute", top: "-60px", right: "-60px",
+          width: "280px", height: "280px",
+          background: "radial-gradient(circle, rgba(254,192,16,0.15) 0%, transparent 70%)",
+          borderRadius: "50%", pointerEvents: "none",
+        }} />
+        <div style={{
+          position: "absolute", bottom: "-40px", left: "30%",
+          width: "200px", height: "200px",
+          background: "radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%)",
+          borderRadius: "50%", pointerEvents: "none",
+        }} />
+        <div style={{
+          position: "absolute", inset: 0,
+          backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px)",
+          backgroundSize: "28px 28px", pointerEvents: "none",
+        }} />
+
+        {/* Back button */}
+        <Link href="/products" style={{
+          position: "absolute", top: "1.25rem", left: "1.25rem",
+          width: "36px", height: "36px", borderRadius: "50%",
+          background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.2)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          color: "#fff", transition: "all 0.2s ease",
+        }}
+        onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.25)"; }}
+        onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+        </Link>
+
+        {/* Product Image */}
+        <div style={{
+          width: "220px", height: "220px", flexShrink: 0,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          position: "relative",
+        }}>
+          {product.media && product.media.length > 0 && product.media[0].url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={resolveMediaUrl(product.media[0].url)}
+              alt={product.name || "Product"}
+              style={{
+                maxHeight: "200px", maxWidth: "100%", objectFit: "contain",
+                filter: "drop-shadow(0 20px 40px rgba(0,0,0,0.5))",
+                transition: "transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+              }}
+              onMouseEnter={(e) => { (e.target as HTMLImageElement).style.transform = "scale(1.08) rotate(-2deg)"; }}
+              onMouseLeave={(e) => { (e.target as HTMLImageElement).style.transform = "scale(1)"; }}
+            />
+          ) : (
+            <div style={{
+              width: 140, height: 140,
+              background: "linear-gradient(135deg, rgba(254,192,16,0.3) 0%, rgba(25,73,161,0.3) 100%)",
+              borderRadius: "var(--radius-xl)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              border: "1px solid rgba(255,255,255,0.15)",
+            }}>
+              <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>
+              </svg>
+            </div>
+          )}
+        </div>
+
+        {/* Product Info */}
+        <div style={{ flex: 1, position: "relative", zIndex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.75rem" }}>
+            {product.family && (
+              <span style={{
+                background: "rgba(254,192,16,0.2)", color: "#fec010",
+                padding: "0.25rem 0.75rem", borderRadius: "99px",
+                fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.05em",
+                textTransform: "uppercase", border: "1px solid rgba(254,192,16,0.3)",
+              }}>
+                {product.family}
+              </span>
+            )}
+            {product.comingSoon && (
+              <span style={{
+                background: "rgba(251,191,36,0.15)", color: "#fbbf24",
+                padding: "0.25rem 0.75rem", borderRadius: "99px",
+                fontSize: "0.75rem", fontWeight: 700,
+              }}>
+                Coming Soon
+              </span>
+            )}
+          </div>
+
+          <h1 style={{
+            margin: "0 0 0.5rem", fontSize: "2.25rem", fontWeight: 800,
+            color: "#ffffff", letterSpacing: "-0.5px", lineHeight: 1.2,
+          }}>
             {product.name}
           </h1>
-        </div>
-        <div style={{ display: "flex", gap: "0.75rem" }}>
-          {user?.role === "Student" ? (
-            <button className="btn btn-primary" style={{ display: "flex", alignItems: "center", gap: "0.5rem", boxShadow: "0 4px 12px rgba(124,58,237,0.25)" }} onClick={() => alert("Cart functionality coming soon!")}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
-              Add to Cart
-            </button>
-          ) : (
-            <>
-              <button onClick={() => setIsFormModalOpen(true)} className="btn btn-primary" style={{ display: "flex", alignItems: "center", gap: "0.5rem", boxShadow: "0 4px 12px rgba(124,58,237,0.25)" }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                Edit Details
-              </button>
-              <button onClick={handleDelete} className="btn" style={{ 
-                display: "flex", alignItems: "center", gap: "0.5rem",
-                background: "rgba(239,68,68,0.1)", color: "var(--danger)", border: "1px solid rgba(239,68,68,0.3)",
-                boxShadow: "0 4px 12px rgba(239,68,68,0.15)", fontWeight: 600, transition: "all 0.2s ease"
-              }}
-              onMouseEnter={e => { e.currentTarget.style.background = "var(--danger)"; e.currentTarget.style.color = "#fff"; e.currentTarget.style.boxShadow = "0 6px 16px rgba(239,68,68,0.3)"; }}
-              onMouseLeave={e => { e.currentTarget.style.background = "rgba(239,68,68,0.1)"; e.currentTarget.style.color = "var(--danger)"; e.currentTarget.style.boxShadow = "0 4px 12px rgba(239,68,68,0.15)"; }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                Delete Product
-              </button>
-            </>
+          {product.fullName && product.fullName !== product.name && (
+            <p style={{ margin: "0 0 1.25rem", fontSize: "1rem", color: "rgba(255,255,255,0.6)", fontWeight: 500 }}>
+              {product.fullName}
+            </p>
           )}
-        </div>
-      </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(300px, 1fr) 2fr", gap: "2rem" }}>
-        {/* Left Column: Image & Stats */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-          {/* Enhanced Image Container */}
-          <div style={{
-            background: "linear-gradient(145deg, var(--bg-surface) 0%, var(--bg-elevated) 100%)",
-            border: "1px solid var(--border)",
-            borderRadius: "var(--radius-xl)",
-            padding: "3rem 2rem",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            minHeight: "320px",
-            position: "relative",
-            overflow: "hidden",
-            boxShadow: "0 20px 40px rgba(0,0,0,0.2) inset",
-          }}>
-            {/* Decorative Grid */}
+          {/* Price + Actions */}
+          <div style={{ display: "flex", alignItems: "center", gap: "1.5rem", flexWrap: "wrap" }}>
             <div style={{
-              position: "absolute", inset: 0,
-              backgroundImage: "radial-gradient(circle, var(--border) 1px, transparent 1px)",
-              backgroundSize: "24px 24px",
-              opacity: 0.4,
-              pointerEvents: "none",
-            }} />
-            
-             {product.media && product.media.length > 0 && product.media[0].url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={resolveMediaUrl(product.media[0].url)}
-                  alt={product.name || "Product"}
-                  style={{ position: "relative", maxHeight: "280px", maxWidth: "100%", objectFit: "contain", filter: "drop-shadow(0 20px 30px rgba(0,0,0,0.5))", transition: "transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)" }}
-                  onMouseEnter={(e) => { (e.target as HTMLImageElement).style.transform = "scale(1.1)"; }}
-                  onMouseLeave={(e) => { (e.target as HTMLImageElement).style.transform = "scale(1)"; }}
-                />
-              ) : (
-                <div style={{
-                  position: "relative",
-                  width: 160, height: 160,
-                  background: "linear-gradient(135deg, var(--accent) 0%, #312e81 100%)",
-                  borderRadius: "var(--radius-xl)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  boxShadow: "0 20px 40px rgba(124,58,237,0.4)",
-                }}>
-                  <svg width="70" height="70" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>
-                  </svg>
-                </div>
-              )}
-          </div>
-
-          <div style={{
-            background: "var(--bg-elevated)",
-            border: "1px solid var(--border)",
-            borderRadius: "var(--radius-xl)",
-            padding: "1.75rem",
-          }}>
-             <h3 style={{ margin: "0 0 1.25rem", fontSize: "1.15rem", fontWeight: 700, display: "flex", alignItems: "center", gap: "0.5rem" }}>
-               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--accent-light)" }}><path d="M12 20v-6M6 20V10M18 20V4"/></svg>
-               Quick Stats
-             </h3>
-             <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "0.75rem", borderBottom: "1px dashed var(--border)" }}>
-                  <span style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>Visibility</span>
-                  {product.hidden ? <span className="badge badge-neutral" style={{ padding: "0.3rem 0.6rem" }}>Hidden</span> : <span className="badge badge-success" style={{ padding: "0.3rem 0.6rem" }}>Visible</span>}
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "0.75rem", borderBottom: "1px dashed var(--border)" }}>
-                  <span style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>Coming Soon</span>
-                  <span style={{ fontWeight: 600 }}>{product.comingSoon ? "Yes" : "No"}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>Base Price</span>
-                  <span style={{ 
-                    fontFamily: "var(--font-mono)", 
-                    fontWeight: 700, 
-                    fontSize: "1.1rem", 
-                    color: "var(--accent-light)",
-                    background: "var(--accent-dim)",
-                    padding: "0.2rem 0.6rem",
-                    borderRadius: "var(--radius-sm)",
-                    border: "1px solid var(--accent-border)"
-                  }}>
-                    ${product.prices && product.prices.length > 0 ? (product.prices[0].price || 0).toFixed(2) : "0.00"}
-                    <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: "normal", marginLeft: "0.2rem" }}>/ yr</span>
-                  </span>
-                </div>
-             </div>
-          </div>
-        </div>
-
-        {/* Right Column: Details & Management */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-          
-          {/* Details Card */}
-          <div style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "var(--radius-xl)", padding: "2rem" }}>
-            <h3 style={{ margin: "0 0 1.5rem", fontSize: "1.3rem", fontWeight: 700, display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--accent-light)" }}><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-              Information
-            </h3>
-            
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1.25rem" }}>
-              <div style={{ background: "var(--bg-surface)", padding: "1rem", borderRadius: "var(--radius-lg)", border: "1px solid var(--border)" }}>
-                <span style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "0.4rem", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                  Full Name
-                </span>
-                <span style={{ fontSize: "1.05rem", fontWeight: 600, color: "var(--text-primary)" }}>{product.fullName || "—"}</span>
-              </div>
-              <div style={{ background: "var(--bg-surface)", padding: "1rem", borderRadius: "var(--radius-lg)", border: "1px solid var(--border)" }}>
-                <span style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "0.4rem", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-                  Family
-                </span>
-                <span style={{ fontSize: "1.05rem", fontWeight: 600, color: "var(--text-primary)" }}>{product.family || "—"}</span>
-              </div>
-              <div style={{ background: "var(--bg-surface)", padding: "1rem", borderRadius: "var(--radius-lg)", border: "1px solid var(--border)" }}>
-                <span style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "0.4rem", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                  Version
-                </span>
-                <span style={{ fontSize: "1.05rem", fontWeight: 600, color: "var(--text-primary)" }}>{product.version || "—"}</span>
-              </div>
-              <div style={{ background: "var(--bg-surface)", padding: "1rem", borderRadius: "var(--radius-lg)", border: "1px solid var(--border)" }}>
-                <span style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "0.4rem", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-                  Allow Trial
-                </span>
-                <span style={{ fontSize: "1.05rem", fontWeight: 600, color: "var(--text-primary)" }}>{product.allowTrial ? `Yes (${product.trialPeriod} days)` : "No"}</span>
-              </div>
+              background: "rgba(255,255,255,0.1)", backdropFilter: "blur(8px)",
+              border: "1px solid rgba(255,255,255,0.15)", borderRadius: "var(--radius-lg)",
+              padding: "0.75rem 1.25rem", display: "flex", alignItems: "baseline", gap: "0.4rem",
+            }}>
+              <span style={{ fontSize: "1.75rem", fontWeight: 800, color: "#fec010", fontFamily: "var(--font-mono)" }}>
+                ${product.prices && product.prices.length > 0 ? (product.prices[0].price || 0).toFixed(2) : "0.00"}
+              </span>
+              <span style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.5)", fontWeight: 500 }}>/ yr</span>
             </div>
-            
-            <div style={{ marginTop: "1.5rem", background: "var(--bg-surface)", padding: "1.25rem", borderRadius: "var(--radius-lg)", border: "1px solid var(--border)" }}>
-               <span style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "0.5rem", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="21" y1="10" x2="3" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="21" y1="18" x2="3" y2="18"></line></svg>
-                 Description
-               </span>
-               <p style={{ margin: 0, fontSize: "1rem", color: "var(--text-secondary)", lineHeight: 1.6 }}>
-                 {product.description || <span style={{ fontStyle: "italic", opacity: 0.7 }}>No description provided.</span>}
-               </p>
-            </div>
-          </div>
 
-          {/* Management Actions */}
-          {user?.role !== "Student" && (
-            <div style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "var(--radius-xl)", padding: "2rem", flex: 1 }}>
-              <h3 style={{ margin: "0 0 1.5rem", fontSize: "1.3rem", fontWeight: 700, display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--accent-light)" }}><path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9-9 9-9-1.8-9-9 1.8-9 9-9z"/><path d="M12 8v8M8 12h8"/></svg>
-                Management
-              </h3>
-              
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1.25rem" }}>
-                
-                <button onClick={() => setIsChildrenModalOpen(true)} style={{
-                  background: "linear-gradient(145deg, var(--bg-surface) 0%, var(--bg-elevated) 100%)", 
-                  border: "1px solid var(--border)", 
-                  padding: "1.5rem", 
-                  borderRadius: "var(--radius-lg)",
-                  display: "flex", alignItems: "center", gap: "1rem", 
-                  cursor: "pointer", 
-                  transition: "all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
-                  textAlign: "left"
-                }} 
-                onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.borderColor = "var(--accent-light)"; e.currentTarget.style.boxShadow = "0 10px 25px rgba(0,0,0,0.2)"; }} 
-                onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }}>
-                  <div style={{ 
-                    width: "48px", height: "48px", borderRadius: "12px", 
-                    background: "var(--accent-dim)", color: "var(--accent-light)", 
-                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
-                  }}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--text-primary)", lineHeight: 1 }}>{product.children?.length || 0}</div>
-                    <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "0.3rem", fontWeight: 500 }}>Variants & Options</div>
-                  </div>
+            {user?.role === "Student" ? (
+              <div style={{ display: "flex", gap: "0.75rem" }}>
+                {activeVersions.length > 0 && (
+                  <button style={{
+                    display: "flex", alignItems: "center", gap: "0.5rem",
+                    padding: "0.7rem 1.5rem", borderRadius: "var(--radius-md)",
+                    background: "rgba(16, 185, 129, 0.15)", color: "#34d399",
+                    border: "1px solid rgba(16, 185, 129, 0.3)",
+                    fontWeight: 600, cursor: "pointer", fontSize: "0.9rem",
+                    transition: "all 0.2s ease",
+                  }}
+                  onClick={handleDownload}
+                  onMouseEnter={e => { e.currentTarget.style.background = "#10b981"; e.currentTarget.style.color = "#fff"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = "rgba(16, 185, 129, 0.15)"; e.currentTarget.style.color = "#34d399"; }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    Download
+                  </button>
+                )}
+                <button style={{
+                  display: "flex", alignItems: "center", gap: "0.5rem",
+                  padding: "0.7rem 1.5rem", borderRadius: "var(--radius-md)",
+                  background: "#fec010", color: "#0a1628",
+                  border: "none", fontWeight: 700, cursor: "pointer", fontSize: "0.9rem",
+                  transition: "all 0.2s ease", boxShadow: "0 4px 16px rgba(254,192,16,0.35)",
+                }}
+                onClick={() => alert("Cart functionality coming soon!")}
+                onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 6px 20px rgba(254,192,16,0.45)"; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "0 4px 16px rgba(254,192,16,0.35)"; }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+                  Add to Cart
                 </button>
-                
-                <button onClick={() => setIsMediaModalOpen(true)} style={{
-                  background: "linear-gradient(145deg, var(--bg-surface) 0%, var(--bg-elevated) 100%)", 
-                  border: "1px solid var(--border)", 
-                  padding: "1.5rem", 
-                  borderRadius: "var(--radius-lg)",
-                  display: "flex", alignItems: "center", gap: "1rem", 
-                  cursor: "pointer", 
-                  transition: "all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
-                  textAlign: "left"
-                }} 
-                onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.borderColor = "var(--accent-light)"; e.currentTarget.style.boxShadow = "0 10px 25px rgba(0,0,0,0.2)"; }} 
-                onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }}>
-                  <div style={{ 
-                    width: "48px", height: "48px", borderRadius: "12px", 
-                    background: "var(--accent-dim)", color: "var(--accent-light)", 
-                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
-                  }}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--text-primary)", lineHeight: 1 }}>{product.media?.length || 0}</div>
-                    <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "0.3rem", fontWeight: 500 }}>Media Files</div>
-                  </div>
-                </button>
-
-                <button onClick={() => setIsFeaturesModalOpen(true)} style={{
-                  background: "linear-gradient(145deg, var(--bg-surface) 0%, var(--bg-elevated) 100%)", 
-                  border: "1px solid var(--border)", 
-                  padding: "1.5rem", 
-                  borderRadius: "var(--radius-lg)",
-                  display: "flex", alignItems: "center", gap: "1rem", 
-                  cursor: "pointer", 
-                  transition: "all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
-                  textAlign: "left"
-                }} 
-                onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.borderColor = "var(--accent-light)"; e.currentTarget.style.boxShadow = "0 10px 25px rgba(0,0,0,0.2)"; }} 
-                onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }}>
-                  <div style={{ 
-                    width: "48px", height: "48px", borderRadius: "12px", 
-                    background: "var(--accent-dim)", color: "var(--accent-light)", 
-                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
-                  }}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--text-primary)", lineHeight: 1 }}>{product.features?.length || 0}</div>
-                    <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "0.3rem", fontWeight: 500 }}>Features List</div>
-                  </div>
-                </button>
-
               </div>
-            </div>
-          )}
-
+            ) : (
+              <div style={{ display: "flex", gap: "0.75rem" }}>
+                <button onClick={() => setIsFormModalOpen(true)} style={{
+                  display: "flex", alignItems: "center", gap: "0.5rem",
+                  padding: "0.7rem 1.5rem", borderRadius: "var(--radius-md)",
+                  background: "rgba(255,255,255,0.12)", color: "#fff",
+                  border: "1px solid rgba(255,255,255,0.2)",
+                  fontWeight: 600, cursor: "pointer", fontSize: "0.9rem",
+                  transition: "all 0.2s ease",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.22)"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; }}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                  Edit
+                </button>
+                <button onClick={handleDelete} style={{
+                  display: "flex", alignItems: "center", gap: "0.5rem",
+                  padding: "0.7rem 1.5rem", borderRadius: "var(--radius-md)",
+                  background: "rgba(239,68,68,0.15)", color: "#f87171",
+                  border: "1px solid rgba(239,68,68,0.3)",
+                  fontWeight: 600, cursor: "pointer", fontSize: "0.9rem",
+                  transition: "all 0.2s ease",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = "#ef4444"; e.currentTarget.style.color = "#fff"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "rgba(239,68,68,0.15)"; e.currentTarget.style.color = "#f87171"; }}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                  Delete
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* ── Content Grid ──────────────────────────────── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "2rem" }}>
+        
+        {/* Description Card */}
+        <div style={{
+          background: "var(--bg-surface)", border: "1px solid var(--border)",
+          borderRadius: "var(--radius-xl)", padding: "1.75rem",
+          gridColumn: "1 / -1",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
+            <div style={{
+              width: "32px", height: "32px", borderRadius: "8px",
+              background: "var(--accent-dim)", color: "var(--accent)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="21" y1="10" x2="3" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="21" y1="18" x2="3" y2="18"></line></svg>
+            </div>
+            <h3 style={{ margin: 0, fontSize: "1.05rem", fontWeight: 700, color: "var(--text-primary)" }}>Description</h3>
+          </div>
+          <p style={{ margin: 0, fontSize: "0.95rem", color: "var(--text-secondary)", lineHeight: 1.7 }}>
+            {product.description || <span style={{ fontStyle: "italic", opacity: 0.6 }}>No description provided.</span>}
+          </p>
+        </div>
+
+        {/* Quick Stats Cards */}
+        {user?.role !== "Student" && (
+          <div style={{
+            background: "var(--bg-surface)", border: "1px solid var(--border)",
+            borderRadius: "var(--radius-xl)", padding: "1.75rem",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1.25rem" }}>
+              <div style={{
+                width: "32px", height: "32px", borderRadius: "8px",
+                background: "var(--accent-dim)", color: "var(--accent)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20v-6M6 20V10M18 20V4"/></svg>
+              </div>
+              <h3 style={{ margin: 0, fontSize: "1.05rem", fontWeight: 700, color: "var(--text-primary)" }}>Quick Stats</h3>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.6rem 0", borderBottom: "1px solid var(--border)" }}>
+                <span style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>Visibility</span>
+                {product.hidden 
+                  ? <span className="badge badge-neutral" style={{ padding: "0.25rem 0.6rem" }}>Hidden</span>
+                  : <span className="badge badge-success" style={{ padding: "0.25rem 0.6rem" }}>Visible</span>
+                }
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.6rem 0", borderBottom: "1px solid var(--border)" }}>
+                <span style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>Version</span>
+                <span style={{ fontWeight: 600, fontSize: "0.9rem" }}>{product.version || "—"}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.6rem 0" }}>
+                <span style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>Allow Trial</span>
+                <span style={{ fontWeight: 600, fontSize: "0.9rem" }}>{product.allowTrial ? `Yes (${product.trialPeriod}d)` : "No"}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Release Notes */}
+        {activeVersions.length > 0 && activeVersions[0].releaseNotes && (
+          <div style={{
+            background: "var(--bg-surface)", border: "1px solid var(--border)",
+            borderRadius: "var(--radius-xl)", padding: "1.75rem",
+            ...(user?.role === "Student" ? { gridColumn: "1 / -1" } : {}),
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
+              <div style={{
+                width: "32px", height: "32px", borderRadius: "8px",
+                background: "rgba(254,192,16,0.12)", color: "#fec010",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+              </div>
+              <h3 style={{ margin: 0, fontSize: "1.05rem", fontWeight: 700, color: "var(--text-primary)" }}>
+                What&apos;s New in v{activeVersions[0].versionNumber}
+              </h3>
+            </div>
+            <p style={{ margin: 0, fontSize: "0.95rem", color: "var(--text-secondary)", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>
+              {activeVersions[0].releaseNotes}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* ── Management Section (Admin only) ────────── */}
+      {user?.role !== "Student" && (
+        <div style={{
+          background: "var(--bg-surface)", border: "1px solid var(--border)",
+          borderRadius: "var(--radius-xl)", padding: "2rem", marginBottom: "2rem",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1.5rem" }}>
+            <div style={{
+              width: "32px", height: "32px", borderRadius: "8px",
+              background: "var(--accent-dim)", color: "var(--accent)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </div>
+            <h3 style={{ margin: 0, fontSize: "1.05rem", fontWeight: 700, color: "var(--text-primary)" }}>Management</h3>
+          </div>
+          
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
+            {[
+              { label: "Variants", count: product.children?.length || 0, onClick: () => setIsChildrenModalOpen(true), icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6"/></svg> },
+              { label: "Media", count: product.media?.length || 0, onClick: () => setIsMediaModalOpen(true), icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg> },
+              { label: "Features", count: product.features?.length || 0, onClick: () => setIsFeaturesModalOpen(true), icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg> },
+              { label: "Versions", count: activeVersions.length || 0, onClick: () => setIsVersionsModalOpen(true), icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> },
+            ].map(item => (
+              <button key={item.label} onClick={item.onClick} style={{
+                background: "var(--bg-elevated)", border: "1px solid var(--border)",
+                padding: "1.25rem", borderRadius: "var(--radius-lg)",
+                display: "flex", alignItems: "center", gap: "1rem",
+                cursor: "pointer", transition: "all 0.25s ease",
+                textAlign: "left",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.12)"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "none"; }}
+              >
+                <div style={{
+                  width: "42px", height: "42px", borderRadius: "10px",
+                  background: "var(--accent-dim)", color: "var(--accent)",
+                  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                }}>
+                  {item.icon}
+                </div>
+                <div>
+                  <div style={{ fontSize: "1.35rem", fontWeight: 800, color: "var(--text-primary)", lineHeight: 1 }}>{item.count}</div>
+                  <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "0.25rem", fontWeight: 500 }}>{item.label}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {isFormModalOpen && (
         <ProductFormModal initialData={product} onClose={() => setIsFormModalOpen(false)} onSuccess={handleModalSuccess} />
@@ -381,6 +472,9 @@ export default function ProductDetailsPage() {
       )}
       {isFeaturesModalOpen && (
         <ProductFeaturesModal product={product} onClose={() => setIsFeaturesModalOpen(false)} onSuccess={handleModalSuccess} />
+      )}
+      {isVersionsModalOpen && (
+        <ProductVersionsModal product={product} onClose={() => setIsVersionsModalOpen(false)} onSuccess={handleModalSuccess} />
       )}
     </div>
   );

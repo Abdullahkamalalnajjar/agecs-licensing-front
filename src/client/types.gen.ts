@@ -149,8 +149,103 @@ export type Error = {
 
 export type ErrorKind = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
+export type GetLicenseDiagnosticResponse = {
+    id?: string;
+    serial?: string | null;
+    janDrozdId?: string | null;
+    provider?: string | null;
+    isActive?: boolean;
+    willExpire?: boolean;
+    expiryDate?: string | null;
+    licenseCount?: number;
+    migrationLimit?: number;
+    isTrial?: boolean;
+    type?: string | null;
+    version?: string | null;
+    createdAt?: string;
+    updatedAt?: string | null;
+    customer?: unknown;
+    product?: unknown;
+    hardwareIds?: unknown;
+    stats?: unknown;
+};
+
+export type GetLicenseDiagnosticResponseResult = {
+    readonly isSuccess?: boolean;
+    readonly isError?: boolean;
+    value?: GetLicenseDiagnosticResponse;
+    readonly errors?: Array<Error> | null;
+};
+
+export type GetLicenseHwidsResponse = {
+    hwids?: Array<string> | null;
+    source?: string | null;
+    customerId?: string | null;
+};
+
+export type GetLicenseHwidsResponseResult = {
+    readonly isSuccess?: boolean;
+    readonly isError?: boolean;
+    value?: GetLicenseHwidsResponse;
+    readonly errors?: Array<Error> | null;
+};
+
 export type GoogleLoginRequest = {
     idToken?: string | null;
+};
+
+export type LicenseClientDto = {
+    id?: string;
+    userId?: string;
+    productId?: string;
+    hwid?: string | null;
+    deviceName?: string | null;
+    lastUsedAt?: string | null;
+    resetCount?: number;
+    lastResetAt?: string | null;
+    isActive?: boolean;
+};
+
+export type LicenseDto = {
+    id?: string;
+    userId?: string;
+    productId?: string;
+    paymentId?: string | null;
+    pendingLicenseId?: string | null;
+    licenseCount?: number;
+    migrationLimit?: number;
+    name?: string | null;
+    email?: string | null;
+    hwidSalt?: string | null;
+    willExpire?: boolean;
+    expiryDate?: string | null;
+    serial?: string | null;
+    janDrozdId?: string | null;
+    isTrial?: boolean;
+    type?: string | null;
+    version?: string | null;
+    addedBy?: string | null;
+    addedByName?: string | null;
+    productName?: string | null;
+    isActive?: boolean;
+    source?: string | null;
+    provider?: string | null;
+    createdAtUtc?: string;
+    clients?: Array<LicenseClientDto> | null;
+};
+
+export type LicenseDtoListResult = {
+    readonly isSuccess?: boolean;
+    readonly isError?: boolean;
+    readonly value?: Array<LicenseDto> | null;
+    readonly errors?: Array<Error> | null;
+};
+
+export type LicenseDtoResult = {
+    readonly isSuccess?: boolean;
+    readonly isError?: boolean;
+    value?: LicenseDto;
+    readonly errors?: Array<Error> | null;
 };
 
 export type LoginRequest = {
@@ -331,6 +426,31 @@ export type ProductPriceRequest = {
     price?: number;
     period?: number | null;
     active?: boolean;
+};
+
+export type ProductVersionDto = {
+    id?: string;
+    productId?: string;
+    versionNumber?: string | null;
+    filePath?: string | null;
+    fileSizeBytes?: number;
+    isActive?: boolean;
+    releaseNotes?: string | null;
+    createdAtUtc?: string;
+};
+
+export type ProductVersionDtoListResult = {
+    readonly isSuccess?: boolean;
+    readonly isError?: boolean;
+    readonly value?: Array<ProductVersionDto> | null;
+    readonly errors?: Array<Error> | null;
+};
+
+export type ProductVersionDtoResult = {
+    readonly isSuccess?: boolean;
+    readonly isError?: boolean;
+    value?: ProductVersionDto;
+    readonly errors?: Array<Error> | null;
 };
 
 export type PromocodeDto = {
@@ -526,6 +646,22 @@ export type ErrorWritable = {
     type?: ErrorKind;
 };
 
+export type GetLicenseDiagnosticResponseResultWritable = {
+    value?: GetLicenseDiagnosticResponse;
+};
+
+export type GetLicenseHwidsResponseResultWritable = {
+    value?: GetLicenseHwidsResponse;
+};
+
+export type LicenseDtoListResultWritable = {
+    [key: string]: never;
+};
+
+export type LicenseDtoResultWritable = {
+    value?: LicenseDto;
+};
+
 export type ObjectResultWritable = {
     [key: string]: never;
 };
@@ -552,6 +688,14 @@ export type ProductFeatureDtoResultWritable = {
 
 export type ProductMediaDtoResultWritable = {
     value?: ProductMediaDto;
+};
+
+export type ProductVersionDtoListResultWritable = {
+    [key: string]: never;
+};
+
+export type ProductVersionDtoResultWritable = {
+    value?: ProductVersionDto;
 };
 
 export type PromocodeDtoListResultWritable = {
@@ -1031,8 +1175,10 @@ export type GetApiLicensesResponses = {
     /**
      * OK
      */
-    200: unknown;
+    200: LicenseDtoListResult;
 };
+
+export type GetApiLicensesResponse = GetApiLicensesResponses[keyof GetApiLicensesResponses];
 
 export type PostApiLicensesData = {
     body?: CreateLicenseCommand;
@@ -1043,10 +1189,12 @@ export type PostApiLicensesData = {
 
 export type PostApiLicensesResponses = {
     /**
-     * OK
+     * Created
      */
-    200: unknown;
+    201: LicenseDtoResult;
 };
+
+export type PostApiLicensesResponse = PostApiLicensesResponses[keyof PostApiLicensesResponses];
 
 export type DeleteApiLicensesByIdData = {
     body?: never;
@@ -1079,8 +1227,10 @@ export type GetApiLicensesByIdResponses = {
     /**
      * OK
      */
-    200: unknown;
+    200: LicenseDtoResult;
 };
+
+export type GetApiLicensesByIdResponse = GetApiLicensesByIdResponses[keyof GetApiLicensesByIdResponses];
 
 export type PutApiLicensesByIdData = {
     body?: UpdateLicenseCommand;
@@ -1175,8 +1325,10 @@ export type GetApiLicensesAdminByIdHwidsResponses = {
     /**
      * OK
      */
-    200: unknown;
+    200: GetLicenseHwidsResponseResult;
 };
+
+export type GetApiLicensesAdminByIdHwidsResponse = GetApiLicensesAdminByIdHwidsResponses[keyof GetApiLicensesAdminByIdHwidsResponses];
 
 export type PostApiLicensesAdminByIdHwidsData = {
     body?: AddHwidRequest;
@@ -1224,8 +1376,10 @@ export type GetApiLicensesAdminByIdDiagnosticResponses = {
     /**
      * OK
      */
-    200: unknown;
+    200: GetLicenseDiagnosticResponseResult;
 };
+
+export type GetApiLicensesAdminByIdDiagnosticResponse = GetApiLicensesAdminByIdDiagnosticResponses[keyof GetApiLicensesAdminByIdDiagnosticResponses];
 
 export type PostApiPaymentsCheckoutData = {
     /**
@@ -1791,6 +1945,86 @@ export type PutApiProductsByProductIdFeaturesByFeatureIdResponses = {
 };
 
 export type PutApiProductsByProductIdFeaturesByFeatureIdResponse = PutApiProductsByProductIdFeaturesByFeatureIdResponses[keyof PutApiProductsByProductIdFeaturesByFeatureIdResponses];
+
+export type GetApiProductsByIdVersionsData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: {
+        onlyActive?: boolean;
+    };
+    url: '/api/products/{id}/versions';
+};
+
+export type GetApiProductsByIdVersionsResponses = {
+    /**
+     * OK
+     */
+    200: ProductVersionDtoListResult;
+};
+
+export type GetApiProductsByIdVersionsResponse = GetApiProductsByIdVersionsResponses[keyof GetApiProductsByIdVersionsResponses];
+
+export type PostApiProductsByIdVersionsData = {
+    body?: {
+        File?: Blob | File;
+        VersionNumber?: string;
+        ReleaseNotes?: string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/products/{id}/versions';
+};
+
+export type PostApiProductsByIdVersionsResponses = {
+    /**
+     * Created
+     */
+    201: ProductVersionDtoResult;
+};
+
+export type PostApiProductsByIdVersionsResponse = PostApiProductsByIdVersionsResponses[keyof PostApiProductsByIdVersionsResponses];
+
+export type PutApiProductsByProductIdVersionsByVersionIdToggleStatusData = {
+    body?: boolean;
+    path: {
+        productId: string;
+        versionId: string;
+    };
+    query?: never;
+    url: '/api/products/{productId}/versions/{versionId}/toggle-status';
+};
+
+export type PutApiProductsByProductIdVersionsByVersionIdToggleStatusResponses = {
+    /**
+     * OK
+     */
+    200: UpdatedResult;
+};
+
+export type PutApiProductsByProductIdVersionsByVersionIdToggleStatusResponse = PutApiProductsByProductIdVersionsByVersionIdToggleStatusResponses[keyof PutApiProductsByProductIdVersionsByVersionIdToggleStatusResponses];
+
+export type DeleteApiProductsByProductIdVersionsByVersionIdData = {
+    body?: never;
+    path: {
+        productId: string;
+        versionId: string;
+    };
+    query?: never;
+    url: '/api/products/{productId}/versions/{versionId}';
+};
+
+export type DeleteApiProductsByProductIdVersionsByVersionIdResponses = {
+    /**
+     * OK
+     */
+    200: DeletedResult;
+};
+
+export type DeleteApiProductsByProductIdVersionsByVersionIdResponse = DeleteApiProductsByProductIdVersionsByVersionIdResponses[keyof DeleteApiProductsByProductIdVersionsByVersionIdResponses];
 
 export type GetApiPromocodesData = {
     body?: never;
