@@ -43,7 +43,7 @@ export default function LoginPage() {
           if (Array.isArray(role)) role = role[0];
           
           if (role === "Student") {
-            router.push("/tickets");
+            router.push("/products");
           } else {
             router.push("/products");
           }
@@ -89,7 +89,7 @@ export default function LoginPage() {
           if (Array.isArray(role)) role = role[0];
           
           if (role === "Student") {
-            router.push("/tickets");
+            router.push("/products");
           } else {
             router.push("/products");
           }

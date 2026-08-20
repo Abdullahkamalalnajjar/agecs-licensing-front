@@ -18,9 +18,9 @@ export function ClientRouteGuard({ children }: { children: React.ReactNode }) {
     }
 
     if (user.role === "Student") {
-      // Students can only access tickets
-      if (!pathname.startsWith("/tickets")) {
-        router.push("/tickets");
+      // Students can access tickets and products
+      if (!pathname.startsWith("/tickets") && !pathname.startsWith("/products")) {
+        router.push("/products");
       }
     }
     // SuperAdmin/Admin can access everything, no redirect needed
@@ -35,7 +35,7 @@ export function ClientRouteGuard({ children }: { children: React.ReactNode }) {
   }
 
   // Prevent flash of unauthorized content
-  if (user?.role === "Student" && !pathname.startsWith("/tickets")) {
+  if (user?.role === "Student" && !pathname.startsWith("/tickets") && !pathname.startsWith("/products")) {
     return null;
   }
 

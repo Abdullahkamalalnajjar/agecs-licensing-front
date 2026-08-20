@@ -10,11 +10,13 @@ import ChildProductsModal from "@/components/ChildProductsModal";
 import ProductFeaturesModal from "@/components/ProductFeaturesModal";
 import { ProductDto } from "@/client/types.gen";
 import { resolveMediaUrl } from "@/lib/mediaUrl";
+import { useAuth } from "@/components/AuthProvider";
 
 export default function ProductDetailsPage() {
   const { id } = useParams();
   const productId = Array.isArray(id) ? id[0] : id;
   const router = useRouter();
+  const { user } = useAuth();
 
   const [product, setProduct] = useState<ProductDto | null>(null);
   const [loading, setLoading] = useState(true);
@@ -107,21 +109,30 @@ export default function ProductDetailsPage() {
           </h1>
         </div>
         <div style={{ display: "flex", gap: "0.75rem" }}>
-          <button onClick={() => setIsFormModalOpen(true)} className="btn btn-primary" style={{ display: "flex", alignItems: "center", gap: "0.5rem", boxShadow: "0 4px 12px rgba(124,58,237,0.25)" }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-            Edit Details
-          </button>
-          <button onClick={handleDelete} className="btn" style={{ 
-            display: "flex", alignItems: "center", gap: "0.5rem",
-            background: "rgba(239,68,68,0.1)", color: "var(--danger)", border: "1px solid rgba(239,68,68,0.3)",
-            boxShadow: "0 4px 12px rgba(239,68,68,0.15)", fontWeight: 600, transition: "all 0.2s ease"
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = "var(--danger)"; e.currentTarget.style.color = "#fff"; e.currentTarget.style.boxShadow = "0 6px 16px rgba(239,68,68,0.3)"; }}
-          onMouseLeave={e => { e.currentTarget.style.background = "rgba(239,68,68,0.1)"; e.currentTarget.style.color = "var(--danger)"; e.currentTarget.style.boxShadow = "0 4px 12px rgba(239,68,68,0.15)"; }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-            Delete Product
-          </button>
+          {user?.role === "Student" ? (
+            <button className="btn btn-primary" style={{ display: "flex", alignItems: "center", gap: "0.5rem", boxShadow: "0 4px 12px rgba(124,58,237,0.25)" }} onClick={() => alert("Cart functionality coming soon!")}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+              Add to Cart
+            </button>
+          ) : (
+            <>
+              <button onClick={() => setIsFormModalOpen(true)} className="btn btn-primary" style={{ display: "flex", alignItems: "center", gap: "0.5rem", boxShadow: "0 4px 12px rgba(124,58,237,0.25)" }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                Edit Details
+              </button>
+              <button onClick={handleDelete} className="btn" style={{ 
+                display: "flex", alignItems: "center", gap: "0.5rem",
+                background: "rgba(239,68,68,0.1)", color: "var(--danger)", border: "1px solid rgba(239,68,68,0.3)",
+                boxShadow: "0 4px 12px rgba(239,68,68,0.15)", fontWeight: 600, transition: "all 0.2s ease"
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = "var(--danger)"; e.currentTarget.style.color = "#fff"; e.currentTarget.style.boxShadow = "0 6px 16px rgba(239,68,68,0.3)"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "rgba(239,68,68,0.1)"; e.currentTarget.style.color = "var(--danger)"; e.currentTarget.style.boxShadow = "0 4px 12px rgba(239,68,68,0.15)"; }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                Delete Product
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -268,91 +279,93 @@ export default function ProductDetailsPage() {
           </div>
 
           {/* Management Actions */}
-          <div style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "var(--radius-xl)", padding: "2rem", flex: 1 }}>
-            <h3 style={{ margin: "0 0 1.5rem", fontSize: "1.3rem", fontWeight: 700, display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--accent-light)" }}><path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9-9 9-9-1.8-9-9 1.8-9 9-9z"/><path d="M12 8v8M8 12h8"/></svg>
-              Management
-            </h3>
-            
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1.25rem" }}>
+          {user?.role !== "Student" && (
+            <div style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "var(--radius-xl)", padding: "2rem", flex: 1 }}>
+              <h3 style={{ margin: "0 0 1.5rem", fontSize: "1.3rem", fontWeight: 700, display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--accent-light)" }}><path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9-9 9-9-1.8-9-9 1.8-9 9-9z"/><path d="M12 8v8M8 12h8"/></svg>
+                Management
+              </h3>
               
-              <button onClick={() => setIsChildrenModalOpen(true)} style={{
-                background: "linear-gradient(145deg, var(--bg-surface) 0%, var(--bg-elevated) 100%)", 
-                border: "1px solid var(--border)", 
-                padding: "1.5rem", 
-                borderRadius: "var(--radius-lg)",
-                display: "flex", alignItems: "center", gap: "1rem", 
-                cursor: "pointer", 
-                transition: "all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
-                textAlign: "left"
-              }} 
-              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.borderColor = "var(--accent-light)"; e.currentTarget.style.boxShadow = "0 10px 25px rgba(0,0,0,0.2)"; }} 
-              onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }}>
-                <div style={{ 
-                  width: "48px", height: "48px", borderRadius: "12px", 
-                  background: "var(--accent-dim)", color: "var(--accent-light)", 
-                  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
-                }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-                </div>
-                <div>
-                  <div style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--text-primary)", lineHeight: 1 }}>{product.children?.length || 0}</div>
-                  <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "0.3rem", fontWeight: 500 }}>Variants & Options</div>
-                </div>
-              </button>
-              
-              <button onClick={() => setIsMediaModalOpen(true)} style={{
-                background: "linear-gradient(145deg, var(--bg-surface) 0%, var(--bg-elevated) 100%)", 
-                border: "1px solid var(--border)", 
-                padding: "1.5rem", 
-                borderRadius: "var(--radius-lg)",
-                display: "flex", alignItems: "center", gap: "1rem", 
-                cursor: "pointer", 
-                transition: "all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
-                textAlign: "left"
-              }} 
-              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.borderColor = "var(--accent-light)"; e.currentTarget.style.boxShadow = "0 10px 25px rgba(0,0,0,0.2)"; }} 
-              onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }}>
-                <div style={{ 
-                  width: "48px", height: "48px", borderRadius: "12px", 
-                  background: "var(--accent-dim)", color: "var(--accent-light)", 
-                  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
-                }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-                </div>
-                <div>
-                  <div style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--text-primary)", lineHeight: 1 }}>{product.media?.length || 0}</div>
-                  <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "0.3rem", fontWeight: 500 }}>Media Files</div>
-                </div>
-              </button>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1.25rem" }}>
+                
+                <button onClick={() => setIsChildrenModalOpen(true)} style={{
+                  background: "linear-gradient(145deg, var(--bg-surface) 0%, var(--bg-elevated) 100%)", 
+                  border: "1px solid var(--border)", 
+                  padding: "1.5rem", 
+                  borderRadius: "var(--radius-lg)",
+                  display: "flex", alignItems: "center", gap: "1rem", 
+                  cursor: "pointer", 
+                  transition: "all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+                  textAlign: "left"
+                }} 
+                onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.borderColor = "var(--accent-light)"; e.currentTarget.style.boxShadow = "0 10px 25px rgba(0,0,0,0.2)"; }} 
+                onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }}>
+                  <div style={{ 
+                    width: "48px", height: "48px", borderRadius: "12px", 
+                    background: "var(--accent-dim)", color: "var(--accent-light)", 
+                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
+                  }}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--text-primary)", lineHeight: 1 }}>{product.children?.length || 0}</div>
+                    <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "0.3rem", fontWeight: 500 }}>Variants & Options</div>
+                  </div>
+                </button>
+                
+                <button onClick={() => setIsMediaModalOpen(true)} style={{
+                  background: "linear-gradient(145deg, var(--bg-surface) 0%, var(--bg-elevated) 100%)", 
+                  border: "1px solid var(--border)", 
+                  padding: "1.5rem", 
+                  borderRadius: "var(--radius-lg)",
+                  display: "flex", alignItems: "center", gap: "1rem", 
+                  cursor: "pointer", 
+                  transition: "all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+                  textAlign: "left"
+                }} 
+                onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.borderColor = "var(--accent-light)"; e.currentTarget.style.boxShadow = "0 10px 25px rgba(0,0,0,0.2)"; }} 
+                onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }}>
+                  <div style={{ 
+                    width: "48px", height: "48px", borderRadius: "12px", 
+                    background: "var(--accent-dim)", color: "var(--accent-light)", 
+                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
+                  }}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--text-primary)", lineHeight: 1 }}>{product.media?.length || 0}</div>
+                    <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "0.3rem", fontWeight: 500 }}>Media Files</div>
+                  </div>
+                </button>
 
-              <button onClick={() => setIsFeaturesModalOpen(true)} style={{
-                background: "linear-gradient(145deg, var(--bg-surface) 0%, var(--bg-elevated) 100%)", 
-                border: "1px solid var(--border)", 
-                padding: "1.5rem", 
-                borderRadius: "var(--radius-lg)",
-                display: "flex", alignItems: "center", gap: "1rem", 
-                cursor: "pointer", 
-                transition: "all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
-                textAlign: "left"
-              }} 
-              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.borderColor = "var(--accent-light)"; e.currentTarget.style.boxShadow = "0 10px 25px rgba(0,0,0,0.2)"; }} 
-              onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }}>
-                <div style={{ 
-                  width: "48px", height: "48px", borderRadius: "12px", 
-                  background: "var(--accent-dim)", color: "var(--accent-light)", 
-                  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
-                }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
-                </div>
-                <div>
-                  <div style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--text-primary)", lineHeight: 1 }}>{product.features?.length || 0}</div>
-                  <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "0.3rem", fontWeight: 500 }}>Features List</div>
-                </div>
-              </button>
+                <button onClick={() => setIsFeaturesModalOpen(true)} style={{
+                  background: "linear-gradient(145deg, var(--bg-surface) 0%, var(--bg-elevated) 100%)", 
+                  border: "1px solid var(--border)", 
+                  padding: "1.5rem", 
+                  borderRadius: "var(--radius-lg)",
+                  display: "flex", alignItems: "center", gap: "1rem", 
+                  cursor: "pointer", 
+                  transition: "all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+                  textAlign: "left"
+                }} 
+                onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.borderColor = "var(--accent-light)"; e.currentTarget.style.boxShadow = "0 10px 25px rgba(0,0,0,0.2)"; }} 
+                onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }}>
+                  <div style={{ 
+                    width: "48px", height: "48px", borderRadius: "12px", 
+                    background: "var(--accent-dim)", color: "var(--accent-light)", 
+                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
+                  }}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--text-primary)", lineHeight: 1 }}>{product.features?.length || 0}</div>
+                    <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "0.3rem", fontWeight: 500 }}>Features List</div>
+                  </div>
+                </button>
 
+              </div>
             </div>
-          </div>
+          )}
 
         </div>
       </div>

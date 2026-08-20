@@ -113,7 +113,7 @@ function SidebarInner({ isOpen, onClose }: { isOpen?: boolean; onClose?: () => v
   // Filter nav items based on role
   const filteredNavItems = navItems.filter(item => {
     if (user?.role === "Student") {
-      return item.name === "Tickets";
+      return item.name === "Tickets" || item.name === "Products";
     }
     return true; // SuperAdmin/Admin sees all
   });
