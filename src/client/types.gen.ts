@@ -231,6 +231,7 @@ export type LicenseDto = {
     source?: string | null;
     provider?: string | null;
     createdAtUtc?: string;
+    isExpired?: boolean;
     clients?: Array<LicenseClientDto> | null;
 };
 
@@ -354,6 +355,7 @@ export type ProductDto = {
     janDrozdId?: string | null;
     expiryDate?: string | null;
     createdAtUtc?: string;
+    isExpired?: boolean;
     createdBy?: string | null;
     lastModifiedUtc?: string;
     lastModifiedBy?: string | null;
@@ -384,6 +386,7 @@ export type ProductFeatureDto = {
     featureType?: string | null;
     janDrozdFeatureId?: string | null;
     createdAtUtc?: string;
+    isExpired?: boolean;
     createdBy?: string | null;
     lastModifiedUtc?: string;
     lastModifiedBy?: string | null;
@@ -437,6 +440,7 @@ export type ProductVersionDto = {
     isActive?: boolean;
     releaseNotes?: string | null;
     createdAtUtc?: string;
+    isExpired?: boolean;
 };
 
 export type ProductVersionDtoListResult = {
