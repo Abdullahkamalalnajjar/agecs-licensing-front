@@ -19,7 +19,7 @@ export default function DashboardPage() {
         setLoading(true);
         const { data, error } = await getStats();
         if (error) throw new Error("Failed to load dashboard stats.");
-        if (data) setStats(data.value);
+        if (data?.value) setStats(data.value);
       } catch (err: any) {
         setError(err.message || "Something went wrong.");
       } finally {
