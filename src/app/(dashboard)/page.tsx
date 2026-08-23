@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getApiStats } from "@/client";
+import { getStats } from "@/client";
 import { DashboardStatsDto } from "@/client/types.gen";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
@@ -17,7 +17,7 @@ export default function DashboardPage() {
       if (!user) return;
       try {
         setLoading(true);
-        const { data, error } = await getApiStats();
+        const { data, error } = await getStats();
         if (error) throw new Error("Failed to load dashboard stats.");
         if (data) setStats(data.value);
       } catch (err: any) {
