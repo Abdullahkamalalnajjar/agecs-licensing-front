@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getStats } from "@/client";
+import { getStats, client } from "@/client";
 import { DashboardStatsDto } from "@/client/types.gen";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
@@ -17,6 +17,14 @@ export default function DashboardPage() {
       if (!user) return;
       try {
         setLoading(true);
+        const token = localStorage.getItem("token");
+        if (token) {
+          client.setConfig({
+            baseUrl: (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5004"),
+            auth: token,
+          });
+        }
+        
         const { data, error } = await getStats();
         if (error) throw new Error("Failed to load dashboard stats.");
         if (data?.value) setStats(data.value);
