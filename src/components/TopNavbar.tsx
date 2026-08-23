@@ -6,6 +6,7 @@ import { ThemeProvider, useTheme, type Theme } from "./ThemeProvider";
 import { useAuth } from "./AuthProvider";
 
 const navItems = [
+  { name: "Dashboard", path: "/" },
   { name: "Licenses", path: "/licenses" },
   { name: "Products", path: "/products" },
   { name: "Promocodes", path: "/promocodes" },
@@ -66,7 +67,7 @@ function TopNavbarInner() {
 
   // Filter nav items based on role
   const filteredNavItems = navItems.filter(item => {
-    if (user?.role === "Student") {
+    if ((user?.role === "Student" || user?.role === "NormalUser")) {
       return item.name === "Tickets" || item.name === "Products";
     }
     return true; // SuperAdmin/Admin sees all

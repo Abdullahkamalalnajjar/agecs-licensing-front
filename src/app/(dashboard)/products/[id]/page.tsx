@@ -254,7 +254,7 @@ export default function ProductDetailsPage() {
               <span style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.5)", fontWeight: 500 }}>/ yr</span>
             </div>
 
-            {user?.role === "Student" ? (
+            {(user?.role === "Student" || user?.role === "NormalUser") ? (
               <div style={{ display: "flex", gap: "0.75rem" }}>
                 {activeVersions.length > 0 && (
                   <button style={{
@@ -349,7 +349,7 @@ export default function ProductDetailsPage() {
         </div>
 
         {/* Quick Stats Cards */}
-        {user?.role !== "Student" && (
+        {(user?.role !== "Student" && user?.role !== "NormalUser") && (
           <div style={{
             background: "var(--bg-surface)", border: "1px solid var(--border)",
             borderRadius: "var(--radius-xl)", padding: "1.75rem",
@@ -380,6 +380,12 @@ export default function ProductDetailsPage() {
                 <span style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>Allow Trial</span>
                 <span style={{ fontWeight: 600, fontSize: "0.9rem" }}>{product.allowTrial ? `Yes (${product.trialPeriod}d)` : "No"}</span>
               </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.6rem 0", borderTop: "1px solid var(--border)" }}>
+                <span style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>End of Life</span>
+                <span style={{ fontWeight: 600, fontSize: "0.9rem", color: product.expiryDate && new Date(product.expiryDate).getTime() < Date.now() ? "var(--danger)" : "var(--text-primary)" }}>
+                  {product.expiryDate ? new Date(product.expiryDate).toLocaleDateString("en-GB") : "Lifetime / No Expiry"}
+                </span>
+              </div>
             </div>
           </div>
         )}
@@ -389,7 +395,7 @@ export default function ProductDetailsPage() {
           <div style={{
             background: "var(--bg-surface)", border: "1px solid var(--border)",
             borderRadius: "var(--radius-xl)", padding: "1.75rem",
-            ...(user?.role === "Student" ? { gridColumn: "1 / -1" } : {}),
+            ...((user?.role === "Student" || user?.role === "NormalUser") ? { gridColumn: "1 / -1" } : {}),
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
               <div style={{
@@ -411,7 +417,7 @@ export default function ProductDetailsPage() {
       </div>
 
       {/* ── Management Section (Admin only) ────────── */}
-      {user?.role !== "Student" && (
+      {(user?.role !== "Student" && user?.role !== "NormalUser") && (
         <div style={{
           background: "var(--bg-surface)", border: "1px solid var(--border)",
           borderRadius: "var(--radius-xl)", padding: "2rem", marginBottom: "2rem",

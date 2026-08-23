@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { jwtDecode } from "jwt-decode";
 import { useRouter, usePathname } from "next/navigation";
 
-export type Role = "SuperAdmin" | "Admin" | "Sales" | "Student" | string;
+export type Role = "SuperAdmin" | "Admin" | "Sales" | "Student" | "NormalUser" | string;
 
 export interface AuthUser {
   id: string;
@@ -15,7 +15,7 @@ export interface AuthUser {
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
-  login: (token: string) => void;
+  login: (token: string, refreshToken?: string) => void;
   logout: () => void;
 }
 
@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Extract role - might be in a different claim key depending on backend Identity config
         let role = decoded.role || decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
         if (Array.isArray(role)) role = role[0]; // If multiple roles, just take the first for simplicity
-        if (!role) role = "Student"; // Default fallback
+        if (!role) role = "NormalUser"; // Default fallback
         
         // Extract email - might be in array
         let email = decoded.email || decoded.unique_name || "";
@@ -67,13 +67,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, [pathname]);
 
-  const login = (token: string) => {
+  const login = (token: string, refreshToken?: string) => {
     localStorage.setItem("token", token);
+    if (refreshToken) {
+      localStorage.setItem("refreshToken", refreshToken);
+    }
     try {
       const decoded: any = jwtDecode(token);
       let role = decoded.role || decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
       if (Array.isArray(role)) role = role[0];
-      if (!role) role = "Student";
+      if (!role) role = "NormalUser";
       
       let email = decoded.email || decoded.unique_name || "";
       if (Array.isArray(email)) email = email[0];
@@ -90,6 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("refreshToken");
     setUser(null);
     router.push("/login");
   };

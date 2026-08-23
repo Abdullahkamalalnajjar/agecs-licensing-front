@@ -24,6 +24,20 @@ export default function ProductVersionsModal({ product, onClose, onSuccess }: Pr
   const [releaseNotes, setReleaseNotes] = useState<string>("");
   
   const [loading, setLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+
+  useEffect(() => {
+    let interval: any;
+    if (loading) {
+      setUploadProgress(0);
+      interval = setInterval(() => {
+        setUploadProgress(prev => (prev < 90 ? prev + Math.random() * 5 : prev));
+      }, 500);
+    } else {
+      setUploadProgress(100);
+    }
+    return () => clearInterval(interval);
+  }, [loading]);
   const [fetchLoading, setFetchLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -205,15 +219,25 @@ export default function ProductVersionsModal({ product, onClose, onSuccess }: Pr
                 />
               </div>
 
-              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "0.5rem" }}>
-                <button 
-                  type="submit" 
-                  className="btn-primary"
-                  disabled={loading || !selectedFile || !versionNumber} 
-                  style={{ opacity: loading || !selectedFile || !versionNumber ? 0.6 : 1 }}
-                >
-                  {loading ? "Uploading..." : "Upload Version"}
-                </button>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginTop: "0.5rem" }}>
+                {loading && (
+                  <div style={{ width: "100%", background: "var(--bg-elevated)", borderRadius: "var(--radius-sm)", height: "8px", overflow: "hidden" }}>
+                    <div style={{ width: `${uploadProgress}%`, height: "100%", background: "var(--accent)", transition: "width 0.4s ease" }}></div>
+                  </div>
+                )}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
+                    {loading ? `Uploading... ${Math.round(uploadProgress)}%` : ""}
+                  </span>
+                  <button 
+                    type="submit" 
+                    className="btn-primary"
+                    disabled={loading || !selectedFile || !versionNumber} 
+                    style={{ opacity: loading || !selectedFile || !versionNumber ? 0.6 : 1 }}
+                  >
+                    {loading ? "Uploading..." : "Upload Version"}
+                  </button>
+                </div>
               </div>
             </form>
           </div>

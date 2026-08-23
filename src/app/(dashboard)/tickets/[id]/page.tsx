@@ -154,7 +154,7 @@ export default function TicketDetailsPage() {
           </p>
         </div>
 
-        {user?.role !== "Student" && (
+        {(user?.role !== "Student" && user?.role !== "NormalUser") && (
           <div style={{ marginTop: "24px", display: "flex", gap: "12px", alignItems: "center" }}>
             <span style={{ fontSize: "0.85rem", fontWeight: "600", color: "#4b5563" }}>Change Status:</span>
             <select 

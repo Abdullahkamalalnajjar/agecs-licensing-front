@@ -33,19 +33,20 @@ export default function LoginPage() {
 
       if (response.data?.isSuccess && response.data?.value?.accessToken) {
         const token = response.data.value.accessToken;
+        const refreshToken = response.data.value.refreshToken;
         
         // Use the auth context login method to update global state immediately
-        login(token);
+        login(token, refreshToken || undefined);
         
         try {
           const decoded: any = jwtDecode(token);
           let role = decoded.role || decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
           if (Array.isArray(role)) role = role[0];
           
-          if (role === "Student") {
+          if (role === "NormalUser") {
             router.push("/products");
           } else {
-            router.push("/products");
+            router.push("/");
           }
         } catch (e) {
           router.push("/products");
@@ -79,19 +80,20 @@ export default function LoginPage() {
 
       if (response.data?.isSuccess && response.data?.value?.accessToken) {
         const token = response.data.value.accessToken;
+        const refreshToken = response.data.value.refreshToken;
         
         // Use the auth context login method to update global state immediately
-        login(token);
+        login(token, refreshToken || undefined);
         
         try {
           const decoded: any = jwtDecode(token);
           let role = decoded.role || decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
           if (Array.isArray(role)) role = role[0];
           
-          if (role === "Student") {
+          if (role === "NormalUser") {
             router.push("/products");
           } else {
-            router.push("/products");
+            router.push("/");
           }
         } catch (e) {
           router.push("/products");
