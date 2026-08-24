@@ -12,6 +12,7 @@ const navItems = [
   { name: "Promocodes", path: "/promocodes" },
   { name: "Tickets", path: "/tickets" },
   { name: "Categories", path: "/ticket-categories" },
+  { name: "Users", path: "/users" },
 ];
 
 const themeOptions: { value: Theme; label: string; icon: React.ReactNode }[] = [
