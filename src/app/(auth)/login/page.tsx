@@ -52,8 +52,9 @@ export default function LoginPage() {
           router.push("/products");
         }
       } else {
+        const errObj = (response.error as any) || response.data;
         const errorMsg =
-          response.data?.errors?.map((e) => e.description).filter(Boolean).join(", ") ||
+          errObj?.errors?.map((e: any) => e.description).filter(Boolean).join(", ") ||
           "Invalid credentials or response format.";
         setError(errorMsg);
       }
@@ -99,8 +100,9 @@ export default function LoginPage() {
           router.push("/products");
         }
       } else {
+        const errObj = (response.error as any) || response.data;
         const errorMsg =
-          response.data?.errors?.map((e: any) => e.description).filter(Boolean).join(", ") ||
+          errObj?.errors?.map((e: any) => e.description).filter(Boolean).join(", ") ||
           "Invalid credentials or response format.";
         setError(errorMsg);
       }
