@@ -81,7 +81,7 @@ const ROLE_CONFIGS: Record<string, RoleConfig> = {
   },
   NormalUser: {
     name: "NormalUser",
-    label: "Standard Customer",
+    label: "NormalUser",
     description: "Standard account for purchasing and managing personal licenses",
     badgeBg: "rgba(148, 163, 184, 0.12)",
     badgeText: "#94a3b8",
