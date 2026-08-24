@@ -517,6 +517,10 @@ export type RenewLicenseRequest = {
     period?: number;
 };
 
+export type RequestStudentUpgradeRequest = {
+    email?: string | null;
+};
+
 export type ResetLicenseHwidRequest = {
     reason?: string | null;
 };
@@ -629,6 +633,10 @@ export type UpdatedResult = {
     readonly isError?: boolean;
     value?: Updated;
     readonly errors?: Array<Error> | null;
+};
+
+export type VerifyStudentUpgradeRequest = {
+    otpCode?: string | null;
 };
 
 export type AppUserDtoWritable = {
@@ -1265,6 +1273,74 @@ export type DeleteIdentityByUserIdResponses = {
 };
 
 export type DeleteIdentityByUserIdResponse = DeleteIdentityByUserIdResponses[keyof DeleteIdentityByUserIdResponses];
+
+export type PostIdentityStudentUpgradeRequestData = {
+    /**
+     * The request containing the university email.
+     */
+    body?: RequestStudentUpgradeRequest;
+    path?: never;
+    query?: never;
+    url: '/identity/student-upgrade/request';
+};
+
+export type PostIdentityStudentUpgradeRequestErrors = {
+    /**
+     * Bad Request
+     */
+    400: ObjectResult;
+    /**
+     * Unauthorized
+     */
+    401: ObjectResult;
+    /**
+     * Conflict
+     */
+    409: ObjectResult;
+};
+
+export type PostIdentityStudentUpgradeRequestError = PostIdentityStudentUpgradeRequestErrors[keyof PostIdentityStudentUpgradeRequestErrors];
+
+export type PostIdentityStudentUpgradeRequestResponses = {
+    /**
+     * OK
+     */
+    200: UpdatedResult;
+};
+
+export type PostIdentityStudentUpgradeRequestResponse = PostIdentityStudentUpgradeRequestResponses[keyof PostIdentityStudentUpgradeRequestResponses];
+
+export type PostIdentityStudentUpgradeVerifyData = {
+    /**
+     * The OTP code.
+     */
+    body?: VerifyStudentUpgradeRequest;
+    path?: never;
+    query?: never;
+    url: '/identity/student-upgrade/verify';
+};
+
+export type PostIdentityStudentUpgradeVerifyErrors = {
+    /**
+     * Bad Request
+     */
+    400: ObjectResult;
+    /**
+     * Unauthorized
+     */
+    401: ObjectResult;
+};
+
+export type PostIdentityStudentUpgradeVerifyError = PostIdentityStudentUpgradeVerifyErrors[keyof PostIdentityStudentUpgradeVerifyErrors];
+
+export type PostIdentityStudentUpgradeVerifyResponses = {
+    /**
+     * OK
+     */
+    200: UpdatedResult;
+};
+
+export type PostIdentityStudentUpgradeVerifyResponse = PostIdentityStudentUpgradeVerifyResponses[keyof PostIdentityStudentUpgradeVerifyResponses];
 
 export type GetStatsData = {
     body?: never;

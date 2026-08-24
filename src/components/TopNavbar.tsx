@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { ThemeProvider, useTheme, type Theme } from "./ThemeProvider";
 import { useAuth } from "./AuthProvider";
+import StudentUpgradeModal from "./StudentUpgradeModal";
 
 const navItems = [
   { name: "Dashboard", path: "/" },
@@ -13,6 +14,7 @@ const navItems = [
   { name: "Tickets", path: "/tickets" },
   { name: "Categories", path: "/ticket-categories" },
   { name: "Users", path: "/users" },
+  { name: "Profile", path: "/profile" },
 ];
 
 const themeOptions: { value: Theme; label: string; icon: React.ReactNode }[] = [
@@ -56,6 +58,7 @@ function TopNavbarInner() {
   const { theme, setTheme } = useTheme();
   const { user, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -66,10 +69,15 @@ function TopNavbarInner() {
     logout();
   };
 
+  const handleUpgradeSuccess = () => {
+    setShowUpgradeModal(false);
+    window.location.reload();
+  };
+
   // Filter nav items based on role
   const filteredNavItems = navItems.filter(item => {
     if ((user?.role === "Student" || user?.role === "NormalUser")) {
-      return item.name === "Tickets" || item.name === "Products";
+      return item.name === "Tickets" || item.name === "Products" || item.name === "Profile";
     }
     return true; // SuperAdmin/Admin sees all
   });
@@ -124,9 +132,20 @@ function TopNavbarInner() {
             </div>
 
             {user && (
-              <div className="user-profile-badge">
-                <span className="user-email">{user.email}</span>
-                <span className="user-role">{user.role}</span>
+              <div className="user-profile-badge" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span className="user-email">{user.email}</span>
+                  <span className="user-role">{user.role}</span>
+                </div>
+                {user.role === "NormalUser" && (
+                  <button 
+                    onClick={() => setShowUpgradeModal(true)}
+                    className="btn-primary" 
+                    style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', borderRadius: '4px', cursor: 'pointer' }}
+                  >
+                    Upgrade to Student
+                  </button>
+                )}
               </div>
             )}
 
@@ -188,9 +207,21 @@ function TopNavbarInner() {
             </div>
 
             {user && (
-              <div style={{ marginBottom: "1rem", padding: "0.75rem", background: "var(--bg-elevated)", borderRadius: "8px", fontSize: "0.85rem", width: '100%', textAlign: 'center' }}>
+              <div style={{ marginBottom: "1rem", padding: "0.75rem", background: "var(--bg-elevated)", borderRadius: "8px", fontSize: "0.85rem", width: '100%', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <div style={{ fontWeight: 600, color: "var(--text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user.email}</div>
                 <div style={{ color: "var(--text-muted)", fontSize: "0.75rem", marginTop: "2px" }}>Role: {user.role}</div>
+                {user.role === "NormalUser" && (
+                  <button 
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      setShowUpgradeModal(true);
+                    }}
+                    className="btn-primary" 
+                    style={{ padding: '0.5rem', width: '100%', fontSize: '0.875rem', borderRadius: '6px', cursor: 'pointer' }}
+                  >
+                    Upgrade to Student
+                  </button>
+                )}
               </div>
             )}
 
@@ -199,6 +230,13 @@ function TopNavbarInner() {
             </button>
           </div>
         </div>
+      )}
+
+      {showUpgradeModal && (
+        <StudentUpgradeModal
+          onClose={() => setShowUpgradeModal(false)}
+          onSuccess={handleUpgradeSuccess}
+        />
       )}
     </>
   );
