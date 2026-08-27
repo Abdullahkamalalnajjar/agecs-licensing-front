@@ -5,7 +5,6 @@ import { ThemeProvider, useTheme, type Theme } from "./ThemeProvider";
 import { useAuth } from "./AuthProvider";
 
 const navItems = [
-  /*
   {
     name: "Dashboard",
     path: "/dashboard",
@@ -15,8 +14,6 @@ const navItems = [
       </svg>
     )
   },
-  */
-  /*
   {
     name: "Licenses",
     path: "/licenses",
@@ -26,7 +23,6 @@ const navItems = [
       </svg>
     )
   },
-  */
   {
     name: "Products",
     path: "/products",
@@ -36,7 +32,6 @@ const navItems = [
       </svg>
     )
   },
-  /*
   {
     name: "Promocodes",
     path: "/promocodes",
@@ -46,8 +41,6 @@ const navItems = [
       </svg>
     )
   },
-  */
-  /*
   {
     name: "Tickets",
     path: "/tickets",
@@ -57,7 +50,6 @@ const navItems = [
       </svg>
     )
   },
-  */
   {
     name: "Categories",
     path: "/ticket-categories",
@@ -67,7 +59,6 @@ const navItems = [
       </svg>
     )
   },
-  /*
   {
     name: "Users",
     path: "/users",
@@ -77,7 +68,6 @@ const navItems = [
       </svg>
     )
   },
-  */
   {
     name: "Profile",
     path: "/profile",
@@ -149,7 +139,7 @@ function SidebarInner() {
 
       {/* Navigation */}
       <nav className="sidebar-nav">
-        {navItems.filter(() => user?.role !== "Student" && user?.role !== "NormalUser").map((item) => {
+        {navItems.map((item) => {
           const isActive = pathname.startsWith(item.path);
           return (
             <Link

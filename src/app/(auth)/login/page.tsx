@@ -43,13 +43,13 @@ export default function LoginPage() {
           const decoded: any = jwtDecode(token);
           let role = decoded.role || decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
           if (Array.isArray(role)) role = role[0];
-          if (role === "NormalUser" || role === "Student") {
-            router.push("/dashboard");
+          if (role === "NormalUser") {
+            router.push("/products");
           } else {
             router.push("/dashboard");
           }
         } catch (e) {
-          router.push("/dashboard");
+          router.push("/products");
         }
       } else {
         const errObj = (response.error as any) || response.data;
@@ -91,13 +91,13 @@ export default function LoginPage() {
           let role = decoded.role || decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
           if (Array.isArray(role)) role = role[0];
           
-          if (role === "NormalUser" || role === "Student") {
-            router.push("/dashboard");
+          if (role === "NormalUser") {
+            router.push("/products");
           } else {
             router.push("/dashboard");
           }
         } catch (e) {
-          router.push("/dashboard");
+          router.push("/products");
         }
       } else {
         const errObj = (response.error as any) || response.data;
@@ -119,7 +119,8 @@ export default function LoginPage() {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      background: "var(--bg-base)",
+      background: "#09090b",
+      backgroundImage: "radial-gradient(at 0% 0%, rgba(124, 58, 237, 0.15) 0px, transparent 50%), radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.15) 0px, transparent 50%)",
       position: "relative",
       overflow: "hidden",
       padding: "2rem"
@@ -128,19 +129,19 @@ export default function LoginPage() {
       <div style={{
           position: "absolute", top: "10%", left: "15%",
           width: "400px", height: "400px",
-          background: "radial-gradient(circle, rgba(124,58,237,0.15) 0%, transparent 70%)",
+          background: "radial-gradient(circle, rgba(124,58,237,0.3) 0%, transparent 70%)",
           borderRadius: "50%", pointerEvents: "none", filter: "blur(60px)",
       }} />
       <div style={{
           position: "absolute", bottom: "10%", right: "15%",
           width: "350px", height: "350px",
-          background: "radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%)",
+          background: "radial-gradient(circle, rgba(59,130,246,0.3) 0%, transparent 70%)",
           borderRadius: "50%", pointerEvents: "none", filter: "blur(50px)",
       }} />
       <div style={{
           position: "absolute", top: "40%", left: "50%", transform: "translate(-50%, -50%)",
           width: "600px", height: "600px",
-          background: "radial-gradient(circle, rgba(16,185,129,0.05) 0%, transparent 70%)",
+          background: "radial-gradient(circle, rgba(16,185,129,0.15) 0%, transparent 70%)",
           borderRadius: "50%", pointerEvents: "none", filter: "blur(80px)",
       }} />
 
@@ -148,7 +149,7 @@ export default function LoginPage() {
       <div style={{ position: "absolute", top: "2rem", left: "2rem", zIndex: 20 }}>
         <Link href="/products" style={{
           display: "inline-flex", alignItems: "center", gap: "0.5rem",
-          color: "var(--text-secondary)", textDecoration: "none",
+          color: "#a1a1aa", textDecoration: "none",
           fontSize: "0.9rem", fontWeight: 500, transition: "color 0.2s"
         }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -186,10 +187,10 @@ export default function LoginPage() {
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
             </svg>
           </div>
-          <h1 style={{ fontSize: "1.85rem", fontWeight: "800", color: "var(--text-primary)", marginBottom: "0.5rem", letterSpacing: "-0.03em" }}>
+          <h1 style={{ fontSize: "1.85rem", fontWeight: "800", color: "#ffffff", marginBottom: "0.5rem", letterSpacing: "-0.03em" }}>
             Welcome Back
           </h1>
-          <p style={{ color: "var(--text-secondary)", fontSize: "0.95rem" }}>
+          <p style={{ color: "#a1a1aa", fontSize: "0.95rem" }}>
             Sign in to continue to Agecs Licensing
           </p>
         </div>
@@ -207,7 +208,7 @@ export default function LoginPage() {
         {/* Form */}
         <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
           <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label" htmlFor="email" style={{ fontSize: "0.85rem" }}>Email address</label>
+            <label className="form-label" htmlFor="email" style={{ fontSize: "0.85rem", color: "#a1a1aa" }}>Email address</label>
             <input
               id="email"
               type="email"
@@ -216,12 +217,12 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              style={{ padding: "0.875rem 1rem", borderRadius: "12px", background: "rgba(0,0,0,0.2)" }}
+              style={{ padding: "0.875rem 1rem", borderRadius: "12px", background: "rgba(0,0,0,0.2)", color: "#ffffff", border: "1px solid rgba(255,255,255,0.1)" }}
             />
           </div>
 
           <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label" htmlFor="password" style={{ fontSize: "0.85rem" }}>Password</label>
+            <label className="form-label" htmlFor="password" style={{ fontSize: "0.85rem", color: "#a1a1aa" }}>Password</label>
             <div style={{ position: "relative" }}>
               <input
                 id="password"
@@ -231,14 +232,14 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                style={{ padding: "0.875rem 1rem", paddingRight: "3rem", borderRadius: "12px", background: "rgba(0,0,0,0.2)" }}
+                style={{ padding: "0.875rem 1rem", paddingRight: "3rem", borderRadius: "12px", background: "rgba(0,0,0,0.2)", color: "#ffffff", border: "1px solid rgba(255,255,255,0.1)" }}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 style={{
                   position: "absolute", right: "1rem", top: "50%", transform: "translateY(-50%)",
-                  background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", padding: "4px",
+                  background: "none", border: "none", color: "#a1a1aa", cursor: "pointer", padding: "4px",
                   display: "flex", alignItems: "center",
                 }}
                 tabIndex={-1}
@@ -285,9 +286,9 @@ export default function LoginPage() {
         <div style={{ margin: "2rem 0", position: "relative", textAlign: "center" }}>
           <div style={{ position: "absolute", top: "50%", left: 0, right: 0, borderTop: "1px solid rgba(255,255,255,0.1)" }}></div>
           <span style={{ 
-            background: "rgba(15, 17, 26, 1)", // Match background
+            background: "#13151c", // Dark solid match
             position: "relative", padding: "0 1rem", 
-            color: "var(--text-muted)", fontSize: "0.85rem",
+            color: "#a1a1aa", fontSize: "0.85rem",
             fontWeight: 500
           }}>
             Or continue with
@@ -309,14 +310,15 @@ export default function LoginPage() {
               alignItems: "center",
               justifyContent: "center",
               gap: "0.75rem",
-              background: "rgba(255,255,255,0.03)",
-              border: "1px solid rgba(255,255,255,0.1)",
+              background: "#ffffff",
+              border: "1px solid #e5e7eb",
               borderRadius: "12px",
-              color: "var(--text-primary)",
+              color: "#09090b",
               fontSize: "0.95rem",
-              fontWeight: 500,
+              fontWeight: 600,
               cursor: googleLoading ? "not-allowed" : "pointer",
               transition: "all 0.2s ease",
+              boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
               fontFamily: "inherit",
               letterSpacing: "-0.01em",
               opacity: googleLoading ? 0.7 : 1,

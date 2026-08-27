@@ -9,13 +9,13 @@ import CartSidebar from "./CartSidebar";
 import { getApiV1CartsMyCart } from "@/client";
 
 const navItems = [
-  // { name: "Dashboard", path: "/dashboard" },
-  // { name: "Licenses", path: "/licenses" },
+  { name: "Dashboard", path: "/dashboard" },
+  { name: "Licenses", path: "/licenses" },
   { name: "Products", path: "/products" },
-  // { name: "Promocodes", path: "/promocodes" },
-  // { name: "Tickets", path: "/tickets" },
+  { name: "Promocodes", path: "/promocodes" },
+  { name: "Tickets", path: "/tickets" },
   { name: "Categories", path: "/ticket-categories" },
-  // { name: "Users", path: "/users" },
+  { name: "Users", path: "/users" },
   { name: "Profile", path: "/profile" },
 ];
 
@@ -105,7 +105,7 @@ function TopNavbarInner() {
       return item.name === "Products";
     }
     if (user?.role === "Student" || user?.role === "NormalUser") {
-      return false;
+      return item.name === "Tickets" || item.name === "Products" || item.name === "Profile";
     }
     return true; // SuperAdmin/Admin sees all
   });
@@ -191,12 +191,21 @@ function TopNavbarInner() {
               ))}
             </div>
 
-            {user && user.role !== "Student" && user.role !== "NormalUser" && (
+            {user && (
               <div className="user-profile-badge" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <span className="user-email">{user.email}</span>
                   <span className="user-role">{user.role}</span>
                 </div>
+                {user.role === "NormalUser" && (
+                  <button 
+                    onClick={() => setShowUpgradeModal(true)}
+                    className="btn-primary" 
+                    style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', borderRadius: '4px', cursor: 'pointer' }}
+                  >
+                    Upgrade to Student
+                  </button>
+                )}
               </div>
             )}
 
@@ -233,7 +242,7 @@ function TopNavbarInner() {
       {mobileMenuOpen && (
         <div className="mobile-menu-overlay">
           <nav className="mobile-nav">
-          {navItems.filter(() => user?.role !== "Student" && user?.role !== "NormalUser").map((item) => {
+          {navItems.map((item) => {
             const isActive = pathname.startsWith(item.path);
               return (
                 <Link
