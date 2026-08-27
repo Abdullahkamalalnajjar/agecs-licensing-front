@@ -16,6 +16,10 @@ export default function DashboardPage() {
   useEffect(() => {
     async function loadStats() {
       if (!user) return;
+      if (user.role === "Student" || user.role === "NormalUser") {
+        setLoading(false);
+        return;
+      }
       try {
         setLoading(true);
         const token = localStorage.getItem("token");
@@ -42,6 +46,28 @@ export default function DashboardPage() {
     return (
       <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
         <div className="spinner"></div>
+      </div>
+    );
+  }
+
+  if (user?.role === "Student" || user?.role === "NormalUser") {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '2rem' }}>
+        <div style={{
+          width: "80px", height: "80px", margin: "0 auto 1.5rem",
+          background: "linear-gradient(135deg, rgba(124,58,237,0.2), rgba(59,130,246,0.2))",
+          borderRadius: "20px", display: "flex", alignItems: "center", justifyContent: "center",
+          border: "1px solid rgba(124,58,237,0.3)"
+        }}>
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--accent-light)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+          </svg>
+        </div>
+        <h1 style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '1rem', letterSpacing: "-0.02em" }}>User Dashboard</h1>
+        <p style={{ fontSize: '1.25rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Coming Soon!</p>
+        <div style={{ marginTop: '2rem', padding: '1.5rem', background: 'var(--bg-elevated)', borderRadius: '16px', border: '1px solid var(--border)', maxWidth: '450px' }}>
+          <p style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>We are working hard to bring you a personalized dashboard where you can easily track your software licenses, support tickets, and latest products.</p>
+        </div>
       </div>
     );
   }

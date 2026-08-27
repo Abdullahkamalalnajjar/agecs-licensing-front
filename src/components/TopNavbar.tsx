@@ -5,15 +5,17 @@ import { useState, useEffect } from "react";
 import { ThemeProvider, useTheme, type Theme } from "./ThemeProvider";
 import { useAuth } from "./AuthProvider";
 import StudentUpgradeModal from "./StudentUpgradeModal";
+import CartSidebar from "./CartSidebar";
+import { getApiV1CartsMyCart } from "@/client";
 
 const navItems = [
-  { name: "Dashboard", path: "/" },
-  { name: "Licenses", path: "/licenses" },
+  // { name: "Dashboard", path: "/dashboard" },
+  // { name: "Licenses", path: "/licenses" },
   { name: "Products", path: "/products" },
-  { name: "Promocodes", path: "/promocodes" },
-  { name: "Tickets", path: "/tickets" },
+  // { name: "Promocodes", path: "/promocodes" },
+  // { name: "Tickets", path: "/tickets" },
   { name: "Categories", path: "/ticket-categories" },
-  { name: "Users", path: "/users" },
+  // { name: "Users", path: "/users" },
   { name: "Profile", path: "/profile" },
 ];
 
@@ -59,6 +61,29 @@ function TopNavbarInner() {
   const { user, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [cartItemCount, setCartItemCount] = useState(0);
+
+  // Fetch cart count on load if user is logged in
+  useEffect(() => {
+    const fetchCartCount = () => {
+      if (user) {
+        getApiV1CartsMyCart().then(res => {
+          if (res.data?.value?.items) {
+            setCartItemCount(res.data.value.items.length);
+          }
+        }).catch(err => console.error("Error fetching cart count:", err));
+      }
+    };
+    
+    fetchCartCount();
+
+    // Listen for custom event from other components (like Add to Cart)
+    window.addEventListener("cartUpdated", fetchCartCount);
+    return () => {
+      window.removeEventListener("cartUpdated", fetchCartCount);
+    };
+  }, [user, isCartOpen]); // Refresh count when cart closes as well
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -76,8 +101,11 @@ function TopNavbarInner() {
 
   // Filter nav items based on role
   const filteredNavItems = navItems.filter(item => {
-    if ((user?.role === "Student" || user?.role === "NormalUser")) {
-      return item.name === "Tickets" || item.name === "Products" || item.name === "Profile";
+    if (!user) {
+      return item.name === "Products";
+    }
+    if (user?.role === "Student" || user?.role === "NormalUser") {
+      return false;
     }
     return true; // SuperAdmin/Admin sees all
   });
@@ -116,6 +144,38 @@ function TopNavbarInner() {
 
           {/* Right Actions */}
           <div className="navbar-actions desktop-only">
+            {/* Cart Icon */}
+            {user && (
+              <button 
+                onClick={() => setIsCartOpen(true)}
+                title="View Cart"
+                style={{ 
+                  background: 'transparent', border: 'none', color: 'var(--text-primary)', 
+                  cursor: 'pointer', position: 'relative', display: 'flex', 
+                  alignItems: 'center', justifyContent: 'center', padding: '0.5rem',
+                  transition: 'opacity 0.2s'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.opacity = '0.8'}
+                onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="9" cy="21" r="1"></circle>
+                  <circle cx="20" cy="21" r="1"></circle>
+                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                </svg>
+                {cartItemCount > 0 && (
+                  <span style={{
+                    position: 'absolute', top: '2px', right: '0px',
+                    background: 'var(--primary-color, #3b82f6)', color: 'white',
+                    fontSize: '0.65rem', fontWeight: 'bold', padding: '0.1rem 0.35rem',
+                    borderRadius: '999px', minWidth: '16px', textAlign: 'center'
+                  }}>
+                    {cartItemCount}
+                  </span>
+                )}
+              </button>
+            )}
+
             {/* Theme switcher */}
             <div className="theme-switcher-inline" title="Switch theme">
               {themeOptions.map((opt) => (
@@ -131,27 +191,24 @@ function TopNavbarInner() {
               ))}
             </div>
 
-            {user && (
+            {user && user.role !== "Student" && user.role !== "NormalUser" && (
               <div className="user-profile-badge" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <span className="user-email">{user.email}</span>
                   <span className="user-role">{user.role}</span>
                 </div>
-                {user.role === "NormalUser" && (
-                  <button 
-                    onClick={() => setShowUpgradeModal(true)}
-                    className="btn-primary" 
-                    style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', borderRadius: '4px', cursor: 'pointer' }}
-                  >
-                    Upgrade to Student
-                  </button>
-                )}
               </div>
             )}
 
-            <button onClick={handleLogout} className="btn-danger-ghost btn-sm">
-              Sign Out
-            </button>
+            {!user ? (
+              <button onClick={() => router.push("/login")} className="btn-primary btn-sm">
+                Sign In
+              </button>
+            ) : (
+              <button onClick={handleLogout} className="btn-danger-ghost btn-sm">
+                Sign Out
+              </button>
+            )}
           </div>
 
           {/* Mobile Menu Toggle */}
@@ -176,8 +233,8 @@ function TopNavbarInner() {
       {mobileMenuOpen && (
         <div className="mobile-menu-overlay">
           <nav className="mobile-nav">
-            {filteredNavItems.map((item) => {
-              const isActive = pathname.startsWith(item.path);
+          {navItems.filter(() => user?.role !== "Student" && user?.role !== "NormalUser").map((item) => {
+            const isActive = pathname.startsWith(item.path);
               return (
                 <Link
                   key={item.path}
@@ -225,9 +282,15 @@ function TopNavbarInner() {
               </div>
             )}
 
-            <button onClick={handleLogout} className="btn-danger-ghost" style={{ width: "100%", justifyContent: "center" }}>
-              Sign Out
-            </button>
+            {!user ? (
+              <button onClick={() => router.push("/login")} className="btn-primary" style={{ width: "100%", justifyContent: "center", marginTop: "1rem" }}>
+                Sign In
+              </button>
+            ) : (
+              <button onClick={handleLogout} className="btn-danger-ghost" style={{ width: "100%", justifyContent: "center", marginTop: "1rem" }}>
+                Sign Out
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -238,6 +301,12 @@ function TopNavbarInner() {
           onSuccess={handleUpgradeSuccess}
         />
       )}
+
+      {/* Cart Sidebar */}
+      <CartSidebar 
+        isOpen={isCartOpen} 
+        onClose={() => setIsCartOpen(false)} 
+      />
     </>
   );
 }

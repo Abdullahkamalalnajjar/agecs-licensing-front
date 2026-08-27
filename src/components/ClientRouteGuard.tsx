@@ -12,15 +12,18 @@ export function ClientRouteGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (loading) return;
 
+    // Allow /products routes without auth (public browsing)
+    if (pathname.startsWith("/products")) return;
+
     if (!user) {
       router.push("/login");
       return;
     }
 
     if ((user.role === "Student" || user.role === "NormalUser")) {
-      // Students can access tickets and products
-      if (!pathname.startsWith("/tickets") && !pathname.startsWith("/products") && !pathname.startsWith("/profile")) {
-        router.push("/products");
+      // Students can access dashboard (coming soon page), tickets, products, and profile
+      if (!pathname.startsWith("/dashboard") && !pathname.startsWith("/tickets") && !pathname.startsWith("/products") && !pathname.startsWith("/profile")) {
+        router.push("/dashboard");
       }
     }
     // SuperAdmin/Admin can access everything, no redirect needed
@@ -34,8 +37,13 @@ export function ClientRouteGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // Allow /products pages for everyone (including unauthenticated)
+  if (pathname.startsWith("/products")) {
+    return <>{children}</>;
+  }
+
   // Prevent flash of unauthorized content
-  if ((user?.role === "Student" || user?.role === "NormalUser") && !pathname.startsWith("/tickets") && !pathname.startsWith("/products") && !pathname.startsWith("/profile")) {
+  if ((user?.role === "Student" || user?.role === "NormalUser") && !pathname.startsWith("/dashboard") && !pathname.startsWith("/tickets") && !pathname.startsWith("/products") && !pathname.startsWith("/profile")) {
     return null;
   }
 

@@ -28,7 +28,7 @@ export default function ProductsPage() {
 
   const openCreateModal = () => setIsCreateModalOpen(true);
 
-  const isAdmin = user?.role !== "Student" && user?.role !== "NormalUser";
+  const isAdmin = user != null && user.role !== "Student" && user.role !== "NormalUser";
 
   const router = useRouter();
 
@@ -36,11 +36,10 @@ export default function ProductsPage() {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      if (!token) { router.push("/login"); return; }
 
       client.setConfig({
         baseUrl: (process.env.NEXT_PUBLIC_API_URL || "https://localhost:5003"),
-        auth: token,
+        ...(token ? { auth: token } : {}),
       });
 
       const response = await getApiProducts({ throwOnError: false });
@@ -54,7 +53,7 @@ export default function ProductsPage() {
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, []);
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
 

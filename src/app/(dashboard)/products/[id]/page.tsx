@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
-import { getApiProductsById, deleteApiProductsById, getApiProductsByIdVersions } from "@/client";
+import { getApiProductsById, deleteApiProductsById, getApiProductsByIdVersions, postApiV1CartsMyCartItems } from "@/client";
 import { client } from "@/client/client.gen";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
@@ -22,8 +22,18 @@ export default function ProductDetailsPage() {
   const [product, setProduct] = useState<ProductDto | null>(null);
   const [activeVersions, setActiveVersions] = useState<ProductVersionDto[]>([]);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedEditionId, setSelectedEditionId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (product && product.children && product.children.length > 0) {
+      setSelectedEditionId(product.children[0].id || null);
+    } else {
+      setSelectedEditionId(null);
+    }
+  }, [product]);
 
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
@@ -36,11 +46,10 @@ export default function ProductDetailsPage() {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      if (!token) { router.push("/login"); return; }
 
       client.setConfig({
         baseUrl: (process.env.NEXT_PUBLIC_API_URL || "https://localhost:5003"),
-        auth: token,
+        ...(token ? { auth: token } : {}),
       });
 
       const response = await getApiProductsById({ path: { id: productId }, throwOnError: false });
@@ -91,6 +100,10 @@ export default function ProductDetailsPage() {
   };
 
   const handleDownload = () => {
+    if (!user) {
+      router.push("/login");
+      return;
+    }
     if (activeVersions.length === 0) return;
     const versionToDownload = activeVersions[0];
     if (versionToDownload.id) {
@@ -99,6 +112,42 @@ export default function ProductDetailsPage() {
       const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
       const downloadUrl = `${cleanBaseUrl}/api/products/${productId}/versions/${versionToDownload.id}/download`;
       window.open(downloadUrl, '_blank');
+    }
+  };
+
+    const handleAddToCart = async () => {
+    if (!productId) return;
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+    try {
+      setIsAddingToCart(true);
+      const targetId = selectedEditionId || productId;
+      const targetProduct = selectedEditionId && product?.children ? product.children.find(c => c.id === selectedEditionId) : product;
+      const period = targetProduct?.prices && targetProduct.prices.length > 0 ? targetProduct.prices[0].period : 12;
+      
+      const res = await postApiV1CartsMyCartItems({
+        body: {
+          itemType: "Product",
+          itemId: targetId as string,
+          quantity: 1,
+          period: period
+        },
+        throwOnError: false
+      });
+      
+      if (res.error || (res.data as any)?.isError) {
+        const errs = (res.data as any)?.errors;
+        alert(errs?.map((e: any) => e.description).join(", ") || "Failed to add to cart");
+      } else {
+        alert("Added to cart successfully!");
+        window.dispatchEvent(new Event("cartUpdated"));
+      }
+    } catch (e: any) {
+      alert("Error adding to cart: " + e.message);
+    } finally {
+      setIsAddingToCart(false);
     }
   };
 
@@ -241,54 +290,103 @@ export default function ProductDetailsPage() {
             </p>
           )}
 
-          {/* Price + Actions */}
-          <div style={{ display: "flex", alignItems: "center", gap: "1.5rem", flexWrap: "wrap" }}>
-            <div style={{
-              background: "rgba(255,255,255,0.1)", backdropFilter: "blur(8px)",
-              border: "1px solid rgba(255,255,255,0.15)", borderRadius: "var(--radius-lg)",
-              padding: "0.75rem 1.25rem", display: "flex", alignItems: "baseline", gap: "0.4rem",
-            }}>
-              <span style={{ fontSize: "1.75rem", fontWeight: 800, color: "#fec010", fontFamily: "var(--font-mono)" }}>
-                ${product.prices && product.prices.length > 0 ? (product.prices[0].price || 0).toFixed(2) : "0.00"}
-              </span>
-              <span style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.5)", fontWeight: 500 }}>/ yr</span>
-            </div>
+          {/* Pricing & Variants directly in Hero */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+            
+            {/* Editions Selector (if children exist) */}
+            {product.children && product.children.length > 0 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                <span style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.7)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "1px" }}>Select Edition</span>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+                  {product.children.map(child => {
+                    const cPrice = child.prices && child.prices.length > 0 ? child.prices[0] : null;
+                    const isSelected = selectedEditionId === child.id;
+                    return (
+                      <button 
+                        key={child.id}
+                        onClick={() => setSelectedEditionId(child.id!)}
+                        style={{
+                          padding: "0.6rem 1rem",
+                          borderRadius: "var(--radius-md)",
+                          border: isSelected ? "2px solid #fec010" : "1px solid rgba(255,255,255,0.2)",
+                          background: isSelected ? "rgba(254,192,16,0.15)" : "rgba(255,255,255,0.05)",
+                          color: isSelected ? "#fec010" : "#fff",
+                          fontWeight: 600, cursor: "pointer", transition: "all 0.2s ease",
+                          display: "flex", alignItems: "center", gap: "0.5rem"
+                        }}
+                      >
+                        {child.name}
+                        {cPrice && <span style={{ opacity: isSelected ? 1 : 0.7, fontSize: "0.85rem", fontWeight: 700 }}>${cPrice.price}</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
-            {(user?.role === "Student" || user?.role === "NormalUser") ? (
-              <div style={{ display: "flex", gap: "0.75rem" }}>
-                {activeVersions.length > 0 && (
+            {/* Price + Actions */}
+            <div style={{ display: "flex", alignItems: "center", gap: "1.5rem", flexWrap: "wrap" }}>
+              {(() => {
+                const currentProduct = (selectedEditionId && product.children) ? product.children.find(c => c.id === selectedEditionId) || product : product;
+                const currentPrice = currentProduct.prices && currentProduct.prices.length > 0 ? currentProduct.prices[0] : null;
+                return (
+                  <div style={{
+                    background: "rgba(255,255,255,0.1)", backdropFilter: "blur(8px)",
+                    border: "1px solid rgba(255,255,255,0.15)", borderRadius: "var(--radius-lg)",
+                    padding: "0.75rem 1.25rem", display: "flex", alignItems: "baseline", gap: "0.4rem",
+                  }}>
+                    <span style={{ fontSize: "1.75rem", fontWeight: 800, color: "#fec010", fontFamily: "var(--font-mono)" }}>
+                      ${currentPrice ? (currentPrice.price || 0).toFixed(2) : "0.00"}
+                    </span>
+                    <span style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.5)", fontWeight: 500 }}>
+                      / {currentPrice ? currentPrice.period : 1} days
+                    </span>
+                  </div>
+                );
+              })()}
+
+              {(user == null || user.role === "Student" || user.role === "NormalUser") ? (
+                <div style={{ display: "flex", gap: "0.75rem" }}>
+                  {activeVersions.length > 0 && (
+                    <button style={{
+                      display: "flex", alignItems: "center", gap: "0.5rem",
+                      padding: "0.7rem 1.5rem", borderRadius: "var(--radius-md)",
+                      background: "rgba(16, 185, 129, 0.15)", color: "#34d399",
+                      border: "1px solid rgba(16, 185, 129, 0.3)",
+                      fontWeight: 600, cursor: "pointer", fontSize: "0.9rem",
+                      transition: "all 0.2s ease",
+                    }}
+                    onClick={handleDownload}
+                    onMouseEnter={e => { e.currentTarget.style.background = "#10b981"; e.currentTarget.style.color = "#fff"; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = "rgba(16, 185, 129, 0.15)"; e.currentTarget.style.color = "#34d399"; }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                      Download
+                    </button>
+                  )}
                   <button style={{
                     display: "flex", alignItems: "center", gap: "0.5rem",
                     padding: "0.7rem 1.5rem", borderRadius: "var(--radius-md)",
-                    background: "rgba(16, 185, 129, 0.15)", color: "#34d399",
-                    border: "1px solid rgba(16, 185, 129, 0.3)",
-                    fontWeight: 600, cursor: "pointer", fontSize: "0.9rem",
-                    transition: "all 0.2s ease",
+                    background: "#fec010", color: "#0a1628",
+                    border: "none", fontWeight: 700, cursor: "pointer", fontSize: "0.9rem",
+                    transition: "all 0.2s ease", boxShadow: "0 4px 16px rgba(254,192,16,0.35)",
                   }}
-                  onClick={handleDownload}
-                  onMouseEnter={e => { e.currentTarget.style.background = "#10b981"; e.currentTarget.style.color = "#fff"; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = "rgba(16, 185, 129, 0.15)"; e.currentTarget.style.color = "#34d399"; }}
+                  disabled={isAddingToCart}
+                  onClick={handleAddToCart}
+                  onMouseEnter={e => { if(!isAddingToCart) { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 6px 20px rgba(254,192,16,0.45)"; } }}
+                  onMouseLeave={e => { if(!isAddingToCart) { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "0 4px 16px rgba(254,192,16,0.35)"; } }}
                   >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                    Download
+                    {isAddingToCart ? (
+                      <span>Adding...</span>
+                    ) : (
+                      <>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+                        Add to Cart
+                      </>
+                    )}
                   </button>
-                )}
-                <button style={{
-                  display: "flex", alignItems: "center", gap: "0.5rem",
-                  padding: "0.7rem 1.5rem", borderRadius: "var(--radius-md)",
-                  background: "#fec010", color: "#0a1628",
-                  border: "none", fontWeight: 700, cursor: "pointer", fontSize: "0.9rem",
-                  transition: "all 0.2s ease", boxShadow: "0 4px 16px rgba(254,192,16,0.35)",
-                }}
-                onClick={() => alert("Cart functionality coming soon!")}
-                onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 6px 20px rgba(254,192,16,0.45)"; }}
-                onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "0 4px 16px rgba(254,192,16,0.35)"; }}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
-                  Add to Cart
-                </button>
-              </div>
-            ) : (
+                </div>
+              ) : (
               <div style={{ display: "flex", gap: "0.75rem" }}>
                 <button onClick={() => setIsFormModalOpen(true)} style={{
                   display: "flex", alignItems: "center", gap: "0.5rem",
@@ -321,6 +419,7 @@ export default function ProductDetailsPage() {
               </div>
             )}
           </div>
+          </div>
         </div>
       </div>
 
@@ -349,7 +448,7 @@ export default function ProductDetailsPage() {
         </div>
 
         {/* Quick Stats Cards */}
-        {(user?.role !== "Student" && user?.role !== "NormalUser") && (
+        {(user != null && user.role !== "Student" && user.role !== "NormalUser") && (
           <div style={{
             background: "var(--bg-surface)", border: "1px solid var(--border)",
             borderRadius: "var(--radius-xl)", padding: "1.75rem",
@@ -376,16 +475,6 @@ export default function ProductDetailsPage() {
                 <span style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>Version</span>
                 <span style={{ fontWeight: 600, fontSize: "0.9rem" }}>{product.version || "—"}</span>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.6rem 0" }}>
-                <span style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>Allow Trial</span>
-                <span style={{ fontWeight: 600, fontSize: "0.9rem" }}>{product.allowTrial ? `Yes (${product.trialPeriod}d)` : "No"}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.6rem 0", borderTop: "1px solid var(--border)" }}>
-                <span style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>End of Life</span>
-                <span style={{ fontWeight: 600, fontSize: "0.9rem", color: product.expiryDate && new Date(product.expiryDate).getTime() < Date.now() ? "var(--danger)" : "var(--text-primary)" }}>
-                  {product.expiryDate ? new Date(product.expiryDate).toLocaleDateString("en-GB") : "Lifetime / No Expiry"}
-                </span>
-              </div>
             </div>
           </div>
         )}
@@ -395,7 +484,7 @@ export default function ProductDetailsPage() {
           <div style={{
             background: "var(--bg-surface)", border: "1px solid var(--border)",
             borderRadius: "var(--radius-xl)", padding: "1.75rem",
-            ...((user?.role === "Student" || user?.role === "NormalUser") ? { gridColumn: "1 / -1" } : {}),
+            ...((user == null || user.role === "Student" || user.role === "NormalUser") ? { gridColumn: "1 / -1" } : {}),
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
               <div style={{
@@ -416,8 +505,9 @@ export default function ProductDetailsPage() {
         )}
       </div>
 
+
       {/* ── Management Section (Admin only) ────────── */}
-      {(user?.role !== "Student" && user?.role !== "NormalUser") && (
+      {(user != null && user.role !== "Student" && user.role !== "NormalUser") && (
         <div style={{
           background: "var(--bg-surface)", border: "1px solid var(--border)",
           borderRadius: "var(--radius-xl)", padding: "2rem", marginBottom: "2rem",

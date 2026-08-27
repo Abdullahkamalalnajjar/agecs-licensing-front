@@ -17,20 +17,21 @@ export default function ProductFormModal({ initialData, onClose, onSuccess }: Pr
     family: initialData?.family || "SES",
     description: initialData?.description || "",
     miniDescription: initialData?.miniDescription || "",
-    link: initialData?.link || "",
     storagePath: initialData?.storagePath || "",
     parentProductId: initialData?.parentProductId || "",
-    allowTrial: initialData?.allowTrial || false,
-    trialPeriod: initialData?.trialPeriod || 0,
     comingSoon: initialData?.comingSoon || false,
     hidden: initialData?.hidden || false,
     order: initialData?.order || 0,
     withTaxes: initialData?.withTaxes ?? true,
     version: initialData?.version || "",
     janDrozdId: initialData?.janDrozdId || "",
-    expiryDate: initialData?.expiryDate ? new Date(initialData.expiryDate).toISOString().split('T')[0] : "",
-    price: initialData?.prices && initialData.prices.length > 0 ? initialData.prices[0].price : 0,
   });
+
+  const [prices, setPrices] = useState<{ id?: string, period: number, price: number, country: string, active: boolean }[]>(
+    initialData?.prices && initialData.prices.length > 0 
+      ? initialData.prices.map((p: any) => ({ id: p.id, period: p.period || 1, price: p.price || 0, country: p.country || "II", active: p.active ?? true }))
+      : [{ period: 1, price: 0, country: "II", active: true }]
+  );
   
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -44,17 +45,14 @@ export default function ProductFormModal({ initialData, onClose, onSuccess }: Pr
       const payload = {
         ...productData,
         parentProductId: productData.parentProductId || undefined,
-        expiryDate: productData.expiryDate ? new Date(productData.expiryDate).toISOString() : undefined,
-        trialPeriod: Number(productData.trialPeriod) || 0,
         order: Number(productData.order) || 0,
-        prices: [
-          {
-            country: "II",
-            price: Number(productData.price) || 0,
-            period: 1,
-            active: true
-          }
-        ]
+        prices: prices.map(p => ({
+          id: p.id,
+          country: p.country,
+          price: Number(p.price) || 0,
+          period: Number(p.period) || 1,
+          active: p.active
+        }))
       };
 
       let response;
@@ -147,44 +145,63 @@ export default function ProductFormModal({ initialData, onClose, onSuccess }: Pr
                 </div>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label" htmlFor="price">Price</label>
-                  <input id="price" type="number" className="form-input" value={productData.price} onChange={(e) => setProductData({ ...productData, price: Number(e.target.value) })} />
-                </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "1rem" }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label" htmlFor="janDrozdId">JanDrozd ID</label>
                   <input id="janDrozdId" type="text" className="form-input" value={productData.janDrozdId} onChange={(e) => setProductData({ ...productData, janDrozdId: e.target.value })} />
                 </div>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label" htmlFor="trialPeriod">Trial Period (days)</label>
-                  <input id="trialPeriod" type="number" className="form-input" value={productData.trialPeriod} onChange={(e) => setProductData({ ...productData, trialPeriod: Number(e.target.value) })} />
+              {/* Dynamic Prices Section */}
+              <div style={{ padding: "1rem", background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
+                  <label className="form-label" style={{ margin: 0, fontSize: "0.9rem", color: "var(--accent-light)" }}>Pricing Tiers</label>
+                  <button type="button" className="btn-ghost" style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }} onClick={() => setPrices([...prices, { period: 1, price: 0, country: "II", active: true }])}>
+                    + Add Price
+                  </button>
                 </div>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label" htmlFor="expiryDate">Expiry Date</label>
-                  <input id="expiryDate" type="date" className="form-input" value={productData.expiryDate} onChange={(e) => setProductData({ ...productData, expiryDate: e.target.value })} />
+                
+                {prices.length === 0 && <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontStyle: "italic" }}>No prices added. Free product.</div>}
+                
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                  {prices.map((priceObj, index) => (
+                    <div key={index} style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: "0.5rem", alignItems: "flex-end" }}>
+                      <div>
+                        <label style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginBottom: "0.2rem", display: "block" }}>Period (days)</label>
+                        <input type="number" className="form-input" style={{ padding: "0.4rem" }} value={priceObj.period} onChange={(e) => {
+                          const newPrices = [...prices];
+                          newPrices[index].period = Number(e.target.value);
+                          setPrices(newPrices);
+                        }} />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginBottom: "0.2rem", display: "block" }}>Price ($)</label>
+                        <input type="number" className="form-input" style={{ padding: "0.4rem" }} value={priceObj.price} onChange={(e) => {
+                          const newPrices = [...prices];
+                          newPrices[index].price = Number(e.target.value);
+                          setPrices(newPrices);
+                        }} />
+                      </div>
+                      <div style={{ paddingBottom: "0.4rem" }}>
+                        <button type="button" onClick={() => setPrices(prices.filter((_, i) => i !== index))} style={{
+                          background: "none", border: "none", color: "var(--danger)", cursor: "pointer", padding: "0.2rem", display: "flex", alignItems: "center", justifyContent: "center"
+                        }}>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "1rem" }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label" htmlFor="order">Display Order</label>
                   <input id="order" type="number" className="form-input" value={productData.order} onChange={(e) => setProductData({ ...productData, order: Number(e.target.value) })} />
                 </div>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label" htmlFor="link">Link</label>
-                  <input id="link" type="text" className="form-input" value={productData.link} onChange={(e) => setProductData({ ...productData, link: e.target.value })} />
-                </div>
               </div>
 
               <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginTop: "0.5rem" }}>
-                <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.875rem", cursor: "pointer", color: "var(--text-primary)" }}>
-                  <input type="checkbox" checked={productData.allowTrial} onChange={(e) => setProductData({ ...productData, allowTrial: e.target.checked })} style={{ width: "16px", height: "16px" }} />
-                  Allow Trial
-                </label>
                 <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.875rem", cursor: "pointer", color: "var(--text-primary)" }}>
                   <input type="checkbox" checked={productData.comingSoon} onChange={(e) => setProductData({ ...productData, comingSoon: e.target.checked })} style={{ width: "16px", height: "16px" }} />
                   Coming Soon

@@ -184,20 +184,22 @@ export default function UsersPage() {
       if (!setupClient()) return;
 
       const [activeRes, deletedRes] = await Promise.all([
-        getIdentityUsers({ throwOnError: false }),
-        getIdentityUsersDeleted({ throwOnError: false }),
+        getIdentityUsers({ query: { pageNumber: 1, pageSize: 500 }, throwOnError: false }),
+        getIdentityUsersDeleted({ query: { pageNumber: 1, pageSize: 500 }, throwOnError: false }),
       ]);
 
       if (activeRes.data) {
         const raw = activeRes.data as any;
-        setActiveUsers(Array.isArray(raw?.value) ? raw.value : (Array.isArray(raw) ? raw : []));
+        const list = Array.isArray(raw?.value?.items) ? raw.value.items : (Array.isArray(raw?.value) ? raw.value : (Array.isArray(raw) ? raw : []));
+        setActiveUsers(list);
       } else if (activeRes.error) {
         setError("Failed to fetch active users.");
       }
 
       if (deletedRes.data) {
         const raw = deletedRes.data as any;
-        setDeletedUsers(Array.isArray(raw?.value) ? raw.value : (Array.isArray(raw) ? raw : []));
+        const list = Array.isArray(raw?.value?.items) ? raw.value.items : (Array.isArray(raw?.value) ? raw.value : (Array.isArray(raw) ? raw : []));
+        setDeletedUsers(list);
       }
     } catch (err: any) {
       setError(err?.message || "An unexpected error occurred while loading users.");
