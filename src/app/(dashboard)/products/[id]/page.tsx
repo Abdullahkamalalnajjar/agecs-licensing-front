@@ -26,6 +26,7 @@ export default function ProductDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedEditionId, setSelectedEditionId] = useState<string | null>(null);
+  const [selectedPeriod, setSelectedPeriod] = useState<number | null>(null);
 
   useEffect(() => {
     if (product && product.children && product.children.length > 0) {
@@ -34,6 +35,15 @@ export default function ProductDetailsPage() {
       setSelectedEditionId(null);
     }
   }, [product]);
+
+  useEffect(() => {
+    const targetProduct = selectedEditionId && product?.children ? product.children.find(c => c.id === selectedEditionId) : product;
+    if (targetProduct && targetProduct.prices && targetProduct.prices.length > 0) {
+      setSelectedPeriod(targetProduct.prices[0].period || 1);
+    } else {
+      setSelectedPeriod(null);
+    }
+  }, [selectedEditionId, product]);
 
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
@@ -124,15 +134,13 @@ export default function ProductDetailsPage() {
     try {
       setIsAddingToCart(true);
       const targetId = selectedEditionId || productId;
-      const targetProduct = selectedEditionId && product?.children ? product.children.find(c => c.id === selectedEditionId) : product;
-      const period = targetProduct?.prices && targetProduct.prices.length > 0 ? targetProduct.prices[0].period : 12;
       
       const res = await postApiV1CartsMyCartItems({
         body: {
           itemType: "Product",
           itemId: targetId as string,
           quantity: 1,
-          period: period
+          period: selectedPeriod || 12
         },
         throwOnError: false
       });
@@ -328,19 +336,42 @@ export default function ProductDetailsPage() {
             <div style={{ display: "flex", alignItems: "center", gap: "1.5rem", flexWrap: "wrap" }}>
               {(() => {
                 const currentProduct = (selectedEditionId && product.children) ? product.children.find(c => c.id === selectedEditionId) || product : product;
-                const currentPrice = currentProduct.prices && currentProduct.prices.length > 0 ? currentProduct.prices[0] : null;
+                const currentPrice = currentProduct.prices?.find(p => p.period === selectedPeriod) || (currentProduct.prices && currentProduct.prices.length > 0 ? currentProduct.prices[0] : null);
                 return (
-                  <div style={{
-                    background: "rgba(255,255,255,0.1)", backdropFilter: "blur(8px)",
-                    border: "1px solid rgba(255,255,255,0.15)", borderRadius: "var(--radius-lg)",
-                    padding: "0.75rem 1.25rem", display: "flex", alignItems: "baseline", gap: "0.4rem",
-                  }}>
-                    <span style={{ fontSize: "1.75rem", fontWeight: 800, color: "#fec010", fontFamily: "var(--font-mono)" }}>
-                      ${currentPrice ? (currentPrice.price || 0).toFixed(2) : "0.00"}
-                    </span>
-                    <span style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.5)", fontWeight: 500 }}>
-                      / {currentPrice ? currentPrice.period : 1} days
-                    </span>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                    {/* Period selection chips if there are multiple prices */}
+                    {currentProduct.prices && currentProduct.prices.length > 1 && (
+                      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                        {currentProduct.prices.map(p => (
+                          <button
+                            key={p.period}
+                            onClick={() => setSelectedPeriod(p.period || 1)}
+                            style={{
+                              padding: "0.3rem 0.75rem",
+                              borderRadius: "var(--radius-sm)",
+                              border: selectedPeriod === p.period ? "1px solid #fec010" : "1px solid rgba(255,255,255,0.2)",
+                              background: selectedPeriod === p.period ? "rgba(254,192,16,0.15)" : "rgba(255,255,255,0.05)",
+                              color: selectedPeriod === p.period ? "#fec010" : "#fff",
+                              fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", transition: "all 0.2s ease",
+                            }}
+                          >
+                            {p.period} Days
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <div style={{
+                      background: "rgba(255,255,255,0.1)", backdropFilter: "blur(8px)",
+                      border: "1px solid rgba(255,255,255,0.15)", borderRadius: "var(--radius-lg)",
+                      padding: "0.75rem 1.25rem", display: "flex", alignItems: "baseline", gap: "0.4rem",
+                    }}>
+                      <span style={{ fontSize: "1.75rem", fontWeight: 800, color: "#fec010", fontFamily: "var(--font-mono)" }}>
+                        ${currentPrice ? (currentPrice.price || 0).toFixed(2) : "0.00"}
+                      </span>
+                      <span style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.5)", fontWeight: 500 }}>
+                        / {currentPrice ? currentPrice.period : 1} days
+                      </span>
+                    </div>
                   </div>
                 );
               })()}
