@@ -107,7 +107,10 @@ function TopNavbarInner() {
     if (user?.role === "Student" || user?.role === "NormalUser") {
       return false;
     }
-    return true; // SuperAdmin/Admin sees all
+    if ((user?.role === "Admin" || user?.role === "SuperAdmin") && item.name === "Dashboard") {
+      return false;
+    }
+    return true;
   });
 
   return (
@@ -233,7 +236,11 @@ function TopNavbarInner() {
       {mobileMenuOpen && (
         <div className="mobile-menu-overlay">
           <nav className="mobile-nav">
-          {navItems.filter(() => user?.role !== "Student" && user?.role !== "NormalUser").map((item) => {
+          {navItems.filter((item) => {
+            if (user?.role === "Student" || user?.role === "NormalUser") return false;
+            if ((user?.role === "Admin" || user?.role === "SuperAdmin") && item.name === "Dashboard") return false;
+            return true;
+          }).map((item) => {
             const isActive = pathname.startsWith(item.path);
               return (
                 <Link

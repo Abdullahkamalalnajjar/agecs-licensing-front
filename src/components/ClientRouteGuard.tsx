@@ -26,6 +26,10 @@ export function ClientRouteGuard({ children }: { children: React.ReactNode }) {
         router.push("/dashboard");
       }
     }
+    
+    if ((user.role === "Admin" || user.role === "SuperAdmin") && pathname.startsWith("/dashboard")) {
+      router.push("/products");
+    }
     // SuperAdmin/Admin can access everything, no redirect needed
   }, [user, loading, pathname, router]);
 
