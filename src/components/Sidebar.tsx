@@ -36,7 +36,6 @@ const navItems = [
       </svg>
     )
   },
-  /*
   {
     name: "Promocodes",
     path: "/promocodes",
@@ -46,7 +45,6 @@ const navItems = [
       </svg>
     )
   },
-  */
   /*
   {
     name: "Tickets",
