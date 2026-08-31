@@ -4,6 +4,14 @@ import { useState } from "react";
 import { ProductDto } from "@/client/types.gen";
 import { postApiProductsByParentIdChildren, putApiProductsById, deleteApiProductsById } from "@/client";
 
+const mapPeriodType = (pt: any) => {
+  if (pt === "Day" || pt === 1) return 1;
+  if (pt === "Month" || pt === 2) return 2;
+  if (pt === "Year" || pt === 3) return 3;
+  return 1;
+};
+
+
 type ChildProductsModalProps = {
   product: ProductDto;
   onClose: () => void;
@@ -24,8 +32,8 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
     janDrozdId: ""
   });
 
-  const [prices, setPrices] = useState<{ id?: string, period: number, price: number, country: string, active: boolean }[]>([
-    { period: 1, price: 0, country: "II", active: true }
+  const [prices, setPrices] = useState<{ id?: string, period: number, periodType?: number, price: number, country: string, active: boolean }[]>([
+    { period: 1, periodType: 1, price: 0, country: "II", active: true }
   ]);
 
   const handleEditClick = (child: ProductDto) => {
@@ -37,8 +45,8 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
     });
     setPrices(
       child.prices && child.prices.length > 0 
-        ? child.prices.map((p: any) => ({ period: p.period || 1, price: p.price || 0, country: p.country || "II", active: p.active ?? true }))
-        : [{ period: 1, price: 0, country: "II", active: true }]
+        ? child.prices.map((p: any) => ({ period: p.period || 1, periodType: mapPeriodType(p.periodType), price: p.price || 0, country: p.country || "II", active: p.active ?? true }))
+        : [{ period: 1, periodType: 1, price: 0, country: "II", active: true }]
     );
     setIsAddingChild(true);
     setError("");
@@ -87,6 +95,7 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
           country: p.country,
           price: Number(p.price) || 0,
           period: Number(p.period) || 1,
+          periodType: Number(p.periodType) || 1,
           active: p.active
         }))
       };
@@ -114,7 +123,7 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
         }
         setIsAddingChild(false);
         setNewChild({ id: "", name: "", fullName: "", janDrozdId: "" });
-        setPrices([{ period: 1, price: 0, country: "II", active: true }]);
+        setPrices([{ period: 1, periodType: 1, price: 0, country: "II", active: true }]);
         onSuccess();
       } else if (response?.error || response?.data?.isError) {
         const errorMsg = response?.data?.errors?.map((err: any) => err.description).filter(Boolean).join(", ") || "Failed to save variant.";
@@ -203,7 +212,7 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
                 <div style={{ padding: "1rem", background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", marginBottom: "1.25rem" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
                     <label className="form-label" style={{ margin: 0, fontSize: "0.85rem", color: "var(--accent-light)" }}>Pricing Tiers</label>
-                    <button type="button" className="btn-ghost" style={{ padding: "0.2rem 0.4rem", fontSize: "0.75rem" }} onClick={() => setPrices([...prices, { period: 1, price: 0, country: "II", active: true }])}>
+                    <button type="button" className="btn-ghost" style={{ padding: "0.2rem 0.4rem", fontSize: "0.75rem" }} onClick={() => setPrices([...prices, { period: 1, periodType: 1, price: 0, country: "II", active: true }])}>
                       + Add Price
                     </button>
                   </div>
@@ -214,12 +223,23 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
                     {prices.map((priceObj, index) => (
                       <div key={index} style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: "0.5rem", alignItems: "flex-end" }}>
                         <div>
-                          <label style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginBottom: "0.2rem", display: "block" }}>Period (days)</label>
-                          <input type="number" required className="form-input" style={{ padding: "0.35rem 0.5rem", fontSize: "0.8rem" }} value={priceObj.period} onChange={(e) => {
-                            const newPrices = [...prices];
-                            newPrices[index].period = Number(e.target.value);
-                            setPrices(newPrices);
-                          }} />
+                          <label style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginBottom: "0.2rem", display: "block" }}>Period</label>
+                          <div style={{ display: "flex", gap: "0.25rem" }}>
+                            <input type="number" required className="form-input" style={{ padding: "0.35rem 0.5rem", fontSize: "0.8rem", width: "60px" }} value={priceObj.period} onChange={(e) => {
+                              const newPrices = [...prices];
+                              newPrices[index].period = Number(e.target.value);
+                              setPrices(newPrices);
+                            }} />
+                            <select className="form-input" style={{ padding: "0.35rem 0.5rem", fontSize: "0.8rem" }} value={priceObj.periodType || 1} onChange={(e) => {
+                              const newPrices = [...prices];
+                              newPrices[index].periodType = Number(e.target.value);
+                              setPrices(newPrices);
+                            }}>
+                              <option value={1}>Days</option>
+                              <option value={2}>Months</option>
+                              <option value={3}>Years</option>
+                            </select>
+                          </div>
                         </div>
                         <div>
                           <label style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginBottom: "0.2rem", display: "block" }}>Price ($)</label>
@@ -242,7 +262,7 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
                 </div>
 
                 <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
-                  <button type="button" className="btn-ghost" style={{ fontSize: "0.85rem" }} onClick={() => { setIsAddingChild(false); setNewChild({ id: "", name: "", fullName: "", janDrozdId: "" }); setPrices([{ period: 1, price: 0, country: "II", active: true }]); }}>Cancel</button>
+                  <button type="button" className="btn-ghost" style={{ fontSize: "0.85rem" }} onClick={() => { setIsAddingChild(false); setNewChild({ id: "", name: "", fullName: "", janDrozdId: "" }); setPrices([{ period: 1, periodType: 1, price: 0, country: "II", active: true }]); }}>Cancel</button>
                   <button type="submit" className="btn-primary" disabled={loading} style={{ fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
                     {loading ? (
                       <><span className="spinner" style={{ width: 14, height: 14 }}></span> Saving...</>

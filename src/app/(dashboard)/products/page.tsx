@@ -13,6 +13,30 @@ import ProductVersionsModal from "@/components/ProductVersionsModal";
 
 import { useAuth } from "@/components/AuthProvider";
 
+const getPeriodText = (period: number | undefined, type: any) => {
+  if (!period || !type) return "";
+  if (type === 1 || type === "Day") return ` / ${period > 1 ? period + ' days' : 'day'}`;
+  if (type === 2 || type === "Month") return ` / ${period > 1 ? period + ' months' : 'mo'}`;
+  if (type === 3 || type === "Year") return ` / ${period > 1 ? period + ' years' : 'yr'}`;
+  return "";
+};
+
+const getStartingPrice = (product: ProductDto): number => {
+  const allPrices: number[] = [];
+  if (product.prices) {
+    allPrices.push(...product.prices.map(p => p.price || 0));
+  }
+  if (product.children) {
+    product.children.forEach(child => {
+      if (child.prices) {
+        allPrices.push(...child.prices.map(p => p.price || 0));
+      }
+    });
+  }
+  if (allPrices.length === 0) return 0;
+  return Math.min(...allPrices);
+};
+
 export default function ProductsPage() {
   const { user } = useAuth();
   const [products, setProducts] = useState<ProductDto[]>([]);
@@ -237,7 +261,7 @@ export default function ProductsPage() {
                       borderRadius: "var(--radius-sm)",
                       padding: "0.15rem 0.5rem",
                     }}>
-                      ${product.prices && product.prices.length > 0 ? (product.prices[0].price || 0).toFixed(2) : "0.00"}
+                      ${getStartingPrice(product).toFixed(2)}
                     </span>
                   </td>
 
@@ -622,7 +646,7 @@ export default function ProductsPage() {
                       borderRadius: "var(--radius-sm)",
                       padding: "0.1rem 0.45rem",
                     }}>
-                      ${product.prices && product.prices.length > 0 ? (product.prices[0].price || 0).toFixed(2) : "0.00"}
+                      ${getStartingPrice(product).toFixed(2)}
                     </span>
                     <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>per year</span>
                   </div>

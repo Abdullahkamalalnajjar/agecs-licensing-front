@@ -13,6 +13,14 @@ import { ProductDto, ProductVersionDto } from "@/client/types.gen";
 import { resolveMediaUrl } from "@/lib/mediaUrl";
 import { useAuth } from "@/components/AuthProvider";
 
+const getPeriodSuffix = (period: number | null | undefined, type: any) => {
+  if (!period || !type) return "days";
+  if (type === 1 || type === "Day") return period > 1 ? 'days' : 'day';
+  if (type === 2 || type === "Month") return period > 1 ? 'months' : 'month';
+  if (type === 3 || type === "Year") return period > 1 ? 'years' : 'year';
+  return "days";
+};
+
 export default function ProductDetailsPage() {
   const { id } = useParams();
   const productId = Array.isArray(id) ? id[0] : id;
@@ -342,9 +350,9 @@ export default function ProductDetailsPage() {
                     {/* Period selection chips if there are multiple prices */}
                     {currentProduct.prices && currentProduct.prices.length > 1 && (
                       <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                        {currentProduct.prices.map(p => (
+                        {currentProduct.prices.map((p, idx) => (
                           <button
-                            key={p.period}
+                            key={p.id || `${p.period}-${(p as any).periodType || 1}-${idx}`}
                             onClick={() => setSelectedPeriod(p.period || 1)}
                             style={{
                               padding: "0.3rem 0.75rem",
@@ -355,7 +363,7 @@ export default function ProductDetailsPage() {
                               fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", transition: "all 0.2s ease",
                             }}
                           >
-                            {p.period} Days
+                            {p.period} {getPeriodSuffix(p.period, (p as any).periodType)}
                           </button>
                         ))}
                       </div>
@@ -369,7 +377,7 @@ export default function ProductDetailsPage() {
                         ${currentPrice ? (currentPrice.price || 0).toFixed(2) : "0.00"}
                       </span>
                       <span style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.5)", fontWeight: 500 }}>
-                        / {currentPrice ? currentPrice.period : 1} days
+                        / {currentPrice ? currentPrice.period : 1} {currentPrice ? getPeriodSuffix(currentPrice.period, (currentPrice as any).periodType) : "days"}
                       </span>
                     </div>
                   </div>
