@@ -7,6 +7,7 @@ import { client } from "@/client/client.gen";
 import { jwtDecode } from "jwt-decode";
 import { useAuth } from "@/components/AuthProvider";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -119,38 +120,35 @@ export default function LoginPage() {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      background: "#09090b",
-      backgroundImage: "radial-gradient(at 0% 0%, rgba(124, 58, 237, 0.15) 0px, transparent 50%), radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.15) 0px, transparent 50%)",
+      background: "#F3F0EE",
       position: "relative",
       overflow: "hidden",
-      padding: "2rem"
+      padding: "2rem",
     }}>
-      {/* Background Glow Orbs */}
-      <div style={{
-          position: "absolute", top: "10%", left: "15%",
-          width: "400px", height: "400px",
-          background: "radial-gradient(circle, rgba(124,58,237,0.3) 0%, transparent 70%)",
-          borderRadius: "50%", pointerEvents: "none", filter: "blur(60px)",
-      }} />
-      <div style={{
-          position: "absolute", bottom: "10%", right: "15%",
-          width: "350px", height: "350px",
-          background: "radial-gradient(circle, rgba(59,130,246,0.3) 0%, transparent 70%)",
-          borderRadius: "50%", pointerEvents: "none", filter: "blur(50px)",
-      }} />
-      <div style={{
-          position: "absolute", top: "40%", left: "50%", transform: "translate(-50%, -50%)",
-          width: "600px", height: "600px",
-          background: "radial-gradient(circle, rgba(16,185,129,0.15) 0%, transparent 70%)",
-          borderRadius: "50%", pointerEvents: "none", filter: "blur(80px)",
-      }} />
+      {/* Decorative orbital arcs */}
+      <svg
+        style={{ position: "absolute", top: "10%", left: "-5%", width: "50%", height: "80%", pointerEvents: "none", opacity: 0.35 }}
+        viewBox="0 0 400 600"
+        fill="none"
+      >
+        <path d="M 350 0 C 200 150 50 300 100 600" stroke="#F37338" strokeWidth="1.5" fill="none" />
+        <path d="M 400 100 C 250 250 100 400 150 600" stroke="#F37338" strokeWidth="1" fill="none" opacity="0.5" />
+      </svg>
+      <svg
+        style={{ position: "absolute", bottom: "5%", right: "-5%", width: "40%", height: "60%", pointerEvents: "none", opacity: 0.25 }}
+        viewBox="0 0 400 400"
+        fill="none"
+      >
+        <path d="M 0 0 C 150 100 300 200 400 350" stroke="#F37338" strokeWidth="1.5" fill="none" />
+      </svg>
 
       {/* Back to Products Link */}
       <div style={{ position: "absolute", top: "2rem", left: "2rem", zIndex: 20 }}>
         <Link href="/products" style={{
           display: "inline-flex", alignItems: "center", gap: "0.5rem",
-          color: "#a1a1aa", textDecoration: "none",
-          fontSize: "0.9rem", fontWeight: 500, transition: "color 0.2s"
+          color: "#696969", textDecoration: "none",
+          fontSize: "0.9rem", fontWeight: 500, transition: "color 0.2s",
+          letterSpacing: "-0.03em",
         }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <line x1="19" y1="12" x2="5" y2="12"></line>
@@ -160,37 +158,62 @@ export default function LoginPage() {
         </Link>
       </div>
 
+      {/* Ghost watermark text */}
+      <div style={{
+        position: "absolute",
+        top: "15%",
+        left: "-5%",
+        fontSize: "120px",
+        fontWeight: 500,
+        color: "#E8E2DA",
+        letterSpacing: "-0.02em",
+        pointerEvents: "none",
+        userSelect: "none",
+        lineHeight: 1,
+        whiteSpace: "nowrap",
+      }}>
+        AGECS
+      </div>
+
+      {/* Login Card — Stadium radius */}
       <div style={{
         position: "relative",
         zIndex: 10,
         width: "100%",
         maxWidth: "440px",
         padding: "3rem 2.5rem",
-        background: "rgba(15, 17, 26, 0.65)",
-        backdropFilter: "blur(24px)",
-        WebkitBackdropFilter: "blur(24px)",
-        borderRadius: "28px",
-        border: "1px solid rgba(255, 255, 255, 0.08)",
-        boxShadow: "0 24px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05)",
+        background: "#FFFFFF",
+        borderRadius: "40px",
+        border: "1px solid rgba(20,20,19,0.08)",
+        boxShadow: "0 24px 48px rgba(0,0,0,0.08)",
       }}>
         
         {/* Logo and Header */}
         <div style={{ textAlign: "center", marginBottom: "2.5rem" }}>
+          {/* AGECS Company Logo */}
           <div style={{
-            width: "60px", height: "60px", margin: "0 auto 1.5rem",
-            background: "linear-gradient(135deg, #7c3aed, #3b82f6)",
-            borderRadius: "16px",
             display: "flex", alignItems: "center", justifyContent: "center",
-            boxShadow: "0 10px 25px rgba(124,58,237,0.4)",
+            marginBottom: "1.5rem",
           }}>
-            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-            </svg>
+            <Image
+              src="/agecs-logo-gray.png"
+              alt="AGECS - Engineering and Technological Consultancy & Services"
+              width={200}
+              height={70}
+              priority
+              style={{ objectFit: 'contain', filter: 'brightness(0) opacity(0.9)' }}
+            />
           </div>
-          <h1 style={{ fontSize: "1.85rem", fontWeight: "800", color: "#ffffff", marginBottom: "0.5rem", letterSpacing: "-0.03em" }}>
+          <h1 style={{
+            fontSize: "1.85rem",
+            fontWeight: 500,
+            color: "#141413",
+            marginBottom: "0.5rem",
+            letterSpacing: "-0.02em",
+          }}>
             Welcome Back
           </h1>
-          <p style={{ color: "#a1a1aa", fontSize: "0.95rem" }}>
+          <p style={{ color: "#696969", fontSize: "0.95rem", fontWeight: 450 }}>
             Sign in to continue to Agecs Licensing
           </p>
         </div>
@@ -208,7 +231,7 @@ export default function LoginPage() {
         {/* Form */}
         <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
           <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label" htmlFor="email" style={{ fontSize: "0.85rem", color: "#a1a1aa" }}>Email address</label>
+            <label className="form-label" htmlFor="email">Email address</label>
             <input
               id="email"
               type="email"
@@ -217,12 +240,18 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              style={{ padding: "0.875rem 1rem", borderRadius: "12px", background: "rgba(0,0,0,0.2)", color: "#ffffff", border: "1px solid rgba(255,255,255,0.1)" }}
+              style={{
+                padding: "0.875rem 1rem",
+                borderRadius: "20px",
+                background: "#FFFFFF",
+                color: "#141413",
+                border: "1px solid rgba(20,20,19,0.15)",
+              }}
             />
           </div>
 
           <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label" htmlFor="password" style={{ fontSize: "0.85rem", color: "#a1a1aa" }}>Password</label>
+            <label className="form-label" htmlFor="password">Password</label>
             <div style={{ position: "relative" }}>
               <input
                 id="password"
@@ -232,14 +261,21 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                style={{ padding: "0.875rem 1rem", paddingRight: "3rem", borderRadius: "12px", background: "rgba(0,0,0,0.2)", color: "#ffffff", border: "1px solid rgba(255,255,255,0.1)" }}
+                style={{
+                  padding: "0.875rem 1rem",
+                  paddingRight: "3rem",
+                  borderRadius: "20px",
+                  background: "#FFFFFF",
+                  color: "#141413",
+                  border: "1px solid rgba(20,20,19,0.15)",
+                }}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 style={{
                   position: "absolute", right: "1rem", top: "50%", transform: "translateY(-50%)",
-                  background: "none", border: "none", color: "#a1a1aa", cursor: "pointer", padding: "4px",
+                  background: "none", border: "none", color: "#696969", cursor: "pointer", padding: "4px",
                   display: "flex", alignItems: "center",
                 }}
                 tabIndex={-1}
@@ -262,13 +298,25 @@ export default function LoginPage() {
           <button
             id="login-submit"
             type="submit"
-            className="btn-primary"
-            style={{ 
-              width: "100%", padding: "0.875rem", fontSize: "1rem", 
-              marginTop: "1rem", borderRadius: "12px", 
-              fontWeight: 600, background: "linear-gradient(135deg, #7c3aed, #3b82f6)",
-              boxShadow: "0 8px 20px rgba(124,58,237,0.25)",
-              border: "none",
+            style={{
+              width: "100%",
+              padding: "0.875rem",
+              fontSize: "1rem",
+              marginTop: "1rem",
+              borderRadius: "20px",
+              fontWeight: 500,
+              background: "#141413",
+              color: "#F3F0EE",
+              border: "1.5px solid #141413",
+              cursor: loading ? "not-allowed" : "pointer",
+              fontFamily: "inherit",
+              letterSpacing: "-0.02em",
+              transition: "all 0.18s ease",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "0.5rem",
+              opacity: loading ? 0.7 : 1,
             }}
             disabled={loading}
           >
@@ -284,12 +332,14 @@ export default function LoginPage() {
         </form>
 
         <div style={{ margin: "2rem 0", position: "relative", textAlign: "center" }}>
-          <div style={{ position: "absolute", top: "50%", left: 0, right: 0, borderTop: "1px solid rgba(255,255,255,0.1)" }}></div>
-          <span style={{ 
-            background: "#13151c", // Dark solid match
-            position: "relative", padding: "0 1rem", 
-            color: "#a1a1aa", fontSize: "0.85rem",
-            fontWeight: 500
+          <div style={{ position: "absolute", top: "50%", left: 0, right: 0, borderTop: "1px solid rgba(20,20,19,0.1)" }}></div>
+          <span style={{
+            background: "#FFFFFF",
+            position: "relative",
+            padding: "0 1rem",
+            color: "#696969",
+            fontSize: "0.85rem",
+            fontWeight: 500,
           }}>
             Or continue with
           </span>
@@ -310,27 +360,18 @@ export default function LoginPage() {
               alignItems: "center",
               justifyContent: "center",
               gap: "0.75rem",
-              background: "#ffffff",
-              border: "1px solid #e5e7eb",
-              borderRadius: "12px",
-              color: "#09090b",
+              background: "#FFFFFF",
+              border: "1.5px solid #141413",
+              borderRadius: "20px",
+              color: "#141413",
               fontSize: "0.95rem",
-              fontWeight: 600,
+              fontWeight: 500,
               cursor: googleLoading ? "not-allowed" : "pointer",
               transition: "all 0.2s ease",
-              boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
               fontFamily: "inherit",
-              letterSpacing: "-0.01em",
+              letterSpacing: "-0.02em",
               opacity: googleLoading ? 0.7 : 1,
               zIndex: 1,
-            }}
-            onMouseEnter={e => {
-              (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.08)";
-              (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.2)";
-            }}
-            onMouseLeave={e => {
-              (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.03)";
-              (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.1)";
             }}
           >
             {googleLoading ? (
@@ -355,7 +396,7 @@ export default function LoginPage() {
               zIndex: 10,
               overflow: "hidden",
               cursor: "pointer",
-              borderRadius: "12px",
+              borderRadius: "20px",
             }}
           >
             <div style={{ transform: "scale(1.5)", transformOrigin: "top left", width: "100%", height: "100%" }}>

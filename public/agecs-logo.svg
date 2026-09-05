@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 120" fill="none">
+  <!-- Stylized 'A' shape -->
+  <path d="M 10 100 L 65 10 L 80 10 L 95 42 L 60 42 L 55 52 L 100 52 L 115 100 L 95 100 L 88 78 L 48 78 L 38 100 Z" fill="#3B5998" />
+  <!-- Curved swoosh under the A -->
+  <path d="M 30 85 Q 65 110 110 85" stroke="#8C9EAF" stroke-width="3" fill="none" stroke-linecap="round"/>
+  
+  <!-- 'G' -->
+  <text x="120" y="82" font-family="Arial, sans-serif" font-size="62" font-weight="300" fill="#8C9EAF">G</text>
+  
+  <!-- 'ECS' bold -->
+  <text x="163" y="82" font-family="Arial, sans-serif" font-size="62" font-weight="700" fill="#3B5998">ECS</text>
+  
+  <!-- Subtitle -->
+  <text x="120" y="105" font-family="Arial, sans-serif" font-size="12" font-weight="400" fill="#8C9EAF" letter-spacing="0.5">Engineering and Technological Consultancy &amp; Services</text>
+</svg>

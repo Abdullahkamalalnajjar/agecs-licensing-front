@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management | AGECS-ERP</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+    <!-- Sidebar CSS -->
+    <link rel="stylesheet" href="styles/sidebar.css">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #ffffff;
+            color: #111111;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .main-content {
+            margin-left: 270px;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        /* Page Header */
+        .page-header {
+            background: #f5f5f5;
+            padding: 3rem;
+            border-radius: 0;
+            margin-bottom: 2rem;
+            border: 1px solid #e5e5e5;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .page-header-content {
+            position: relative;
+            z-index: 1;
+            color: #111111;
+        }
+
+        .page-header h1 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 4rem;
+            line-height: 0.9;
+            letter-spacing: -1px;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+        }
+
+        .page-header p {
+            font-size: 1rem;
+            color: #707072;
+            font-weight: 500;
+        }
+
+        .header-icon {
+            width: 60px;
+            height: 60px;
+            background: #111111;
+            border-radius: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+            color: white;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.75rem;
+            border-radius: 0;
+            border: 1px solid #e5e5e5;
+            transition: all 0.2s ease;
+        }
+
+        .stat-card:hover {
+            border-color: #111111;
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 0;
+            background: #f5f5f5 !important;
+            color: #111111 !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #111111;
+            line-height: 1;
+            margin-bottom: 0.5rem;
+            letter-spacing: -1px;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: #707072;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        /* Action Bar */
+        .action-bar {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 0;
+            margin-bottom: 2rem;
+            border: 1px solid #e5e5e5;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .btn-modern {
+            padding: 0.75rem 1.5rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            border: none;
+            background: #111111;
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            transition: opacity 0.2s ease;
+        }
+
+        .btn-modern:hover {
+            opacity: 0.8;
+        }
+
+        .btn-gradient-purple, .btn-gradient-pink, .btn-gradient-blue, .btn-gradient-orange {
+            background: #111111;
+            color: white;
+        }
+
+        .form-select-custom {
+            border: 1px solid #e5e5e5;
+            border-radius: 24px;
+            padding: 0.75rem 1.25rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            background: #f5f5f5;
+            flex: 1;
+            min-width: 200px;
+            outline: none;
+        }
+
+        .form-select-custom:focus {
+            border-color: #111111;
+        }
+
+        /* Card Container */
+        .card-container {
+            background: white;
+            border-radius: 0;
+            border: 1px solid #e5e5e5;
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+
+        .card-header-custom {
+            background: #ffffff;
+            padding: 2rem;
+            border-bottom: 1px solid #e5e5e5;
+        }
+
+        .card-header-custom h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #111111;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .card-header-custom h3 i {
+            display: none;
+        }
+
+        .card-body-custom {
+            padding: 0;
+        }
+
+        /* Modern Table */
+        .table-custom {
+            width: 100%;
+            margin: 0;
+        }
+
+        .table-custom thead {
+            background: #f5f5f5;
+        }
+
+        .table-custom thead th {
+            padding: 1rem 1.5rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            color: #111111;
+            border-bottom: 1px solid #e5e5e5;
+        }
+
+        .table-custom tbody tr {
+            border-bottom: 1px solid #e5e5e5;
+        }
+
+        .table-custom tbody tr:hover {
+            background: #fafafa;
+        }
+
+        .table-custom tbody td {
+            padding: 1.5rem;
+            vertical-align: middle;
+            font-size: 0.9375rem;
+            color: #2d3748;
+        }
+
+        .table-custom tbody td:first-child {
+            font-weight: 600;
+            color: #1a202c;
+        }
+
+        .badge-custom {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            background: #f5f5f5;
+            color: #111111;
+            border: 1px solid #e5e5e5;
+        }
+
+        .badge-purple {
+            background: #f5f5f5;
+            color: #111111;
+        }
+
+        .btn-action {
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin: 0.25rem;
+            border: 1px solid #e5e5e5;
+            background: #ffffff;
+            color: #111111;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-action:hover {
+            background: #f5f5f5;
+        }
+
+        .btn-edit, .btn-claims {
+            background: #ffffff;
+            color: #111111;
+        }
+
+        /* Modal Styling */
+        .modal-content {
+            border-radius: 0;
+            border: 1px solid #e5e5e5;
+            box-shadow: none;
+        }
+
+        .modal-header {
+            background: #ffffff;
+            color: #111111;
+            padding: 1.5rem;
+            border-bottom: 1px solid #e5e5e5;
+        }
+
+        .modal-title {
+            font-weight: 700;
+            font-size: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .modal-footer {
+            padding: 1.5rem;
+            border-top: 1px solid #e5e5e5;
+            background: #f5f5f5;
+        }
+
+        .form-check-modern {
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            background: #f5f5f5;
+            border-radius: 8px;
+            border: 1px solid transparent;
+        }
+
+        .form-check-modern:hover {
+            border-color: #111111;
+        }
+
+        .form-check-input {
+            width: 1.25rem;
+            height: 1.25rem;
+            margin-top: 0;
+            border: 1px solid #cacacb;
+            cursor: pointer;
+        }
+
+        .form-check-input:checked {
+            background-color: #111111;
+            border-color: #111111;
+        }
+
+        .form-check-label {
+            color: #2d3748;
+            font-weight: 600;
+            margin-left: 1rem;
+            cursor: pointer;
+            font-size: 0.9375rem;
+        }
+
+        .form-control-modern,
+        .form-control {
+            border: 1px solid #e5e5e5;
+            border-radius: 24px;
+            padding: 0.875rem 1.25rem;
+            font-size: 0.875rem;
+            background: #f5f5f5;
+            outline: none;
+        }
+
+        .form-control-modern:focus,
+        .form-control:focus {
+            border-color: #111111;
+            background: #ffffff;
+            box-shadow: none;
+        }
+
+        .form-label {
+            font-weight: 700;
+            color: #111111;
+            margin-bottom: 0.5rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+        }
+
+        .btn-close {
+            filter: none;
+            opacity: 0.5;
+        }
+
+        .btn-close:hover {
+            opacity: 1;
+        }
+
+        /* Loading Spinner */
+        .spinner-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(20, 30, 48, 0.15);
+            backdrop-filter: blur(10px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .spinner-overlay.active {
+            display: flex;
+        }
+
+        .spinner-container {
+            text-align: center;
+        }
+
+        .spinner-custom {
+            width: 60px;
+            height: 60px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-top: 5px solid white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .spinner-text {
+            margin-top: 1rem;
+            color: white;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #111111;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #000000;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                margin-left: 0;
+                padding: 1.5rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 1rem;
+            }
+
+            .page-header {
+                padding: 2rem 1.5rem;
+            }
+
+            .page-header h1 {
+                font-size: 1.75rem;
+            }
+
+            .action-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .btn-modern {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .form-select-custom {
+                width: 100%;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <div id="sidebar-container"></div>
+
+    <!-- Loading Spinner -->
+    <div class="spinner-overlay" id="spinnerOverlay">
+        <div class="spinner-container">
+            <div class="spinner-custom"></div>
+            <div class="spinner-text">Loading...</div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-header-content">
+                <div class="header-icon">
+                    <i class="bi bi-people-fill"></i>
+                </div>
+                <h1>User Management</h1>
+                <p>Manage users, roles, and permissions seamlessly</p>
+            </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card users">
+                <div class="stat-icon">
+                    <i class="bi bi-people"></i>
+                </div>
+                <div class="stat-value" id="totalUsers">0</div>
+                <div class="stat-label">Total Users</div>
+            </div>
+            <div class="stat-card roles">
+                <div class="stat-icon">
+                    <i class="bi bi-shield-fill-check"></i>
+                </div>
+                <div class="stat-value" id="totalRoles">0</div>
+                <div class="stat-label">System Roles</div>
+            </div>
+            <div class="stat-card claims">
+                <div class="stat-icon">
+                    <i class="bi bi-shield-lock"></i>
+                </div>
+                <div class="stat-value" id="totalClaims">0</div>
+                <div class="stat-label">System Claims</div>
+            </div>
+        </div>
+
+        <!-- Action Bar -->
+        <div class="action-bar">
+            <button class="btn-modern btn-gradient-purple" onclick="openAddRoleModal()">
+                <i class="bi bi-plus-circle-fill"></i> Add Role
+            </button>
+            <button class="btn-modern btn-gradient-pink" onclick="toggleRolesTable()">
+                <i class="bi bi-eye-fill"></i> Roles
+            </button>
+            <button class="btn-modern btn-gradient-blue" onclick="toggleClaimsTable()">
+                <i class="bi bi-shield-lock-fill"></i> Claims
+            </button>
+            <select class="form-select-custom" id="departmentFilter">
+                <option value="">All Departments</option>
+            </select>
+        </div>
+
+        <!-- Roles Table -->
+        <div id="rolesTableContainer" class="card-container" style="display: none;">
+            <div class="card-header-custom">
+                <h3>
+                    <i class="bi bi-shield-fill-check"></i>
+                    System Roles
+                </h3>
+            </div>
+            <div class="card-body-custom">
+                <table class="table-custom">
+                    <thead>
+                        <tr>
+                            <th>Role Name</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rolesTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Claims Table -->
+        <div id="claimsTableContainer" class="card-container" style="display: none;">
+            <div class="card-header-custom">
+                <h3>
+                    <i class="bi bi-shield-lock"></i>
+                    System Claims
+                </h3>
+            </div>
+            <div class="card-body-custom">
+                <table class="table-custom">
+                    <thead>
+                        <tr>
+                            <th>Claim Name</th>
+                        </tr>
+                    </thead>
+                    <tbody id="claimsTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Users Table -->
+        <div class="card-container">
+            <div class="card-header-custom">
+                <h3>
+                    <i class="bi bi-people"></i>
+                    System Users
+                </h3>
+            </div>
+            <div class="card-body-custom">
+                <table class="table-custom">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Department</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Roles Modal -->
+    <div class="modal fade" id="editRolesModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-gear-fill"></i>
+                        Edit User Roles
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="rolesList">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn-modern btn-gradient-purple" id="saveRoles">
+                        <i class="bi bi-check-circle-fill"></i> Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Claims Modal -->
+    <div class="modal fade" id="editClaimsModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-shield-lock"></i>
+                        Edit User Claims
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="claimsList">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn-modern btn-gradient-purple" id="saveClaims">
+                        <i class="bi bi-check-circle-fill"></i> Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Role Modal -->
+    <div class="modal fade" id="addRoleModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-plus-circle-fill"></i>
+                        Add New Role
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="newRoleName" class="form-label">Role Name</label>
+                        <input type="text" class="form-control-modern" id="newRoleName" placeholder="Enter role name">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn-modern btn-gradient-purple" id="addRoleButton">
+                        <i class="bi bi-plus-circle-fill"></i> Add Role
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Sidebar JS -->
+    <script defer src="scripts/sidebar.js"></script>
+
+    <script>
+        // Load sidebar
+        fetch('sidebar.html')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('sidebar-container').innerHTML = data;
+            })
+            .catch(error => console.error('Error loading sidebar:', error));
+
+        const API_BASE = 'http://agecs-erp.tryasp.net/Api/V1/Authorization';
+        let selectedUserId = null;
+        let allUsers = [];
+        let allRoles = [];
+        let allClaims = [];
+
+        function showSpinner() {
+            document.getElementById('spinnerOverlay').classList.add('active');
+        }
+
+        function hideSpinner() {
+            document.getElementById('spinnerOverlay').classList.remove('active');
+        }
+
+        function showModalSafely(modalId) {
+            document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+            const modal = new bootstrap.Modal(document.getElementById(modalId));
+            modal.show();
+        }
+
+        function hideModalSafely(modalId) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById(modalId));
+            if (modal) modal.hide();
+            document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+        }
+
+        function getToken() {
+            return localStorage.getItem('accessToken');
+        }
+
+        async function fetchUsers() {
+            showSpinner();
+            try {
+                const response = await fetch('http://agecs-erp.tryasp.net/Api/V1/AppUser/Paginated?PageSize=100');
+                const data = await response.json();
+                allUsers = data.data;
+                updateStats();
+                renderUsers(allUsers);
+            } catch (error) {
+                console.error('Error fetching users:', error);
+                alert('Failed to load users');
+            } finally {
+                hideSpinner();
+            }
+        }
+
+        function renderUsers(users) {
+            const userTableBody = document.getElementById('userTableBody');
+            userTableBody.innerHTML = users.map(user => `
+                <tr>
+                    <td><strong>${user.username}</strong></td>
+                    <td>${user.email}</td>
+                    <td><span class="badge-custom badge-purple">${user.departmentName || 'N/A'}</span></td>
+                    <td>
+                        <button class="btn-action btn-edit" onclick="openRolesModal('${user.id}')">
+                            <i class="bi bi-gear-fill"></i> Roles
+                        </button>
+                        <button class="btn-action btn-claims" onclick="openClaimsModal('${user.id}')">
+                            <i class="bi bi-shield-lock"></i> Claims
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function loadDepartments() {
+            try {
+                const response = await fetch('http://agecs-erp.tryasp.net/Api/V1/Department/List', {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getToken()}`
+                    }
+                });
+                const data = await response.json();
+                const departments = data.data || [];
+
+                const departmentFilter = document.getElementById('departmentFilter');
+                departmentFilter.innerHTML = '<option value="">All Departments</option>';
+
+                departments.forEach(dept => {
+                    const option = document.createElement('option');
+                    option.value = dept.departmentName;
+                    option.textContent = dept.departmentName;
+                    departmentFilter.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading departments:', error);
+            }
+        }
+
+        function filterUsersByDepartment() {
+            const selectedDepartment = document.getElementById('departmentFilter').value;
+            const filteredUsers = selectedDepartment
+                ? allUsers.filter(user => user.departmentName === selectedDepartment)
+                : allUsers;
+            renderUsers(filteredUsers);
+        }
+
+        async function fetchRoles() {
+            try {
+                const response = await fetch("http://agecs-erp.tryasp.net/Api/V1/Authorization/GetRolesList", {
+                    headers: {
+                        "Authorization": `Bearer ${getToken()}`,
+                        "Content-Type": "application/json"
+                    }
+                });
+                const data = await response.json();
+                allRoles = data.data;
+                return data.data;
+            } catch (error) {
+                console.error("Error fetching roles:", error);
+                return [];
+            }
+        }
+
+        async function fetchAllClaims() {
+            try {
+                const response = await fetch("http://agecs-erp.tryasp.net/Api/V1/Authorization/GetClaimsList", {
+                    headers: {
+                        "Authorization": `Bearer ${getToken()}`,
+                        "Content-Type": "application/json"
+                    }
+                });
+                const data = await response.json();
+                allClaims = data.data;
+                return data.data;
+            } catch (error) {
+                console.error("Error fetching claims:", error);
+                return [];
+            }
+        }
+
+        async function fetchClaims(userId) {
+            try {
+                const response = await fetch(`${API_BASE}/mange-user-calims/${userId}`, {
+                    headers: {
+                        "Authorization": `Bearer ${getToken()}`,
+                        "Content-Type": "application/json"
+                    }
+                });
+                const data = await response.json();
+                return data.data.userClaims || [];
+            } catch (error) {
+                console.error("Error fetching claims:", error);
+                return [];
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('totalUsers').textContent = allUsers.length;
+            document.getElementById('totalRoles').textContent = allRoles.length;
+            document.getElementById('totalClaims').textContent = allClaims.length;
+        }
+
+        async function openRolesModal(userId) {
+            selectedUserId = userId;
+            showSpinner();
+            try {
+                const allRoles = await fetchRoles();
+                const userRolesResponse = await fetch(`${API_BASE}/mange-user-roles/${userId}`, {
+                    headers: { "Authorization": `Bearer ${getToken()}` }
+                });
+                const userRolesData = await userRolesResponse.json();
+                const rolesWithStatus = userRolesData.data.userRoles;
+
+                const rolesList = document.getElementById('rolesList');
+                rolesList.innerHTML = allRoles.map(role => {
+                    const userRole = rolesWithStatus.find(r => r.id === role.id);
+                    return `
+                        <div class="form-check-modern">
+                    <input
+                        class="form-check-input"
+                        type="checkbox"
+                        data-role-id="${role.id}"
+                        data-role-name="${role.roleName}"
+                        id="role${role.id}"
+                        ${userRole?.hasRole ? "checked" : ""}
+                    >
+                    <label class="form-check-label" for="role${role.id}">
+                        ${role.roleName}
+                    </label>
+                </div>
+            `;
+                }).join('');
+
+                showModalSafely('editRolesModal');
+            } catch (error) {
+                console.error("Error:", error);
+                alert("Failed to load roles");
+            } finally {
+                hideSpinner();
+            }
+        }
+
+        async function openClaimsModal(userId) {
+            selectedUserId = userId;
+            showSpinner();
+            try {
+                const claims = await fetchClaims(userId);
+                if (!claims || claims.length === 0) {
+                    alert("This user has no claims.");
+                    return;
+                }
+                const claimsList = document.getElementById('claimsList');
+                claimsList.innerHTML = claims.map(claim => `
+                    <div class="form-check-modern">
+            <input class="form-check-input" type="checkbox"
+                data-claim-type="${claim.type}"
+                id="claim${claim.type}"
+                            ${claim.value ? 'checked' : ''}>
+            <label class="form-check-label" for="claim${claim.type}">
+                            ${claim.type}
+            </label>
+        </div>
+    `).join('');
+                showModalSafely('editClaimsModal');
+            } catch (error) {
+                console.error("Error:", error);
+                alert("Failed to load claims");
+            } finally {
+                hideSpinner();
+            }
+        }
+
+        function openAddRoleModal() {
+            showModalSafely('addRoleModal');
+        }
+
+        function toggleRolesTable() {
+            const rolesTableContainer = document.getElementById('rolesTableContainer');
+            if (rolesTableContainer.style.display === 'none' || rolesTableContainer.style.display === '') {
+                fetchRolesAndDisplay();
+                rolesTableContainer.style.display = 'block';
+            } else {
+                rolesTableContainer.style.display = 'none';
+            }
+        }
+
+        function toggleClaimsTable() {
+            const claimsTableContainer = document.getElementById('claimsTableContainer');
+            if (claimsTableContainer.style.display === 'none' || claimsTableContainer.style.display === '') {
+                fetchClaimsAndDisplay();
+                claimsTableContainer.style.display = 'block';
+            } else {
+                claimsTableContainer.style.display = 'none';
+            }
+        }
+
+        document.getElementById('saveRoles').addEventListener('click', async () => {
+            try {
+                const saveButton = document.getElementById('saveRoles');
+                saveButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+                saveButton.disabled = true;
+
+                const roles = [...document.querySelectorAll('#rolesList input[type=checkbox]')]
+                    .map(input => ({
+                        Id: input.dataset.roleId,
+                        roleName: input.dataset.roleName,
+                        hasRole: input.checked
+                    }));
+
+                const response = await fetch(`${API_BASE}/UpdateRole`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${getToken()}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        userId: selectedUserId,
+                        roles: roles
+                    })
+                });
+
+                if (!response.ok) throw new Error('Failed to update roles');
+
+                alert('Roles updated successfully!');
+                hideModalSafely('editRolesModal');
+            } catch (error) {
+                console.error('Error updating roles:', error);
+                alert('Error updating roles: ' + error.message);
+            } finally {
+                const saveButton = document.getElementById('saveRoles');
+                saveButton.innerHTML = '<i class="bi bi-check-circle-fill"></i> Save Changes';
+                saveButton.disabled = false;
+            }
+        });
+
+        document.getElementById('saveClaims').addEventListener('click', async () => {
+            try {
+                const saveButton = document.getElementById('saveClaims');
+                saveButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+                saveButton.disabled = true;
+
+                const claims = [...document.querySelectorAll('#claimsList input[type=checkbox]')]
+                    .map(input => ({
+                        type: input.dataset.claimType,
+                        value: input.checked
+                    }));
+
+                const response = await fetch(`${API_BASE}/UpdateClaims`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${getToken()}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        userId: selectedUserId,
+                        userClaims: claims
+                    })
+                });
+
+                if (!response.ok) throw new Error("Update failed");
+
+                alert("Claims updated successfully!");
+                hideModalSafely('editClaimsModal');
+            } catch (error) {
+                console.error("Error:", error);
+                alert("Error: " + error.message);
+            } finally {
+                const saveButton = document.getElementById('saveClaims');
+                saveButton.innerHTML = '<i class="bi bi-check-circle-fill"></i> Save Changes';
+                saveButton.disabled = false;
+            }
+        });
+
+        document.getElementById('addRoleButton').addEventListener('click', async () => {
+            try {
+                const addButton = document.getElementById('addRoleButton');
+                addButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Adding...';
+                addButton.disabled = true;
+
+                const roleName = document.getElementById('newRoleName').value;
+                if (!roleName.trim()) throw new Error('Role name cannot be empty');
+
+                const formData = new FormData();
+                formData.append('RoleName', roleName);
+
+                const response = await fetch(`${API_BASE}/CreateRole`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${getToken()}` },
+                    body: formData
+                });
+
+                if (!response.ok) throw new Error('Failed to add role');
+
+                alert('Role added successfully!');
+                document.getElementById('newRoleName').value = '';
+                hideModalSafely('addRoleModal');
+                fetchRolesAndDisplay();
+                fetchRoles().then(() => updateStats());
+            } catch (error) {
+                console.error('Error adding role:', error);
+                alert('Error adding role: ' + error.message);
+            } finally {
+                const addButton = document.getElementById('addRoleButton');
+                addButton.innerHTML = '<i class="bi bi-plus-circle-fill"></i> Add Role';
+                addButton.disabled = false;
+            }
+        });
+
+        async function fetchRolesAndDisplay() {
+            const roles = await fetchRoles();
+            const rolesTableBody = document.getElementById('rolesTableBody');
+            rolesTableBody.innerHTML = roles.map(role => `
+                <tr>
+                    <td><strong>${role.roleName}</strong></td>
+                </tr>
+            `).join('');
+        }
+
+        async function fetchClaimsAndDisplay() {
+            const claims = await fetchAllClaims();
+            const claimsTableBody = document.getElementById('claimsTableBody');
+            claimsTableBody.innerHTML = claims.map(claim => `
+                <tr>
+                    <td><strong>${claim.claimsName}</strong></td>
+                </tr>
+            `).join('');
+        }
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            await fetchRoles();
+            await fetchAllClaims();
+            await fetchUsers();
+            await loadDepartments();
+            updateStats();
+
+            document.getElementById('departmentFilter').addEventListener('change', filterUsersByDepartment);
+
+            document.querySelectorAll('[data-bs-dismiss="modal"]').forEach(button => {
+                button.addEventListener('click', (event) => {
+                    const modal = button.closest('.modal');
+                    if (modal && modal.id) {
+                        hideModalSafely(modal.id);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>

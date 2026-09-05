@@ -13,6 +13,26 @@ import ProductVersionsModal from "@/components/ProductVersionsModal";
 
 import { useAuth } from "@/components/AuthProvider";
 
+function getMinPrice(product: ProductDto): number {
+  let minPrice = Infinity;
+  
+  // Check main product prices
+  if (product.prices && product.prices.length > 0) {
+    minPrice = Math.min(minPrice, ...product.prices.map(p => p.price || 0));
+  }
+  
+  // Check variations (children) prices
+  if (product.children && product.children.length > 0) {
+    product.children.forEach(child => {
+      if (child.prices && child.prices.length > 0) {
+        minPrice = Math.min(minPrice, ...child.prices.map(p => p.price || 0));
+      }
+    });
+  }
+  
+  return minPrice === Infinity ? 0 : minPrice;
+}
+
 export default function ProductsPage() {
   const { user } = useAuth();
   const [products, setProducts] = useState<ProductDto[]>([]);
@@ -587,9 +607,11 @@ export default function ProductsPage() {
 
                   {/* Status badges */}
                   <div style={{ position: "absolute", top: "0.75rem", right: "0.75rem", display: "flex", flexDirection: "column", gap: "0.3rem", alignItems: "flex-end" }}>
-                    {product.hidden
-                      ? <span className="badge badge-neutral">Hidden</span>
-                      : <span className="badge badge-success">Visible</span>}
+                    {isAdmin && (
+                      product.hidden
+                        ? <span className="badge badge-neutral">Hidden</span>
+                        : <span className="badge badge-success">Visible</span>
+                    )}
                     {product.comingSoon && <span className="badge badge-warning">Soon</span>}
                   </div>
                 </div>
@@ -622,7 +644,7 @@ export default function ProductsPage() {
                       borderRadius: "var(--radius-sm)",
                       padding: "0.1rem 0.45rem",
                     }}>
-                      ${product.prices && product.prices.length > 0 ? (product.prices[0].price || 0).toFixed(2) : "0.00"}
+                      ${getMinPrice(product).toFixed(2)}
                     </span>
                     <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>per year</span>
                   </div>
