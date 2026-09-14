@@ -57,7 +57,7 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) =
     setTimeout(() => onRemove(toast.id), 320);
   };
 
-  const configs: Record<ToastType, { color: string; bg: string; border: string; icon: JSX.Element; label: string }> = {
+  const configs: Record<ToastType, { color: string; bg: string; border: string; icon: ReactNode; label: string }> = {
     success: {
       color: "#5fa657",
       bg: "rgba(95,166,87,0.08)",
