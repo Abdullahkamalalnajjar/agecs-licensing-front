@@ -79,7 +79,7 @@ const navItems = [
 ];
 
 import Image from "next/image";
-import { ThemeToggleButton } from "./ThemeToggleButton";
+import { ThemeSwitcher } from "./ThemeSwitcher";
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -143,7 +143,7 @@ export default function Sidebar() {
                 textOverflow: "ellipsis",
                 maxWidth: "150px",
               }}>{user.email}</div>
-              <ThemeToggleButton />
+              <ThemeSwitcher />
             </div>
             <div style={{
               color: "var(--text-muted)",

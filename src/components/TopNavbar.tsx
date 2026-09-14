@@ -7,7 +7,7 @@ import StudentUpgradeModal from "./StudentUpgradeModal";
 import CartSidebar from "./CartSidebar";
 import { getApiV1CartsMyCart } from "@/client";
 import Image from "next/image";
-import { ThemeToggleButton } from "./ThemeToggleButton";
+import { ThemeSwitcher } from "./ThemeSwitcher";
 
 const navItems = [
   { name: "Home", path: "/home" },
@@ -146,7 +146,7 @@ function TopNavbarInner() {
               </button>
             )}
 
-            <ThemeToggleButton />
+            {user?.role !== "Admin" && <ThemeSwitcher />}
 
             {user && (
               <div className="user-profile-badge" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
