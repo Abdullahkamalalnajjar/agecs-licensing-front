@@ -15,9 +15,9 @@ export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promoco
   const [error, setError] = useState("");
 
   const [code, setCode] = useState("");
-  const [defaultPriceMultiplier, setDefaultPriceMultiplier] = useState("1");
-  const [fixedDiscount, setFixedDiscount] = useState("0");
-  const [constantDiscount, setConstantDiscount] = useState("0");
+  const [defaultPriceMultiplier, setDefaultPriceMultiplier] = useState("");
+  const [fixedDiscount, setFixedDiscount] = useState("");
+  const [constantDiscount, setConstantDiscount] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
   const [maxUses, setMaxUses] = useState("");
   
@@ -27,18 +27,18 @@ export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promoco
   useEffect(() => {
     if (promocode) {
       setCode(promocode.code || "");
-      setDefaultPriceMultiplier(promocode.defaultPriceMultiplier?.toString() || "1");
-      setFixedDiscount(promocode.fixedDiscount?.toString() || "0");
-      setConstantDiscount(promocode.constantDiscount?.toString() || "0");
+      setDefaultPriceMultiplier(promocode.defaultPriceMultiplier != null ? promocode.defaultPriceMultiplier.toString() : "");
+      setFixedDiscount(promocode.fixedDiscount != null ? promocode.fixedDiscount.toString() : "");
+      setConstantDiscount(promocode.constantDiscount != null ? promocode.constantDiscount.toString() : "");
       setExpiresAt(promocode.expiresAt ? new Date(promocode.expiresAt).toISOString().slice(0, 10) : "");
       setMaxUses(promocode.maxUses?.toString() || "");
       setHidden(promocode.hidden || false);
       setWithTaxes(promocode.withTaxes ?? true);
     } else {
       setCode("");
-      setDefaultPriceMultiplier("1");
-      setFixedDiscount("0");
-      setConstantDiscount("0");
+      setDefaultPriceMultiplier("");
+      setFixedDiscount("");
+      setConstantDiscount("");
       setExpiresAt("");
       setMaxUses("");
       setHidden(false);

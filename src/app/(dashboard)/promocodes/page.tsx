@@ -4,6 +4,7 @@ import { getApiPromocodes, deleteApiPromocodesById } from "@/client";
 import { client } from "@/client/client.gen";
 import { useRouter } from "next/navigation";
 import PromocodeFormModal from "@/components/PromocodeFormModal";
+import { useToast } from "@/components/ToastProvider";
 
 export default function PromocodesPage() {
   const [promocodes, setPromocodes] = useState<any[]>([]);
@@ -12,6 +13,7 @@ export default function PromocodesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPromocode, setSelectedPromocode] = useState<any>(null);
   const router = useRouter();
+  const { success, error: toastError } = useToast();
 
   const fetchPromocodes = async () => {
     setLoading(true);
@@ -40,16 +42,16 @@ export default function PromocodesPage() {
   useEffect(() => { fetchPromocodes(); }, [router]);
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this promocode?")) return;
     try {
       const response = await deleteApiPromocodesById({ path: { id }, throwOnError: false });
       if (response.data?.isSuccess) {
         setPromocodes(promocodes.filter((p) => p.id !== id));
+        success("Promocode deleted.");
       } else {
-        alert(response.data?.errors?.map((e) => e.description).join(", ") || "Failed to delete.");
+        toastError(response.data?.errors?.map((e) => e.description).join(", ") || "Failed to delete.");
       }
     } catch (err: any) {
-      alert(err.message || "Error deleting promocode.");
+      toastError(err.message || "Error deleting promocode.");
     }
   };
 
@@ -119,14 +121,35 @@ export default function PromocodesPage() {
               promocodes.map((promo) => (
                 <tr key={promo.id}>
                   <td>
-                    <span style={{
-                      fontFamily: "var(--font-mono)", fontSize: "0.875rem", fontWeight: "600",
-                      background: "var(--accent-dim)", color: "var(--accent-light)",
-                      padding: "0.2rem 0.6rem", borderRadius: "var(--radius-sm)",
-                      border: "1px solid var(--accent-border)", letterSpacing: "0.05em",
-                    }}>
-                      {promo.code}
-                    </span>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                      <span style={{
+                        fontFamily: "var(--font-mono)", fontSize: "0.875rem", fontWeight: "600",
+                        background: "var(--accent-dim)", color: "var(--accent-light)",
+                        padding: "0.2rem 0.6rem", borderRadius: "var(--radius-sm)",
+                        border: "1px solid var(--accent-border)", letterSpacing: "0.05em",
+                      }}>
+                        {promo.code}
+                      </span>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(promo.code);
+                          success("Copied to clipboard!");
+                        }}
+                        style={{
+                          background: "transparent", border: "none", cursor: "pointer",
+                          color: "var(--text-muted)", padding: "0.25rem", display: "flex", alignItems: "center",
+                          borderRadius: "4px", transition: "color 0.2s, background 0.2s"
+                        }}
+                        title="Copy code"
+                        onMouseEnter={(e) => { e.currentTarget.style.color = "var(--text-primary)"; e.currentTarget.style.background = "var(--bg-elevated)"; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.background = "transparent"; }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                      </button>
+                    </div>
                   </td>
                   <td style={{ fontFamily: "var(--font-mono)", fontSize: "0.875rem" }}>
                     {promo.fixedDiscount
@@ -139,9 +162,16 @@ export default function PromocodesPage() {
                     {promo.useCount || 0} / {promo.maxUses || "∞"}
                   </td>
                   <td>
-                    {!promo.hidden
-                      ? <span className="badge badge-success">Active</span>
-                      : <span className="badge badge-neutral">Hidden</span>}
+                    <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
+                      {promo.isActive ? (
+                        <span className="badge badge-success">Active</span>
+                      ) : (
+                        <span className="badge badge-danger">Inactive</span>
+                      )}
+                      {promo.hidden && (
+                        <span className="badge badge-neutral">Hidden</span>
+                      )}
+                    </div>
                   </td>
                   <td>
                     <div className="table-actions">

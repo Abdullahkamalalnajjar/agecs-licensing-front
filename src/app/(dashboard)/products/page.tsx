@@ -62,7 +62,10 @@ export default function ProductsPage() {
         ...(token ? { auth: token } : {}),
       });
 
-      const response = await getApiProducts({ throwOnError: false });
+      const response = await getApiProducts({ 
+        query: { includeHidden: isAdmin },
+        throwOnError: false 
+      });
       if (response.data?.isSuccess) {
         setProducts(response.data.value || []);
       } else if (response.error || response.data?.isError) {
@@ -73,7 +76,7 @@ export default function ProductsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isAdmin]);
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
@@ -130,6 +133,7 @@ export default function ProductsPage() {
                 <tr>
                   <th style={{ width: "60px" }}></th>
                   <th>Product</th>
+                  <th>Company</th>
                   <th>Family</th>
                   <th>Version</th>
                   <th>Price</th>
@@ -141,7 +145,7 @@ export default function ProductsPage() {
               <tbody>
                 {Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>
-                    {Array.from({ length: 8 }).map((__, j) => (
+                    {Array.from({ length: 9 }).map((__, j) => (
                       <td key={j}><div className="skeleton" style={{ height: "1rem", borderRadius: "var(--radius-sm)" }} /></td>
                     ))}
                   </tr>
@@ -172,7 +176,8 @@ export default function ProductsPage() {
               <tr>
                 <th style={{ width: "60px" }}></th>
                 <th>Product</th>
-                <th>Family</th>
+                  <th>Company</th>
+                  <th>Family</th>
                 <th>Version</th>
                 <th>Price</th>
                 <th>Status</th>
@@ -223,6 +228,11 @@ export default function ProductsPage() {
                     )}
                   </td>
 
+                  {/* Company */}
+                  <td>
+                    <span style={{ color: "var(--text-secondary)" }}>{product.company === "NanoCAD" ? "NanoCAD" : "AGECS"}</span>
+                  </td>
+
                   {/* Family */}
                   <td>
                     <span style={{ color: "var(--text-secondary)" }}>{product.family || "—"}</span>
@@ -257,7 +267,12 @@ export default function ProductsPage() {
                       borderRadius: "var(--radius-sm)",
                       padding: "0.15rem 0.5rem",
                     }}>
-                      ${product.prices && product.prices.length > 0 ? (product.prices[0].price || 0).toFixed(2) : "0.00"}
+                      ${(product as any).startingPrice !== undefined ? Number((product as any).startingPrice).toFixed(2) : "0.00"}
+                      {((product as any).startingPeriod !== undefined) && (
+                        <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginLeft: "0.3rem", fontWeight: 500, fontFamily: "var(--font-sans)" }}>
+                          / {(product as any).startingPeriod} {(product as any).startingPeriodType || 'Day'}
+                        </span>
+                      )}
                     </span>
                   </td>
 
@@ -625,6 +640,8 @@ export default function ProductsPage() {
                       {product.name}
                     </h3>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                      {product.company !== undefined && <span>{product.company === "NanoCAD" ? "NanoCAD" : "AGECS"}</span>}
+                      {product.company !== undefined && product.family && <span>·</span>}
                       {product.family && <span>{product.family}</span>}
                       {product.family && product.version && <span>·</span>}
                       {product.version && <span>v{product.version}</span>}
@@ -644,9 +661,11 @@ export default function ProductsPage() {
                       borderRadius: "var(--radius-sm)",
                       padding: "0.1rem 0.45rem",
                     }}>
-                      ${getMinPrice(product).toFixed(2)}
+                      ${(product as any).startingPrice !== undefined ? Number((product as any).startingPrice).toFixed(2) : "0.00"}
                     </span>
-                    <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>per year</span>
+                    <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
+                      per {(product as any).startingPeriod || 1} {((product as any).startingPeriodType || 'year').toLowerCase()}
+                    </span>
                   </div>
                 </div>
               </Link>

@@ -7,9 +7,10 @@ import StudentUpgradeModal from "./StudentUpgradeModal";
 import CartSidebar from "./CartSidebar";
 import { getApiV1CartsMyCart } from "@/client";
 import Image from "next/image";
+import { ThemeToggleButton } from "./ThemeToggleButton";
 
 const navItems = [
-  { name: "Dashboard", path: "/dashboard" },
+  { name: "Home", path: "/home" },
   { name: "Licenses", path: "/licenses" },
   { name: "Products", path: "/products" },
   { name: "Promocodes", path: "/promocodes" },
@@ -69,7 +70,7 @@ function TopNavbarInner() {
       return item.name === "Products";
     }
     if (user?.role === "Student" || user?.role === "NormalUser") {
-      return item.name === "Tickets" || item.name === "Products" || item.name === "Profile";
+      return item.name === "Home" || item.name === "Tickets" || item.name === "Products" || item.name === "Profile";
     }
     return true; // SuperAdmin/Admin sees all
   });
@@ -85,8 +86,14 @@ function TopNavbarInner() {
               alt="AGECS Software Solutions"
               width={140}
               height={50}
-              style={{ objectFit: 'contain', filter: 'brightness(0) opacity(0.9)' }}
+              className="brand-logo"
             />
+          </div>
+
+          <div className="promo-bar" style={{ borderBottom: 'none', background: 'transparent', flex: 1, minHeight: 'unset', padding: '0 1rem' }}>
+            <span className="discount">20% OFF</span>
+            <span className="desktop-only" style={{ fontSize: '12px' }}>Your First Year License for nanoCAD 26</span>
+            <Link href="/home#products" className="buy" style={{ padding: '4px 12px', fontSize: '11px' }}>Buy Now</Link>
           </div>
 
           {/* Desktop Navigation */}
@@ -139,7 +146,7 @@ function TopNavbarInner() {
               </button>
             )}
 
-
+            <ThemeToggleButton />
 
             {user && (
               <div className="user-profile-badge" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>

@@ -1,67 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getStats } from "@/client";
-import { client } from "@/client/client.gen";
-import { DashboardStatsDto } from "@/client/types.gen";
 import Link from "next/link";
-import { useAuth } from "@/components/AuthProvider";
 import { useRouter } from "next/navigation";
+import { AuthUser } from "@/components/AuthProvider";
+import { DashboardStatsDto } from "@/client/types.gen";
 
-export default function DashboardPage() {
-  const { user } = useAuth();
+interface AdminDashboardViewProps {
+  user: AuthUser | null;
+  stats: DashboardStatsDto | null;
+}
+
+export default function AdminDashboardView({ user, stats }: AdminDashboardViewProps) {
   const router = useRouter();
-  const [stats, setStats] = useState<DashboardStatsDto | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    async function loadStats() {
-      if (!user) return;
-      try {
-        setLoading(true);
-        const token = localStorage.getItem("token");
-        if (token) {
-          client.setConfig({
-            baseUrl: (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5004"),
-            auth: token,
-          });
-        }
-        
-        const { data, error } = await getStats();
-        if (error) throw new Error("Failed to load dashboard stats.");
-        if (data?.value) setStats(data.value);
-      } catch (err: any) {
-        setError(err.message || "Something went wrong.");
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadStats();
-  }, [user]);
-
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
-        <div className="spinner" style={{ width: "32px", height: "32px", borderTopColor: "var(--accent-light)" }}></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="alert-error" style={{ margin: '2rem' }}>
-        <svg style={{ width: '20px', height: '20px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        {error}
-      </div>
-    );
-  }
 
   return (
-    <div className="dashboard-content" style={{ animation: "fadeIn 0.5s ease" }}>
-      {/* Dynamic Header */}
+    <>
       <div className="page-header" style={{ 
         display: "flex", justifyContent: "space-between", alignItems: "flex-end", 
         marginBottom: "2.5rem", flexWrap: "wrap", gap: "1rem"
@@ -216,7 +169,6 @@ export default function DashboardPage() {
           {/* Mock Chart Area */}
           <div style={{ flex: '2 1 400px', minHeight: '200px', background: 'var(--bg-base)', borderRadius: '12px', border: '1px solid var(--border)', position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', top: '1rem', left: '1.5rem', fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Revenue (Last 30 Days)</div>
-            {/* Simple CSS graph visualization */}
             <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '60%', background: 'linear-gradient(180deg, rgba(124,58,237,0.15) 0%, rgba(124,58,237,0) 100%)', clipPath: 'polygon(0 100%, 0 60%, 10% 50%, 20% 70%, 30% 40%, 40% 60%, 50% 30%, 60% 40%, 70% 20%, 80% 35%, 90% 10%, 100% 20%, 100% 100%)' }}></div>
             <svg preserveAspectRatio="none" style={{ position: 'absolute', bottom: '0', left: '0', width: '100%', height: '100%' }} viewBox="0 0 100 100">
               <polyline points="0,100 0,60 10,50 20,70 30,40 40,60 50,30 60,40 70,20 80,35 90,10 100,20" fill="none" stroke="#7c3aed" strokeWidth="2" strokeLinejoin="round" />
@@ -249,29 +201,6 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
-      
-      {/* Custom Styles for Dashboard specific hover effects */}
-      <style dangerouslySetInnerHTML={{__html: `
-        .stat-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 12px 24px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.05);
-          border-color: var(--accent-border);
-        }
-        .stat-link {
-          transition: opacity 0.2s;
-        }
-        .stat-card:hover .stat-link {
-          opacity: 0.8;
-        }
-        .quick-action-btn:hover {
-          background: var(--bg-surface) !important;
-          border-color: var(--accent-border) !important;
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}} />
-    </div>
+    </>
   );
 }

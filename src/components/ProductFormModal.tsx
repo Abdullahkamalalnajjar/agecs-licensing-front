@@ -25,6 +25,7 @@ export default function ProductFormModal({ initialData, onClose, onSuccess }: Pr
     withTaxes: initialData?.withTaxes ?? true,
     version: initialData?.version || "",
     janDrozdId: initialData?.janDrozdId || "",
+    company: initialData?.company ?? "AGECS",
   });
 
   const [prices, setPrices] = useState<{ id?: string, period: number, price: number, country: string, active: boolean }[]>(
@@ -145,10 +146,17 @@ export default function ProductFormModal({ initialData, onClose, onSuccess }: Pr
                 </div>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "1rem" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label" htmlFor="janDrozdId">JanDrozd ID</label>
                   <input id="janDrozdId" type="text" className="form-input" value={productData.janDrozdId} onChange={(e) => setProductData({ ...productData, janDrozdId: e.target.value })} />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" htmlFor="company">Company</label>
+                  <select id="company" className="form-input" value={productData.company} onChange={(e) => setProductData({ ...productData, company: e.target.value as any })} style={{ appearance: "auto" }}>
+                    <option value="AGECS">AGECS</option>
+                    <option value="NanoCAD">NanoCAD</option>
+                  </select>
                 </div>
               </div>
 

@@ -1,9 +1,10 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useRef, ReactNode } from "react";
 import { jwtDecode } from "jwt-decode";
 import { useRouter, usePathname } from "next/navigation";
 import { client } from "@/client/client.gen";
+import { postIdentityTokenRefreshToken } from "@/client";
 
 export type Role = "SuperAdmin" | "Admin" | "Sales" | "Student" | "NormalUser" | string;
 
@@ -110,6 +111,69 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push("/login");
   };
 
+  // ── Proactive refresh: refresh token 60s before it expires ──
+  const proactiveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const scheduleProactiveRefresh = (token: string) => {
+    if (proactiveTimerRef.current) clearTimeout(proactiveTimerRef.current);
+    try {
+      const decoded: any = jwtDecode(token);
+      if (!decoded.exp) return;
+      const expiresInMs = decoded.exp * 1000 - Date.now() - 60_000; // 60s before expiry
+      if (expiresInMs <= 0) return;
+      proactiveTimerRef.current = setTimeout(() => doRefresh(), expiresInMs);
+    } catch { /* ignore */ }
+  };
+
+  const doRefresh = async (): Promise<string | null> => {
+    const accessToken = localStorage.getItem("token");
+    const refreshToken = localStorage.getItem("refreshToken");
+    if (!accessToken || !refreshToken) {
+      logout();
+      return null;
+    }
+    
+    const currentAuth = client.getConfig().auth;
+    client.setConfig({ auth: undefined });
+    
+    let res;
+    try {
+      res = await postIdentityTokenRefreshToken({
+        body: { accessToken, refreshToken },
+        throwOnError: false,
+      });
+    } catch {
+       /* fall through */
+    } finally {
+      client.setConfig({ auth: currentAuth });
+    }
+    
+    if (res) {
+      const data = res.data as any;
+      if (data?.isSuccess && data?.value?.accessToken) {
+        const newToken: string = data.value.accessToken;
+        const newRefresh: string | undefined = data.value.refreshToken;
+        localStorage.setItem("token", newToken);
+        if (newRefresh) localStorage.setItem("refreshToken", newRefresh);
+        client.setConfig({ auth: newToken });
+        scheduleProactiveRefresh(newToken);
+        return newToken;
+      }
+    }
+    logout();
+    return null;
+  };
+
+  // Schedule proactive refresh whenever user/token changes
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) scheduleProactiveRefresh(token);
+    return () => {
+      if (proactiveTimerRef.current) clearTimeout(proactiveTimerRef.current);
+    };
+  }, [user]);
+
+  // ── Reactive refresh: 401 interceptor ────────────────────────
   useEffect(() => {
     let isRefreshing = false;
     let refreshSubscribers: ((token: string) => void)[] = [];
@@ -124,11 +188,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     const interceptorId = client.interceptors.response.use(async (response, request) => {
-      if (response.status === 401) {
+      // Prevent infinite loops if the refresh token endpoint itself returns 401
+      if (response.status === 401 && !request.url.includes("/identity/token/refresh-token")) {
         const refreshToken = localStorage.getItem("refreshToken");
-        const token = localStorage.getItem("token");
+        const accessToken = localStorage.getItem("token");
 
-        if (!refreshToken || !token) {
+        if (!refreshToken || !accessToken) {
           logout();
           return response;
         }
@@ -136,56 +201,76 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!isRefreshing) {
           isRefreshing = true;
           try {
-            const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:5003";
-            const res = await fetch(`${baseUrl}/api/identity/token/refresh`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ token, refreshToken }),
-            });
-
-            if (res.ok) {
-              const data = await res.json();
-              if (data?.isSuccess && data?.value?.accessToken) {
-                const newToken = data.value.accessToken;
-                const newRefreshToken = data.value.refreshToken;
-                localStorage.setItem("token", newToken);
-                if (newRefreshToken) {
-                  localStorage.setItem("refreshToken", newRefreshToken);
-                }
-                
-                client.setConfig({
-                  headers: { Authorization: `Bearer ${newToken}` }
-                });
-
-                onRefreshed(newToken);
-                isRefreshing = false;
-                
-                const newHeaders = new Headers(request.headers);
-                newHeaders.set("Authorization", `Bearer ${newToken}`);
-                const retryRequest = new Request(request.url, {
-                  ...request,
-                  headers: newHeaders,
-                });
-                return fetch(retryRequest);
-              }
+            // Bypass the client's auth header for the refresh request by specifying an empty Authorization header.
+            // Using postIdentityTokenRefreshToken directly will use the expired token if client.setConfig({auth}) is set,
+            // which causes API Gateways (like port 5003) to return 401 before hitting the refresh endpoint.
+            const currentAuth = client.getConfig().auth;
+            client.setConfig({ auth: undefined });
+            
+            let res;
+            try {
+              res = await postIdentityTokenRefreshToken({
+                body: { accessToken, refreshToken },
+                throwOnError: false,
+              });
+            } finally {
+              client.setConfig({ auth: currentAuth });
             }
             
+            const data = res.data as any;
+
+            if (data?.isSuccess && data?.value?.accessToken) {
+              const newToken: string = data.value.accessToken;
+              const newRefresh: string | undefined = data.value.refreshToken;
+              localStorage.setItem("token", newToken);
+              if (newRefresh) localStorage.setItem("refreshToken", newRefresh);
+              client.setConfig({ auth: newToken });
+              scheduleProactiveRefresh(newToken);
+              onRefreshed(newToken);
+              isRefreshing = false;
+
+              // To safely retry the request, we must clone it BEFORE it's consumed, or recreate it.
+              // Since hey-api gives us a Request object that might be consumed, we recreate it using RequestInit.
+              // We can't perfectly recreate POST bodies if consumed, but for most GET requests this is fine.
+              const newHeaders = new Headers(request.headers);
+              newHeaders.set("Authorization", `Bearer ${newToken}`);
+              
+              // Note: If original request had a body, it was consumed. Retrying it via fetch() might fail for POSTs.
+              // For robustness in SPA, we often let the component retry or reload. But we attempt a GET retry or empty POST retry:
+              try {
+                  const retryRequest = new Request(request.url, {
+                    method: request.method,
+                    headers: newHeaders,
+                    // Cannot copy body from a consumed Request, so we omit it. This means POST retries might fail,
+                    // but they won't hang the app, and the user can just click the action again.
+                  });
+                  return await fetch(retryRequest);
+              } catch (retryErr) {
+                  return response; // Return original 401 if retry fails to construct
+              }
+            }
+
             logout();
-          } catch (e) {
+          } catch {
             logout();
           } finally {
             isRefreshing = false;
           }
         } else {
+          // Queue: wait until current refresh finishes then retry
           return new Promise((resolve) => {
             subscribeTokenRefresh(async (newToken) => {
               const newHeaders = new Headers(request.headers);
               newHeaders.set("Authorization", `Bearer ${newToken}`);
-              const retryRequest = new Request(request.url, {
-                ...request,
-                headers: newHeaders,
-              });
-              resolve(fetch(retryRequest));
+              try {
+                const retryRequest = new Request(request.url, {
+                  method: request.method,
+                  headers: newHeaders,
+                });
+                resolve(await fetch(retryRequest));
+              } catch {
+                resolve(response);
+              }
             });
           });
         }

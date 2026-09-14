@@ -21,11 +21,18 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
     id: "",
     name: "",
     fullName: "",
-    janDrozdId: ""
+    janDrozdId: "",
+    description: "",
+    miniDescription: "",
+    version: "",
+    comingSoon: false,
+    hidden: false,
+    order: 0,
+    withTaxes: true
   });
 
-  const [prices, setPrices] = useState<{ id?: string, period: number, price: number, country: string, active: boolean }[]>([
-    { period: 1, price: 0, country: "II", active: true }
+  const [prices, setPrices] = useState<{ id?: string, period: number, periodType: string, price: number, country: string, active: boolean }[]>([
+    { period: 1, periodType: "Day", price: 0, country: "II", active: true }
   ]);
 
   const handleEditClick = (child: ProductDto) => {
@@ -33,12 +40,19 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
       id: child.id || "",
       name: child.name || "",
       fullName: child.fullName || "",
-      janDrozdId: child.janDrozdId || ""
+      janDrozdId: child.janDrozdId || "",
+      description: child.description || "",
+      miniDescription: child.miniDescription || "",
+      version: child.version || "",
+      comingSoon: child.comingSoon || false,
+      hidden: child.hidden || false,
+      order: child.order || 0,
+      withTaxes: child.withTaxes ?? true
     });
     setPrices(
       child.prices && child.prices.length > 0 
-        ? child.prices.map((p: any) => ({ period: p.period || 1, price: p.price || 0, country: p.country || "II", active: p.active ?? true }))
-        : [{ period: 1, price: 0, country: "II", active: true }]
+        ? child.prices.map((p: any) => ({ period: p.period || 1, periodType: p.periodType || "Day", price: p.price || 0, country: p.country || "II", active: p.active ?? true }))
+        : [{ period: 1, periodType: "Day", price: 0, country: "II", active: true }]
     );
     setIsAddingChild(true);
     setError("");
@@ -74,19 +88,21 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
         name: newChild.name,
         fullName: newChild.fullName,
         janDrozdId: newChild.janDrozdId,
+        description: newChild.description,
+        miniDescription: newChild.miniDescription,
+        version: newChild.version,
+        comingSoon: newChild.comingSoon,
+        hidden: newChild.hidden,
+        order: Number(newChild.order) || 0,
+        withTaxes: newChild.withTaxes,
         family: product.family || "SES", 
         parentProductId: product.id,
-        allowTrial: false,
-        trialPeriod: 0,
-        comingSoon: false,
-        hidden: false,
-        order: 0,
-        withTaxes: true,
         prices: prices.map(p => ({
           id: p.id,
           country: p.country,
           price: Number(p.price) || 0,
           period: Number(p.period) || 1,
+          periodType: p.periodType || "Day",
           active: p.active
         }))
       };
@@ -113,8 +129,8 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
           setChildrenList([...childrenList, response.data!.value!]);
         }
         setIsAddingChild(false);
-        setNewChild({ id: "", name: "", fullName: "", janDrozdId: "" });
-        setPrices([{ period: 1, price: 0, country: "II", active: true }]);
+        setNewChild({ id: "", name: "", fullName: "", janDrozdId: "", description: "", miniDescription: "", version: "", comingSoon: false, hidden: false, order: 0, withTaxes: true });
+        setPrices([{ period: 1, periodType: "Day", price: 0, country: "II", active: true }]);
         onSuccess();
       } else if (response?.error || response?.data?.isError) {
         const errorMsg = response?.data?.errors?.map((err: any) => err.description).filter(Boolean).join(", ") || "Failed to save variant.";
@@ -163,7 +179,7 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
           {/* Add Variant Button */}
           {!isAddingChild && (
             <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "1.25rem" }}>
-              <button className="btn-primary" style={{ padding: "0.55rem 1.1rem", fontSize: "0.85rem" }} onClick={() => { setNewChild({ id: "", name: "", fullName: "", janDrozdId: "" }); setIsAddingChild(true); }}>
+              <button className="btn-primary" style={{ padding: "0.55rem 1.1rem", fontSize: "0.85rem" }} onClick={() => { setNewChild({ id: "", name: "", fullName: "", janDrozdId: "", description: "", miniDescription: "", version: "", comingSoon: false, hidden: false, order: 0, withTaxes: true }); setIsAddingChild(true); }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 Add Variant
               </button>
@@ -197,13 +213,43 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
                     <label className="form-label" style={{ fontSize: "0.72rem" }}>JanDrozd ID</label>
                     <input type="text" className="form-input" placeholder="e.g. 11" value={newChild.janDrozdId} onChange={e => setNewChild({...newChild, janDrozdId: e.target.value})} style={{ fontSize: "0.85rem", padding: "0.6rem 0.85rem" }} />
                   </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label" style={{ fontSize: "0.72rem" }}>Version</label>
+                    <input type="text" className="form-input" placeholder="e.g. 1.0.0" value={newChild.version} onChange={e => setNewChild({...newChild, version: e.target.value})} style={{ fontSize: "0.85rem", padding: "0.6rem 0.85rem" }} />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label" style={{ fontSize: "0.72rem" }}>Order</label>
+                    <input type="number" className="form-input" value={newChild.order} onChange={e => setNewChild({...newChild, order: Number(e.target.value)})} style={{ fontSize: "0.85rem", padding: "0.6rem 0.85rem" }} />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0, display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "1rem" }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.75rem" }}>
+                      <input type="checkbox" checked={newChild.comingSoon} onChange={e => setNewChild({...newChild, comingSoon: e.target.checked})} />
+                      Coming Soon
+                    </label>
+                    <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.75rem" }}>
+                      <input type="checkbox" checked={newChild.hidden} onChange={e => setNewChild({...newChild, hidden: e.target.checked})} />
+                      Hidden
+                    </label>
+                    <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.75rem" }}>
+                      <input type="checkbox" checked={newChild.withTaxes} onChange={e => setNewChild({...newChild, withTaxes: e.target.checked})} />
+                      With Taxes
+                    </label>
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0, gridColumn: "1 / -1" }}>
+                    <label className="form-label" style={{ fontSize: "0.72rem" }}>Mini Description</label>
+                    <textarea className="form-input" rows={2} value={newChild.miniDescription} onChange={e => setNewChild({...newChild, miniDescription: e.target.value})} style={{ fontSize: "0.85rem", padding: "0.6rem 0.85rem", resize: "vertical" }} />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0, gridColumn: "1 / -1" }}>
+                    <label className="form-label" style={{ fontSize: "0.72rem" }}>Description</label>
+                    <textarea className="form-input" rows={3} value={newChild.description} onChange={e => setNewChild({...newChild, description: e.target.value})} style={{ fontSize: "0.85rem", padding: "0.6rem 0.85rem", resize: "vertical" }} />
+                  </div>
                 </div>
 
                 {/* Dynamic Prices Section */}
                 <div style={{ padding: "1rem", background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", marginBottom: "1.25rem" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
                     <label className="form-label" style={{ margin: 0, fontSize: "0.85rem", color: "var(--accent-light)" }}>Pricing Tiers</label>
-                    <button type="button" className="btn-ghost" style={{ padding: "0.2rem 0.4rem", fontSize: "0.75rem" }} onClick={() => setPrices([...prices, { period: 1, price: 0, country: "II", active: true }])}>
+                    <button type="button" className="btn-ghost" style={{ padding: "0.2rem 0.4rem", fontSize: "0.75rem" }} onClick={() => setPrices([...prices, { period: 1, periodType: "Day", price: 0, country: "II", active: true }])}>
                       + Add Price
                     </button>
                   </div>
@@ -214,12 +260,24 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
                     {prices.map((priceObj, index) => (
                       <div key={index} style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: "0.5rem", alignItems: "flex-end" }}>
                         <div>
-                          <label style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginBottom: "0.2rem", display: "block" }}>Period (days)</label>
+                          <label style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginBottom: "0.2rem", display: "block" }}>Period (number)</label>
                           <input type="number" required className="form-input" style={{ padding: "0.35rem 0.5rem", fontSize: "0.8rem" }} value={priceObj.period} onChange={(e) => {
                             const newPrices = [...prices];
                             newPrices[index].period = Number(e.target.value);
                             setPrices(newPrices);
                           }} />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginBottom: "0.2rem", display: "block" }}>Period Type</label>
+                          <select className="form-input" style={{ padding: "0.35rem 0.5rem", fontSize: "0.8rem" }} value={priceObj.periodType} onChange={(e) => {
+                            const newPrices = [...prices];
+                            newPrices[index].periodType = e.target.value;
+                            setPrices(newPrices);
+                          }}>
+                            <option value="Day">Day</option>
+                            <option value="Month">Month</option>
+                            <option value="Year">Year</option>
+                          </select>
                         </div>
                         <div>
                           <label style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginBottom: "0.2rem", display: "block" }}>Price ($)</label>
@@ -242,7 +300,7 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
                 </div>
 
                 <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
-                  <button type="button" className="btn-ghost" style={{ fontSize: "0.85rem" }} onClick={() => { setIsAddingChild(false); setNewChild({ id: "", name: "", fullName: "", janDrozdId: "" }); setPrices([{ period: 1, price: 0, country: "II", active: true }]); }}>Cancel</button>
+                  <button type="button" className="btn-ghost" style={{ fontSize: "0.85rem" }} onClick={() => { setIsAddingChild(false); setNewChild({ id: "", name: "", fullName: "", janDrozdId: "", description: "", miniDescription: "", version: "", comingSoon: false, hidden: false, order: 0, withTaxes: true }); setPrices([{ period: 1, periodType: "Day", price: 0, country: "II", active: true }]); }}>Cancel</button>
                   <button type="submit" className="btn-primary" disabled={loading} style={{ fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
                     {loading ? (
                       <><span className="spinner" style={{ width: 14, height: 14 }}></span> Saving...</>

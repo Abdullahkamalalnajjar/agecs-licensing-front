@@ -6,7 +6,7 @@ import { useAuth } from "./AuthProvider";
 const navItems = [
   {
     name: "Dashboard",
-    path: "/dashboard",
+    path: "/home",
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
@@ -79,6 +79,7 @@ const navItems = [
 ];
 
 import Image from "next/image";
+import { ThemeToggleButton } from "./ThemeToggleButton";
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -93,7 +94,7 @@ export default function Sidebar() {
           alt="AGECS Admin"
           width={140}
           height={50}
-          style={{ objectFit: 'contain', filter: 'brightness(0) opacity(0.9)' }}
+          className="brand-logo"
         />
       </div>
 
@@ -124,24 +125,28 @@ export default function Sidebar() {
         {user && (
           <div style={{
             padding: "0.75rem",
-            background: "#F4F4F4",
+            background: "var(--bg-elevated)",
             borderRadius: "20px",
             fontSize: "0.85rem",
             width: '100%',
             display: 'flex',
             flexDirection: 'column',
             gap: '0.25rem',
+            marginBottom: "0.5rem"
           }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div style={{
+                fontWeight: 600,
+                color: "var(--text-primary)",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                maxWidth: "150px",
+              }}>{user.email}</div>
+              <ThemeToggleButton />
+            </div>
             <div style={{
-              fontWeight: 600,
-              color: "#141413",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              maxWidth: "200px",
-            }}>{user.email}</div>
-            <div style={{
-              color: "#696969",
+              color: "var(--text-muted)",
               fontSize: "0.72rem",
               fontWeight: 700,
               textTransform: "uppercase",

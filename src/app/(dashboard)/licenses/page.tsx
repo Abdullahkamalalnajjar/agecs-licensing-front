@@ -16,8 +16,11 @@ import MigrateHwidModal from "@/components/MigrateHwidModal";
 import HwidListModal from "@/components/HwidListModal";
 import DiagnosticModal from "@/components/DiagnosticModal";
 import { ProductDto } from "@/client/types.gen";
+import { useToast } from "@/components/ToastProvider";
 
 export default function LicensesPage() {
+  const router = useRouter();
+  const { success, error: toastError } = useToast();
   const [licenses, setLicenses] = useState<any[]>([]);
   const [products, setProducts] = useState<ProductDto[]>([]);
   const [users, setUsers] = useState<any[]>([]);
@@ -38,8 +41,6 @@ export default function LicensesPage() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive">("all");
   const [filterTrial, setFilterTrial] = useState<"all" | "trial" | "paid">("all");
-
-  const router = useRouter();
 
   const fetchLicenses = useCallback(async () => {
     setLoading(true);
@@ -103,16 +104,16 @@ export default function LicensesPage() {
   };
 
   const handleRevoke = async (id: string) => {
-    if (!confirm("Are you sure you want to revoke this license? It will be disabled immediately.")) return;
     try {
       const res = await postApiLicensesAdminByIdRevoke({ path: { id }, throwOnError: false });
       if ((res.data as any)?.isSuccess || res.response?.status === 200 || res.response?.status === 204) {
+        success("License revoked successfully.");
         fetchLicenses();
       } else {
-        alert((res.data as any)?.errors?.map((err: any) => err.description).filter(Boolean).join(", ") || "Failed to revoke license.");
+        toastError((res.data as any)?.errors?.map((err: any) => err.description).filter(Boolean).join(", ") || "Failed to revoke license.");
       }
     } catch (err: any) {
-      alert(err.message || "An error occurred");
+      toastError(err.message || "An error occurred");
     }
   };
 

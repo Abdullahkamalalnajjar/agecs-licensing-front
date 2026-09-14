@@ -12,12 +12,14 @@ import ProductVersionsModal from "@/components/ProductVersionsModal";
 import { ProductDto, ProductVersionDto } from "@/client/types.gen";
 import { resolveMediaUrl } from "@/lib/mediaUrl";
 import { useAuth } from "@/components/AuthProvider";
+import { useToast } from "@/components/ToastProvider";
 
 export default function ProductDetailsPage() {
   const { id } = useParams();
   const productId = Array.isArray(id) ? id[0] : id;
   const router = useRouter();
   const { user } = useAuth();
+  const { success, error: toastError } = useToast();
 
   const [product, setProduct] = useState<ProductDto | null>(null);
   const [activeVersions, setActiveVersions] = useState<ProductVersionDto[]>([]);
@@ -93,10 +95,10 @@ export default function ProductDetailsPage() {
       if (response.data?.isSuccess) {
         router.push("/products");
       } else {
-        alert(response.data?.errors?.map((e: any) => e.description).join(", ") || "Failed to delete.");
+        toastError(response.data?.errors?.map((e: any) => e.description).join(", ") || "Failed to delete.");
       }
     } catch (err: any) {
-      alert(err.message || "Error deleting product.");
+      toastError(err.message || "Error deleting product.");
     }
   };
 
@@ -147,13 +149,13 @@ export default function ProductDetailsPage() {
       
       if (res.error || (res.data as any)?.isError) {
         const errs = (res.data as any)?.errors;
-        alert(errs?.map((e: any) => e.description).join(", ") || "Failed to add to cart");
+        toastError(errs?.map((e: any) => e.description).join(", ") || "Failed to add to cart");
       } else {
-        alert("Added to cart successfully!");
+        success("Added to cart successfully!");
         window.dispatchEvent(new Event("cartUpdated"));
       }
     } catch (e: any) {
-      alert("Error adding to cart: " + e.message);
+      toastError("Error adding to cart: " + e.message);
     } finally {
       setIsAddingToCart(false);
     }
@@ -265,6 +267,14 @@ export default function ProductDetailsPage() {
         {/* Product Info */}
         <div style={{ flex: 1, position: "relative", zIndex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.75rem" }}>
+            <span style={{
+              background: "rgba(59,130,246,0.15)", color: "#3b82f6",
+              padding: "0.25rem 0.75rem", borderRadius: "99px",
+              fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.05em",
+              textTransform: "uppercase", border: "1px solid rgba(59,130,246,0.3)",
+            }}>
+              {product.company === "NanoCAD" ? "NanoCAD" : "AGECS"}
+            </span>
             {product.family && (
               <span style={{
                 background: "rgba(254,192,16,0.2)", color: "#fec010",
@@ -342,9 +352,9 @@ export default function ProductDetailsPage() {
                     {/* Period selection chips if there are multiple prices */}
                     {currentProduct.prices && currentProduct.prices.length > 1 && (
                       <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                        {currentProduct.prices.map(p => (
+                        {currentProduct.prices.map((p, idx) => (
                           <button
-                            key={p.period}
+                            key={p.id || idx}
                             onClick={() => setSelectedPeriod(p.period || 1)}
                             style={{
                               padding: "0.3rem 0.75rem",
@@ -501,6 +511,10 @@ export default function ProductDetailsPage() {
                   ? <span className="badge badge-neutral" style={{ padding: "0.25rem 0.6rem" }}>Hidden</span>
                   : <span className="badge badge-success" style={{ padding: "0.25rem 0.6rem" }}>Visible</span>
                 }
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.6rem 0", borderBottom: "1px solid var(--border)" }}>
+                <span style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>Company</span>
+                <span style={{ fontWeight: 600, fontSize: "0.9rem" }}>{product.company === "NanoCAD" ? "NanoCAD" : "AGECS"}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.6rem 0", borderBottom: "1px solid var(--border)" }}>
                 <span style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>Version</span>

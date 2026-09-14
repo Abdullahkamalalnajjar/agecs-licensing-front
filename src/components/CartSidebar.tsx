@@ -30,6 +30,7 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
   const [cart, setCart] = useState<CartDto | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [promoCode, setPromoCode] = useState("");
+  const [promoError, setPromoError] = useState("");
   const [isApplyingPromo, setIsApplyingPromo] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
 
@@ -52,6 +53,7 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
 
   useEffect(() => {
     if (isOpen) {
+      setPromoError("");
       fetchCart();
     }
   }, [isOpen]);
@@ -70,10 +72,23 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
     if (!promoCode.trim()) return;
     try {
       setIsApplyingPromo(true);
-      await postApiV1CartsMyCartPromocode({ body: { promocode: promoCode } });
-      await fetchCart();
-    } catch (error) {
+      setPromoError("");
+      const res = await postApiV1CartsMyCartPromocode({ body: { promocode: promoCode } });
+      
+      if (res.error) {
+        const errObj = res.error as any;
+        const msg = errObj?.description || errObj?.title || "Invalid promo code";
+        setPromoError(msg);
+      } else if ((res.data as any)?.isError) {
+        const errs = (res.data as any)?.errors;
+        const msg = errs?.map((e: any) => e.description).join(", ") || "Invalid promo code";
+        setPromoError(msg);
+      } else {
+        await fetchCart();
+      }
+    } catch (error: any) {
       console.error("Error applying promocode:", error);
+      setPromoError(error?.message || "Error applying promo code");
     } finally {
       setIsApplyingPromo(false);
     }
@@ -82,6 +97,7 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
   const handleRemovePromo = async () => {
     try {
       setIsApplyingPromo(true);
+      setPromoError("");
       await deleteApiV1CartsMyCartPromocode();
       setPromoCode("");
       await fetchCart();
@@ -228,16 +244,20 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                   <input
                     type="text"
                     value={promoCode}
-                    onChange={(e) => setPromoCode(e.target.value)}
+                    onChange={(e) => {
+                      setPromoCode(e.target.value);
+                      if (promoError) setPromoError("");
+                    }}
                     placeholder="Enter code"
                     disabled={!!cart?.promocode || isApplyingPromo}
                     style={{
                       flex: 1,
                       padding: "0.5rem",
                       borderRadius: "6px",
-                      border: "1px solid var(--border-color)",
+                      border: promoError ? "1px solid var(--danger-color, #ef4444)" : "1px solid var(--border-color)",
                       backgroundColor: "var(--bg-elevated)",
                       color: "var(--text-primary)",
+                      outline: "none",
                     }}
                   />
                   {cart?.promocode ? (
@@ -256,10 +276,15 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                       className="btn-primary"
                       style={{ padding: "0.5rem 1rem", borderRadius: "6px" }}
                     >
-                      Apply
+                      {isApplyingPromo ? "Applying..." : "Apply"}
                     </button>
                   )}
                 </div>
+                {promoError && (
+                  <p style={{ margin: "0.5rem 0 0 0", color: "var(--danger-color, #ef4444)", fontSize: "0.85rem" }}>
+                    {promoError}
+                  </p>
+                )}
               </div>
             )}
 

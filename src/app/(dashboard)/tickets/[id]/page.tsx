@@ -4,7 +4,7 @@ import { getApiTicketsById, postApiTicketsByIdComments, putApiTicketsByIdStatus 
 import { client } from "@/client/client.gen";
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
-
+import { useToast } from "@/components/ToastProvider";
 import Link from "next/link";
 
 export default function TicketDetailsPage() {
@@ -21,6 +21,7 @@ export default function TicketDetailsPage() {
   const [changingStatus, setChangingStatus] = useState(false);
   
   const router = useRouter();
+  const { success, error: toastError } = useToast();
 
   const fetchTicket = useCallback(async () => {
     setLoading(true);
@@ -72,10 +73,10 @@ export default function TicketDetailsPage() {
         fetchTicket(); // Reload ticket to get new comment
       } else {
         // @ts-ignore
-        alert(response.error?.title || "Failed to add comment");
+        toastError(response.error?.title || "Failed to add comment");
       }
     } catch (err: any) {
-      alert(err.message || "Error adding comment");
+      toastError(err.message || "Error adding comment");
     } finally {
       setSubmittingComment(false);
     }
@@ -94,10 +95,10 @@ export default function TicketDetailsPage() {
         fetchTicket(); // Reload to get new status
       } else {
         // @ts-ignore
-        alert(response.error?.title || "Failed to change status");
+        toastError(response.error?.title || "Failed to change status");
       }
     } catch (err: any) {
-      alert(err.message || "Error changing status");
+      toastError(err.message || "Error changing status");
     } finally {
       setChangingStatus(false);
     }
