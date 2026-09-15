@@ -3,11 +3,11 @@
 import { useState } from "react";
 import { postApiProducts, putApiProductsById } from "@/client";
 
-const mapPeriodType = (pt: any) => {
-  if (pt === "Day" || pt === 1) return 1;
-  if (pt === "Month" || pt === 2) return 2;
-  if (pt === "Year" || pt === 3) return 3;
-  return 1;
+const mapPeriodType = (pt: any): 'Day' | 'Month' | 'Year' => {
+  if (pt === "Day" || pt === 1) return "Day";
+  if (pt === "Month" || pt === 2) return "Month";
+  if (pt === "Year" || pt === 3) return "Year";
+  return "Day";
 };
 
 
@@ -35,10 +35,10 @@ export default function ProductFormModal({ initialData, onClose, onSuccess }: Pr
     janDrozdId: initialData?.janDrozdId || "",
   });
 
-  const [prices, setPrices] = useState<{ id?: string, period: number, periodType?: number, price: number, country: string, active: boolean }[]>(
+  const [prices, setPrices] = useState<{ id?: string, period: number, periodType?: 'Day' | 'Month' | 'Year', price: number, country: string, active: boolean }[]>(
     initialData?.prices && initialData.prices.length > 0 
       ? initialData.prices.map((p: any) => ({ id: p.id, period: p.period || 1, periodType: mapPeriodType(p.periodType), price: p.price || 0, country: p.country || "II", active: p.active ?? true }))
-      : [{ period: 1, periodType: 1, price: 0, country: "II", active: true }]
+      : [{ period: 1, periodType: "Day", price: 0, country: "II", active: true }]
   );
   
   const [saving, setSaving] = useState(false);
@@ -59,7 +59,7 @@ export default function ProductFormModal({ initialData, onClose, onSuccess }: Pr
           country: p.country,
           price: Number(p.price) || 0,
           period: Number(p.period) || 1,
-          periodType: Number(p.periodType) || 1,
+          periodType: p.periodType || "Day",
           active: p.active
         }))
       };
@@ -165,7 +165,7 @@ export default function ProductFormModal({ initialData, onClose, onSuccess }: Pr
               <div style={{ padding: "1rem", background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
                   <label className="form-label" style={{ margin: 0, fontSize: "0.9rem", color: "var(--accent-light)" }}>Pricing Tiers</label>
-                  <button type="button" className="btn-ghost" style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }} onClick={() => setPrices([...prices, { period: 1, periodType: 1, price: 0, country: "II", active: true }])}>
+                  <button type="button" className="btn-ghost" style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }} onClick={() => setPrices([...prices, { period: 1, periodType: "Day", price: 0, country: "II", active: true }])}>
                     + Add Price
                   </button>
                 </div>
@@ -183,14 +183,14 @@ export default function ProductFormModal({ initialData, onClose, onSuccess }: Pr
                             newPrices[index].period = Number(e.target.value);
                             setPrices(newPrices);
                           }} />
-                          <select className="form-input" style={{ padding: "0.4rem" }} value={priceObj.periodType || 1} onChange={(e) => {
+                          <select className="form-input" style={{ padding: "0.4rem" }} value={priceObj.periodType || "Day"} onChange={(e) => {
                             const newPrices = [...prices];
-                            newPrices[index].periodType = Number(e.target.value);
+                            newPrices[index].periodType = e.target.value as 'Day' | 'Month' | 'Year';
                             setPrices(newPrices);
                           }}>
-                            <option value={1}>Days</option>
-                            <option value={2}>Months</option>
-                            <option value={3}>Years</option>
+                            <option value="Day">Days</option>
+                            <option value="Month">Months</option>
+                            <option value="Year">Years</option>
                           </select>
                         </div>
                       </div>

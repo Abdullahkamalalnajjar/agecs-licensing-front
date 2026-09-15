@@ -455,7 +455,7 @@
         }
       }
     },
-    "/identity/users/{userId}/permissions": {
+    "/identity/users/{userId}/role": {
       "put": {
         "tags": [
           "Auth"
@@ -473,7 +473,266 @@
           }
         ],
         "requestBody": {
-          "description": "The list of permission strings to assign.",
+          "description": "The role to assign.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeRoleRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeRoleRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeRoleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdatedResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdatedResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdatedResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/identity/users/{userId}/restore": {
+      "put": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Restores a deleted user by ID.",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "description": "The unique identifier of the user to restore.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdatedResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdatedResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdatedResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/identity/users/{userId}/permissions": {
+      "put": {
+        "tags": [
+          "Auth"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
           "content": {
             "application/json": {
               "schema": {
@@ -928,23 +1187,45 @@
           "Auth"
         ],
         "summary": "Retrieves a list of all active (non-deleted) users.",
+        "parameters": [
+          {
+            "name": "pageNumber",
+            "in": "query",
+            "description": "The page number.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "The number of items per page.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
             "content": {
               "text/plain": {
                 "schema": {
-                  "$ref": "#/components/schemas/AppUserDtoListResult"
+                  "$ref": "#/components/schemas/AppUserDtoPaginatedListResult"
                 }
               },
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AppUserDtoListResult"
+                  "$ref": "#/components/schemas/AppUserDtoPaginatedListResult"
                 }
               },
               "text/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AppUserDtoListResult"
+                  "$ref": "#/components/schemas/AppUserDtoPaginatedListResult"
                 }
               }
             }
@@ -998,23 +1279,45 @@
           "Auth"
         ],
         "summary": "Retrieves a list of all deleted users.",
+        "parameters": [
+          {
+            "name": "pageNumber",
+            "in": "query",
+            "description": "The page number.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "The number of items per page.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
             "content": {
               "text/plain": {
                 "schema": {
-                  "$ref": "#/components/schemas/AppUserDtoListResult"
+                  "$ref": "#/components/schemas/AppUserDtoPaginatedListResult"
                 }
               },
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AppUserDtoListResult"
+                  "$ref": "#/components/schemas/AppUserDtoPaginatedListResult"
                 }
               },
               "text/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AppUserDtoListResult"
+                  "$ref": "#/components/schemas/AppUserDtoPaginatedListResult"
                 }
               }
             }
@@ -1136,6 +1439,425 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ObjectResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/identity/student-upgrade/request": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Requests a student upgrade by verifying a university email.",
+        "requestBody": {
+          "description": "The request containing the university email.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestStudentUpgradeRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestStudentUpgradeRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestStudentUpgradeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdatedResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdatedResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdatedResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/identity/student-upgrade/verify": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Verifies the OTP for a student upgrade request and updates the role.",
+        "requestBody": {
+          "description": "The OTP code.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyStudentUpgradeRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyStudentUpgradeRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyStudentUpgradeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdatedResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdatedResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdatedResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/carts/my-cart": {
+      "get": {
+        "tags": [
+          "Carts"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CartDtoResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CartDtoResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CartDtoResult"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Carts"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuidResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuidResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuidResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/carts/my-cart/items": {
+      "post": {
+        "tags": [
+          "Carts"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddToCartRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddToCartRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddToCartRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuidResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuidResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuidResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/carts/my-cart/items/{itemId}": {
+      "delete": {
+        "tags": [
+          "Carts"
+        ],
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuidResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuidResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuidResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/carts/my-cart/promocode": {
+      "post": {
+        "tags": [
+          "Carts"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyPromocodeRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyPromocodeRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyPromocodeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuidResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuidResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuidResult"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Carts"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuidResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuidResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuidResult"
                 }
               }
             }
@@ -1861,6 +2583,13 @@
               "type": "boolean",
               "default": false
             }
+          },
+          {
+            "name": "company",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/ProductCompany"
+            }
           }
         ],
         "responses": {
@@ -1880,46 +2609,6 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProductDtoListResult"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/ObjectResult"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ObjectResult"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ObjectResult"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/ObjectResult"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ObjectResult"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ObjectResult"
                 }
               }
             }
@@ -2070,46 +2759,6 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProductDtoResult"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/ObjectResult"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ObjectResult"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ObjectResult"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/ObjectResult"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ObjectResult"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ObjectResult"
                 }
               }
             }
@@ -2497,9 +3146,129 @@
             }
           }
         }
+      },
+      "get": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Retrieves all child products (variations) for a specific parent product.",
+        "parameters": [
+          {
+            "name": "parentId",
+            "in": "path",
+            "description": "The unique identifier of the parent product.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductDtoListResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductDtoListResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductDtoListResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/products/{productId}/media": {
+      "get": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Retrieves all media items for a product.",
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "description": "The unique identifier of the product.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductMediaDtoListResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductMediaDtoListResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductMediaDtoListResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              }
+            }
+          }
+        }
+      },
       "post": {
         "tags": [
           "Products"
@@ -2791,6 +3560,169 @@
       }
     },
     "/api/products/{productId}/media/{mediaId}": {
+      "put": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Updates an existing media item of a product.",
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "description": "The unique identifier of the product.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "mediaId",
+            "in": "path",
+            "description": "The unique identifier of the media item.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "File": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "Url": {
+                    "type": "string"
+                  },
+                  "Order": {
+                    "type": "integer",
+                    "format": "int32"
+                  }
+                }
+              },
+              "encoding": {
+                "File": {
+                  "style": "form"
+                },
+                "Url": {
+                  "style": "form"
+                },
+                "Order": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdatedResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdatedResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdatedResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              }
+            }
+          }
+        }
+      },
       "delete": {
         "tags": [
           "Products"
@@ -3426,6 +4358,47 @@
         }
       }
     },
+    "/api/products/{id}/versions/latest": {
+      "get": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Retrieves the latest version for a specific product.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductVersionDtoResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductVersionDtoResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductVersionDtoResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/products/{productId}/versions/{versionId}/toggle-status": {
       "put": {
         "tags": [
@@ -3868,6 +4841,146 @@
           }
         }
       },
+      "put": {
+        "tags": [
+          "Promocodes"
+        ],
+        "summary": "Updates all modifiable fields for a specific promocode.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The unique identifier of the promocode.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The details to update.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePromocodeCommand"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePromocodeCommand"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePromocodeCommand"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromocodeDtoResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromocodeDtoResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromocodeDtoResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              }
+            }
+          }
+        }
+      },
       "delete": {
         "tags": [
           "Promocodes"
@@ -3902,290 +5015,6 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DeletedResult"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/ObjectResult"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ObjectResult"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ObjectResult"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/ObjectResult"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ObjectResult"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ObjectResult"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/ObjectResult"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ObjectResult"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ObjectResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/promocodes/{id}/discounts": {
-      "put": {
-        "tags": [
-          "Promocodes"
-        ],
-        "summary": "Updates the discount amounts and pricing rules for a specific promocode.",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "The unique identifier of the promocode.",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "description": "The discount details to update.",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdatePromocodeDiscountsCommand"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdatePromocodeDiscountsCommand"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdatePromocodeDiscountsCommand"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/PromocodeDtoResult"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PromocodeDtoResult"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PromocodeDtoResult"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/ObjectResult"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ObjectResult"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ObjectResult"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/ObjectResult"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ObjectResult"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ObjectResult"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/ObjectResult"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ObjectResult"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ObjectResult"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/ObjectResult"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ObjectResult"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ObjectResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/promocodes/{id}/audience": {
-      "put": {
-        "tags": [
-          "Promocodes"
-        ],
-        "summary": "Updates the audience targeting (roles, countries, emails) for a specific promocode.",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "The unique identifier of the promocode.",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "description": "The audience targeting details to update.",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdatePromocodeAudienceCommand"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdatePromocodeAudienceCommand"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdatePromocodeAudienceCommand"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/PromocodeDtoResult"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PromocodeDtoResult"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PromocodeDtoResult"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/ObjectResult"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ObjectResult"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ObjectResult"
                 }
               }
             }
@@ -4563,6 +5392,29 @@
         },
         "additionalProperties": false
       },
+      "AddToCartRequest": {
+        "type": "object",
+        "properties": {
+          "itemType": {
+            "type": "string",
+            "nullable": true
+          },
+          "itemId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "period": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "AdminMigrateLicenseRequest": {
         "type": "object",
         "properties": {
@@ -4616,7 +5468,37 @@
         },
         "additionalProperties": false
       },
-      "AppUserDtoListResult": {
+      "AppUserDtoPaginatedList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AppUserDto"
+            },
+            "nullable": true
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AppUserDtoPaginatedListResult": {
         "type": "object",
         "properties": {
           "isSuccess": {
@@ -4628,12 +5510,7 @@
             "readOnly": true
           },
           "value": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/AppUserDto"
-            },
-            "nullable": true,
-            "readOnly": true
+            "$ref": "#/components/schemas/AppUserDtoPaginatedList"
           },
           "errors": {
             "type": "array",
@@ -4667,6 +5544,117 @@
             },
             "nullable": true,
             "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ApplyPromocodeRequest": {
+        "type": "object",
+        "properties": {
+          "promocode": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CartDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "promocode": {
+            "type": "string",
+            "nullable": true
+          },
+          "calculatedTotal": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CartItemDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CartDtoResult": {
+        "type": "object",
+        "properties": {
+          "isSuccess": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "isError": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "value": {
+            "$ref": "#/components/schemas/CartDto"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "nullable": true,
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CartItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "itemType": {
+            "type": "string",
+            "nullable": true
+          },
+          "itemId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "itemName": {
+            "type": "string",
+            "nullable": true
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unitPrice": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "period": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ChangeRoleRequest": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -4784,14 +5772,6 @@
             "type": "string",
             "nullable": true
           },
-          "allowTrial": {
-            "type": "boolean"
-          },
-          "trialPeriod": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
           "comingSoon": {
             "type": "boolean"
           },
@@ -4811,11 +5791,6 @@
           },
           "janDrozdId": {
             "type": "string",
-            "nullable": true
-          },
-          "expiryDate": {
-            "type": "string",
-            "format": "date-time",
             "nullable": true
           },
           "prices": {
@@ -4896,14 +5871,6 @@
             "type": "string",
             "nullable": true
           },
-          "allowTrial": {
-            "type": "boolean"
-          },
-          "trialPeriod": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
           "comingSoon": {
             "type": "boolean"
           },
@@ -4925,10 +5892,8 @@
             "type": "string",
             "nullable": true
           },
-          "expiryDate": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
+          "company": {
+            "$ref": "#/components/schemas/ProductCompany"
           },
           "prices": {
             "type": "array",
@@ -4952,6 +5917,37 @@
         "properties": {
           "code": {
             "type": "string",
+            "nullable": true
+          },
+          "defaultPriceMultiplier": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "fixedDiscount": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "constantDiscount": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "hidden": {
+            "type": "boolean"
+          },
+          "withTaxes": {
+            "type": "boolean"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "maxUses": {
+            "type": "integer",
+            "format": "int32",
             "nullable": true
           }
         },
@@ -5256,6 +6252,33 @@
         },
         "additionalProperties": false
       },
+      "GuidResult": {
+        "type": "object",
+        "properties": {
+          "isSuccess": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "isError": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "value": {
+            "type": "string",
+            "format": "uuid",
+            "readOnly": true
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "nullable": true,
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
       "LicenseClientDto": {
         "type": "object",
         "properties": {
@@ -5532,6 +6555,9 @@
             "format": "int32",
             "nullable": true
           },
+          "periodType": {
+            "$ref": "#/components/schemas/PeriodType"
+          },
           "active": {
             "type": "boolean"
           }
@@ -5779,6 +6805,21 @@
         },
         "additionalProperties": false
       },
+      "PeriodType": {
+        "enum": [
+          "Day",
+          "Month",
+          "Year"
+        ],
+        "type": "string"
+      },
+      "ProductCompany": {
+        "enum": [
+          "AGECS",
+          "NanoCAD"
+        ],
+        "type": "string"
+      },
       "ProductDto": {
         "type": "object",
         "properties": {
@@ -5811,14 +6852,6 @@
             "format": "uuid",
             "nullable": true
           },
-          "allowTrial": {
-            "type": "boolean"
-          },
-          "trialPeriod": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
           "comingSoon": {
             "type": "boolean"
           },
@@ -5840,10 +6873,8 @@
             "type": "string",
             "nullable": true
           },
-          "expiryDate": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
+          "company": {
+            "$ref": "#/components/schemas/ProductCompany"
           },
           "createdAtUtc": {
             "type": "string",
@@ -5888,6 +6919,19 @@
               "$ref": "#/components/schemas/ProductFeatureDto"
             },
             "nullable": true
+          },
+          "startingPrice": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "startingPeriod": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "startingPeriodType": {
+            "$ref": "#/components/schemas/PeriodType"
           }
         },
         "additionalProperties": false
@@ -6054,6 +7098,36 @@
         },
         "additionalProperties": false
       },
+      "ProductMediaDtoListResult": {
+        "type": "object",
+        "properties": {
+          "isSuccess": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "isError": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "value": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductMediaDto"
+            },
+            "nullable": true,
+            "readOnly": true
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "nullable": true,
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
       "ProductMediaDtoResult": {
         "type": "object",
         "properties": {
@@ -6109,8 +7183,16 @@
             "format": "int32",
             "nullable": true
           },
+          "periodType": {
+            "$ref": "#/components/schemas/PeriodType"
+          },
           "active": {
             "type": "boolean"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -6252,6 +7334,9 @@
           "useCount": {
             "type": "integer",
             "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -6367,6 +7452,16 @@
           "period": {
             "type": "integer",
             "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RequestStudentUpgradeRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -6597,14 +7692,6 @@
             "format": "uuid",
             "nullable": true
           },
-          "allowTrial": {
-            "type": "boolean"
-          },
-          "trialPeriod": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
           "comingSoon": {
             "type": "boolean"
           },
@@ -6626,10 +7713,8 @@
             "type": "string",
             "nullable": true
           },
-          "expiryDate": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
+          "company": {
+            "$ref": "#/components/schemas/ProductCompany"
           },
           "prices": {
             "type": "array",
@@ -6648,23 +7733,7 @@
         },
         "additionalProperties": false
       },
-      "UpdatePromocodeAudienceCommand": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "hidden": {
-            "type": "boolean"
-          },
-          "withTaxes": {
-            "type": "boolean"
-          }
-        },
-        "additionalProperties": false
-      },
-      "UpdatePromocodeDiscountsCommand": {
+      "UpdatePromocodeCommand": {
         "type": "object",
         "properties": {
           "id": {
@@ -6685,6 +7754,12 @@
             "type": "number",
             "format": "double",
             "nullable": true
+          },
+          "hidden": {
+            "type": "boolean"
+          },
+          "withTaxes": {
+            "type": "boolean"
           },
           "expiresAt": {
             "type": "string",
@@ -6759,6 +7834,16 @@
             },
             "nullable": true,
             "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "VerifyStudentUpgradeRequest": {
+        "type": "object",
+        "properties": {
+          "otpCode": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false

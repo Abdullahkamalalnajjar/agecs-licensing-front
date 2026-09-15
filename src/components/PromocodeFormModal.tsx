@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { postApiPromocodes, putApiPromocodesByIdDiscounts, putApiPromocodesByIdAudience } from "@/client";
+import { postApiPromocodes, putApiPromocodesById } from "@/client";
 
 type PromocodeFormModalProps = {
   isOpen: boolean;
@@ -55,50 +55,46 @@ export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promoco
     setError("");
 
     try {
-      let currentId = promocode?.id;
-
-      if (!currentId) {
+      if (!promocode?.id) {
+        // Create Promocode
         const createRes = await postApiPromocodes({
-          body: { code },
+          body: {
+            code,
+            defaultPriceMultiplier: defaultPriceMultiplier ? Number(defaultPriceMultiplier) : null,
+            fixedDiscount: fixedDiscount ? Number(fixedDiscount) : null,
+            constantDiscount: constantDiscount ? Number(constantDiscount) : null,
+            expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
+            maxUses: maxUses ? Number(maxUses) : null,
+            hidden,
+            withTaxes
+          },
           throwOnError: false
         });
 
-        if (createRes.data?.isSuccess && createRes.data.value) {
-          currentId = createRes.data.value.id;
-        } else {
+        if (createRes.data?.isError || createRes.error) {
           throw new Error(createRes.data?.errors?.map((err: any) => err.description).join(", ") || "Failed to create promocode.");
         }
-      }
+      } else {
+        // Edit Promocode
+        const currentId = promocode.id;
+        const updateRes = await putApiPromocodesById({
+          path: { id: currentId },
+          body: {
+            id: currentId,
+            defaultPriceMultiplier: defaultPriceMultiplier ? Number(defaultPriceMultiplier) : null,
+            fixedDiscount: fixedDiscount ? Number(fixedDiscount) : null,
+            constantDiscount: constantDiscount ? Number(constantDiscount) : null,
+            expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
+            maxUses: maxUses ? Number(maxUses) : null,
+            hidden,
+            withTaxes
+          },
+          throwOnError: false
+        });
 
-      const discountsRes = await putApiPromocodesByIdDiscounts({
-        path: { id: currentId },
-        body: {
-          id: currentId,
-          defaultPriceMultiplier: defaultPriceMultiplier ? Number(defaultPriceMultiplier) : null,
-          fixedDiscount: fixedDiscount ? Number(fixedDiscount) : null,
-          constantDiscount: constantDiscount ? Number(constantDiscount) : null,
-          expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
-          maxUses: maxUses ? Number(maxUses) : null
-        },
-        throwOnError: false
-      });
-
-      if (discountsRes.error || discountsRes.data?.isError) {
-        throw new Error(discountsRes.data?.errors?.map((err: any) => err.description).join(", ") || "Failed to update discounts.");
-      }
-
-      const audienceRes = await putApiPromocodesByIdAudience({
-        path: { id: currentId },
-        body: {
-          id: currentId,
-          hidden,
-          withTaxes
-        },
-        throwOnError: false
-      });
-
-      if (audienceRes.error || audienceRes.data?.isError) {
-        throw new Error(audienceRes.data?.errors?.map((err: any) => err.description).join(", ") || "Failed to update audience.");
+        if (updateRes.error || updateRes.data?.isError) {
+          throw new Error(updateRes.data?.errors?.map((err: any) => err.description).join(", ") || "Failed to update promocode.");
+        }
       }
 
       onSuccess();
