@@ -629,6 +629,13 @@ export default function HomeLandingView({ products }: HomeLandingViewProps) {
             .stats-bar { padding: 16px 20px; }
             .stat-value { font-size: 22px; }
         }
+
+        @media(max-width:480px) {
+            .hero h1 { font-size: 28px; }
+            .section-title { font-size: 26px; }
+            .cta { flex-direction: column; width: 100%; gap: 12px; }
+            .cta .hl-btn { width: 100%; text-align: center; }
+        }
       `}} />
 
       {/* ═══ HERO ═══ */}

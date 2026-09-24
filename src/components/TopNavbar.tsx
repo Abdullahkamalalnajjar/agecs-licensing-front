@@ -150,11 +150,11 @@ function TopNavbarInner() {
           </nav>
 
           {/* ── RIGHT TOOLS ── */}
-          <div className="right-tools desktop-only">
+          <div className="right-tools">
 
 {/* 1. User identity pill & Dropdown menu */}
             {user && (
-              <div style={{ position: 'relative' }}>
+              <div className="desktop-only" style={{ position: 'relative' }}>
                 <div 
                   onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
                   style={{
@@ -323,7 +323,7 @@ function TopNavbarInner() {
 
             {/* Upgrade button (kept in navbar) */}
             {user && user.role === "NormalUser" && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <div className="desktop-only" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <button
                   onClick={() => setShowUpgradeModal(true)}
                   style={{
@@ -356,7 +356,7 @@ function TopNavbarInner() {
             {!user && (
               <button
                 onClick={() => router.push("/login")}
-                className="hl-btn btn-blue"
+                className="hl-btn btn-blue desktop-only"
                 style={{ minHeight: '36px', padding: '0 1.25rem', fontSize: '0.8rem', borderRadius: '8px' }}
               >
                 Sign In
@@ -386,7 +386,7 @@ function TopNavbarInner() {
       {mobileMenuOpen && (
         <div className="mobile-menu-overlay">
           <nav className="mobile-nav">
-            {navItems.map((item) => {
+            {filteredNavItems.map((item) => {
               const isActive = pathname.startsWith(item.path);
               return (
                 <Link
@@ -403,19 +403,25 @@ function TopNavbarInner() {
           <div className="mobile-nav-footer">
 
             {user && (
-              <div style={{ marginBottom: "1rem", padding: "0.75rem", background: "#F4F4F4", borderRadius: "20px", fontSize: "0.85rem", width: '100%', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <div style={{ fontWeight: 600, color: "var(--text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user.email}</div>
-                <div style={{ color: "var(--text-muted)", fontSize: "0.75rem", marginTop: "2px" }}>Role: {user.role}</div>
+              <div style={{ marginBottom: "1rem", padding: "1rem", background: "var(--bg-elevated)", borderRadius: "16px", border: "1px solid var(--border)", width: '100%', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '0.75rem', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', paddingBottom: '0.75rem', borderBottom: '1px solid var(--border)' }}>
+                  <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: '1rem', flexShrink: 0, boxShadow: '0 2px 8px rgba(59,130,246,0.3)' }}>
+                    {(user.email || '').slice(0, 2).toUpperCase()}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', overflow: 'hidden' }}>
+                    <div style={{ fontWeight: 600, color: "var(--text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: '160px', fontSize: '0.9rem' }}>{user.email}</div>
+                    <div style={{ color: "var(--text-muted)", fontSize: "0.8rem", marginTop: "2px", fontWeight: 500 }}>Role: {user.role}</div>
+                  </div>
+                </div>
                 {user.role === "NormalUser" && (
                   <button
                     onClick={() => {
                       setMobileMenuOpen(false);
                       setShowUpgradeModal(true);
                     }}
-                    className="btn-primary"
-                    style={{ padding: '0.5rem', width: '100%', fontSize: '0.875rem', borderRadius: '20px', cursor: 'pointer' }}
+                    style={{ padding: '0.75rem', width: '100%', fontSize: '0.9rem', borderRadius: '8px', cursor: 'pointer', background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', color: 'white', border: 'none', fontWeight: 700, boxShadow: '0 2px 8px rgba(59,130,246,0.35)' }}
                   >
-                    Upgrade to Student
+                    ✦ Upgrade to Student
                   </button>
                 )}
               </div>
