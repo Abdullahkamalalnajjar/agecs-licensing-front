@@ -89,13 +89,14 @@ export default function Sidebar() {
     <aside className="sidebar">
       {/* Brand */}
       <div className="sidebar-header" style={{ display: 'flex', justifyContent: 'center', padding: '1rem 0' }}>
-        <Image
-          src="/agecs-logo-gray.png"
-          alt="AGECS Admin"
-          width={140}
-          height={50}
-          className="brand-logo"
-        />
+        <Link href="/home">
+          <img
+            src="/agecs-logo-color.png"
+            alt="AGECS Admin"
+            className="brand-logo-img"
+            style={{ height: '40px', width: 'auto', objectFit: 'contain' }}
+          />
+        </Link>
       </div>
 
       {/* Navigation */}

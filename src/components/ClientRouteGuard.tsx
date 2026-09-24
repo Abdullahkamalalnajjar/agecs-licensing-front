@@ -12,8 +12,8 @@ export function ClientRouteGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (loading) return;
 
-    // Allow /products routes without auth (public browsing)
-    if (pathname.startsWith("/products")) return;
+    // Allow public routes without auth (public browsing)
+    if (pathname.startsWith("/products") || pathname === "/home") return;
 
     if (!user) {
       router.push("/login");
@@ -37,13 +37,17 @@ export function ClientRouteGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Allow /products pages for everyone (including unauthenticated)
-  if (pathname.startsWith("/products")) {
+  // Allow public pages for everyone (including unauthenticated)
+  if (pathname.startsWith("/products") || pathname === "/home") {
     return <>{children}</>;
   }
 
-  // Prevent flash of unauthorized content
-  if ((user?.role === "Student" || user?.role === "NormalUser") && !pathname.startsWith("/home") && !pathname.startsWith("/tickets") && !pathname.startsWith("/products") && !pathname.startsWith("/profile")) {
+  if (!user) {
+    return null; // Don't flash protected pages while redirecting
+  }
+
+  // Prevent flash of unauthorized content for normal users
+  if ((user.role === "Student" || user.role === "NormalUser") && !pathname.startsWith("/home") && !pathname.startsWith("/tickets") && !pathname.startsWith("/products") && !pathname.startsWith("/profile")) {
     return null;
   }
 

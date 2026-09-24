@@ -17,33 +17,39 @@ export default function DashboardPage() {
 
   useEffect(() => {
     async function loadData() {
-      if (!user) return;
-      
+      console.log("loadData started. user:", user);
       try {
         setLoading(true);
         const token = localStorage.getItem("token");
-        if (token) {
-          client.setConfig({
-            baseUrl: (process.env.NEXT_PUBLIC_API_URL || "https://localhost:5003"),
-            auth: token,
-          });
-        }
+        client.setConfig({
+          baseUrl: (process.env.NEXT_PUBLIC_API_URL || "https://localhost:5003"),
+          auth: token || undefined,
+        });
         
-        if (user.role === "Admin" || user.role === "SuperAdmin") {
+        if (user?.role === "Admin" || user?.role === "SuperAdmin") {
+          console.log("Fetching stats...");
           const { data, error } = await getStats();
+          console.log("Stats result:", { data, error });
           if (error) throw new Error("Failed to load dashboard stats.");
           if (data?.value) setStats(data.value);
         } else {
-          // NormalUser or Student
+          console.log("Fetching products...");
+          // NormalUser, Student, or Unauthenticated
           const { data, error } = await getApiProducts({
             query: { includeHidden: false }
           });
-          if (error) throw new Error("Failed to load products.");
+          console.log("Products result:", { data, error });
+          if (error) {
+            console.error("Products error detail:", error);
+            throw new Error(`Failed to load products. Details: ${typeof error === 'object' ? JSON.stringify(error) : error}`);
+          }
           if (data?.value) setProducts(data.value);
         }
       } catch (err: any) {
+        console.error("Error in loadData:", err);
         setError(err.message || "Something went wrong.");
       } finally {
+        console.log("Setting loading to false");
         setLoading(false);
       }
     }
@@ -52,8 +58,9 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
-        <div className="spinner" style={{ width: "32px", height: "32px", borderTopColor: "var(--accent-light)" }}></div>
+      <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1rem' }}>
+        <div className="spinner" style={{ width: "40px", height: "40px", borderTopColor: "var(--accent-light)" }}></div>
+        <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 500 }}>Loading…</span>
       </div>
     );
   }
@@ -102,7 +109,7 @@ export default function DashboardPage() {
 
   // NormalUser or Student landing page view
   return (
-    <div className="dashboard-content">
+    <div className="landing-content">
       <HomeLandingView products={products} />
     </div>
   );

@@ -2,10 +2,13 @@
 
 import TopNavbar from "./TopNavbar";
 import Sidebar from "./Sidebar";
+import { usePathname } from "next/navigation";
 import { useAuth } from "./AuthProvider";
 
 export function DashboardLayoutWrapper({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
+  const pathname = usePathname();
+  const isHome = pathname === "/home" || pathname === "/";
   const isAdminLayout = user?.role === "Admin" || user?.role === "SuperAdmin";
 
   return (
@@ -23,7 +26,7 @@ export function DashboardLayoutWrapper({ children }: { children: React.ReactNode
       )}
       
       <main className="dashboard-main">
-        <div className="dashboard-content">
+        <div className={isHome ? "landing-content" : "dashboard-content"}>
           {children}
         </div>
       </main>
