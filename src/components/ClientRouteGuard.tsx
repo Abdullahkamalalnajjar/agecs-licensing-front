@@ -21,8 +21,8 @@ export function ClientRouteGuard({ children }: { children: React.ReactNode }) {
     }
 
     if ((user.role === "Student" || user.role === "NormalUser")) {
-      // Students can access home, tickets, products, and profile
-      if (!pathname.startsWith("/home") && !pathname.startsWith("/tickets") && !pathname.startsWith("/products") && !pathname.startsWith("/profile")) {
+      // Students can access home, tickets, products, profile, and the checkout result pages
+      if (!pathname.startsWith("/home") && !pathname.startsWith("/tickets") && !pathname.startsWith("/products") && !pathname.startsWith("/profile") && !pathname.startsWith("/checkout")) {
         router.push("/home");
       }
     }
@@ -47,7 +47,7 @@ export function ClientRouteGuard({ children }: { children: React.ReactNode }) {
   }
 
   // Prevent flash of unauthorized content for normal users
-  if ((user.role === "Student" || user.role === "NormalUser") && !pathname.startsWith("/home") && !pathname.startsWith("/tickets") && !pathname.startsWith("/products") && !pathname.startsWith("/profile")) {
+  if ((user.role === "Student" || user.role === "NormalUser") && !pathname.startsWith("/home") && !pathname.startsWith("/tickets") && !pathname.startsWith("/products") && !pathname.startsWith("/profile") && !pathname.startsWith("/checkout")) {
     return null;
   }
 
