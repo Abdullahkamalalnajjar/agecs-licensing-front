@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getApiPaymentsById } from "@/client";
+import { client } from "@/client/client.gen";
 
 type PollState = "polling" | "confirmed" | "pending" | "failed" | "no-payment";
 
@@ -18,6 +19,17 @@ export default function CheckoutSuccessPage() {
   const attemptsRef = useRef(0);
 
   useEffect(() => {
+    client.setConfig({
+      baseUrl: process.env.NEXT_PUBLIC_API_URL || "https://localhost:5003",
+      auth: (() => {
+        try {
+          return localStorage.getItem("token") || undefined;
+        } catch {
+          return undefined;
+        }
+      })(),
+    });
+
     const paymentId =
       searchParams.get("paymentId") ||
       (() => {
