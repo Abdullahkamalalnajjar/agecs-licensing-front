@@ -2957,9 +2957,9 @@
         "tags": [
           "Payments"
         ],
-        "summary": "Creates a Payment record and a matching checkout session for processing a payment.",
+        "summary": "Checks out the caller's own cart (Payment + PendingLicenses) and creates a matching checkout session.",
         "requestBody": {
-          "description": "The payment checkout details.",
+          "description": "The payment checkout details. AmountInMinorUnits/ReferenceCode/Currency are recomputed server-side from the cart.",
           "content": {
             "application/json": {
               "schema": {
@@ -2984,17 +2984,17 @@
             "content": {
               "text/plain": {
                 "schema": {
-                  "$ref": "#/components/schemas/PaymentCheckoutSessionResponseResult"
+                  "$ref": "#/components/schemas/PaymentCheckoutStartResponseResult"
                 }
               },
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PaymentCheckoutSessionResponseResult"
+                  "$ref": "#/components/schemas/PaymentCheckoutStartResponseResult"
                 }
               },
               "text/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PaymentCheckoutSessionResponseResult"
+                  "$ref": "#/components/schemas/PaymentCheckoutStartResponseResult"
                 }
               }
             }
@@ -3021,6 +3021,68 @@
           },
           "500": {
             "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/payments/{id}": {
+      "get": {
+        "tags": [
+          "Payments"
+        ],
+        "summary": "Returns the status of one of the caller's own payments, including any license serials issued for it.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The Payment id.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentStatusDtoResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentStatusDtoResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentStatusDtoResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
             "content": {
               "text/plain": {
                 "schema": {
@@ -7715,9 +7777,13 @@
         },
         "additionalProperties": false
       },
-      "PaymentCheckoutSessionResponse": {
+      "PaymentCheckoutStartResponse": {
         "type": "object",
         "properties": {
+          "paymentId": {
+            "type": "string",
+            "format": "uuid"
+          },
           "intentionId": {
             "type": "string",
             "nullable": true
@@ -7737,7 +7803,7 @@
         },
         "additionalProperties": false
       },
-      "PaymentCheckoutSessionResponseResult": {
+      "PaymentCheckoutStartResponseResult": {
         "type": "object",
         "properties": {
           "isSuccess": {
@@ -7749,7 +7815,7 @@
             "readOnly": true
           },
           "value": {
-            "$ref": "#/components/schemas/PaymentCheckoutSessionResponse"
+            "$ref": "#/components/schemas/PaymentCheckoutStartResponse"
           },
           "errors": {
             "type": "array",
@@ -7780,6 +7846,55 @@
           "quantity": {
             "type": "integer",
             "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PaymentStatusDto": {
+        "type": "object",
+        "properties": {
+          "paymentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "confirmed": {
+            "type": "boolean"
+          },
+          "licenseSerials": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PaymentStatusDtoResult": {
+        "type": "object",
+        "properties": {
+          "isSuccess": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "isError": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "value": {
+            "$ref": "#/components/schemas/PaymentStatusDto"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "nullable": true,
+            "readOnly": true
           }
         },
         "additionalProperties": false

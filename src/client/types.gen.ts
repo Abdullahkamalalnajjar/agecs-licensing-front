@@ -435,17 +435,18 @@ export type PaymentCheckoutSessionRequest = {
     } | null;
 };
 
-export type PaymentCheckoutSessionResponse = {
+export type PaymentCheckoutStartResponse = {
+    paymentId?: string;
     intentionId?: string | null;
     clientSecret?: string | null;
     publicKey?: string | null;
     paymentPageUrl?: string | null;
 };
 
-export type PaymentCheckoutSessionResponseResult = {
+export type PaymentCheckoutStartResponseResult = {
     readonly isSuccess?: boolean;
     readonly isError?: boolean;
-    value?: PaymentCheckoutSessionResponse;
+    value?: PaymentCheckoutStartResponse;
     readonly errors?: Array<Error> | null;
 };
 
@@ -454,6 +455,20 @@ export type PaymentItem = {
     description?: string | null;
     amountInMinorUnits?: number;
     quantity?: number;
+};
+
+export type PaymentStatusDto = {
+    paymentId?: string;
+    status?: string | null;
+    confirmed?: boolean;
+    licenseSerials?: Array<string> | null;
+};
+
+export type PaymentStatusDtoResult = {
+    readonly isSuccess?: boolean;
+    readonly isError?: boolean;
+    value?: PaymentStatusDto;
+    readonly errors?: Array<Error> | null;
 };
 
 export type PaymentWebhookParseResult = {
@@ -883,8 +898,12 @@ export type OfferDtoResultWritable = {
     value?: OfferDto;
 };
 
-export type PaymentCheckoutSessionResponseResultWritable = {
-    value?: PaymentCheckoutSessionResponse;
+export type PaymentCheckoutStartResponseResultWritable = {
+    value?: PaymentCheckoutStartResponse;
+};
+
+export type PaymentStatusDtoResultWritable = {
+    value?: PaymentStatusDto;
 };
 
 export type PaymentWebhookParseResultResultWritable = {
@@ -2088,7 +2107,7 @@ export type GetApiLicensesAdminByIdDiagnosticResponse = GetApiLicensesAdminByIdD
 
 export type PostApiPaymentsCheckoutData = {
     /**
-     * The payment checkout details.
+     * The payment checkout details. AmountInMinorUnits/ReferenceCode/Currency are recomputed server-side from the cart.
      */
     body?: PaymentCheckoutSessionRequest;
     path?: never;
@@ -2113,10 +2132,40 @@ export type PostApiPaymentsCheckoutResponses = {
     /**
      * OK
      */
-    200: PaymentCheckoutSessionResponseResult;
+    200: PaymentCheckoutStartResponseResult;
 };
 
 export type PostApiPaymentsCheckoutResponse = PostApiPaymentsCheckoutResponses[keyof PostApiPaymentsCheckoutResponses];
+
+export type GetApiPaymentsByIdData = {
+    body?: never;
+    path: {
+        /**
+         * The Payment id.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/api/payments/{id}';
+};
+
+export type GetApiPaymentsByIdErrors = {
+    /**
+     * Not Found
+     */
+    404: ObjectResult;
+};
+
+export type GetApiPaymentsByIdError = GetApiPaymentsByIdErrors[keyof GetApiPaymentsByIdErrors];
+
+export type GetApiPaymentsByIdResponses = {
+    /**
+     * OK
+     */
+    200: PaymentStatusDtoResult;
+};
+
+export type GetApiPaymentsByIdResponse = GetApiPaymentsByIdResponses[keyof GetApiPaymentsByIdResponses];
 
 export type PostApiPaymobWebhookData = {
     /**

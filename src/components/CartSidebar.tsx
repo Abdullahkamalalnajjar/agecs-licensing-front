@@ -150,6 +150,17 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
         return;
       }
 
+      // The Payment id isn't known until the server responds (it's created before the Stripe
+      // session, so it can't be baked into redirectionUrl). Stash it so the success page —
+      // which the browser lands back on after Stripe, same tab — can look up the license.
+      if (session.paymentId) {
+        try {
+          sessionStorage.setItem("lastPaymentId", session.paymentId);
+        } catch {
+          /* ignore (private browsing, storage disabled, etc.) */
+        }
+      }
+
       window.location.href = session.paymentPageUrl;
     } catch (error: any) {
       console.error("Error during checkout:", error);
