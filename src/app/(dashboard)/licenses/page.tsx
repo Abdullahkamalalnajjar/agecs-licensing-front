@@ -13,6 +13,7 @@ import Link from "next/link";
 import LicenseFormModal from "@/components/LicenseFormModal";
 import LicenseDetailsModal from "@/components/LicenseDetailsModal";
 import RenewLicenseModal from "@/components/RenewLicenseModal";
+import RenewalCheckoutModal from "@/components/RenewalCheckoutModal";
 import MigrateHwidModal from "@/components/MigrateHwidModal";
 import HwidListModal from "@/components/HwidListModal";
 import DiagnosticModal from "@/components/DiagnosticModal";
@@ -159,6 +160,7 @@ export default function LicensesPage() {
   const [editingLicense, setEditingLicense] = useState<License | null>(null);
   const [detailsLicense, setDetailsLicense] = useState<License | null>(null);
   const [renewLicenseId, setRenewLicenseId] = useState<string | null>(null);
+  const [renewalCheckout, setRenewalCheckout] = useState<{ licenseId: string; productId: string } | null>(null);
   const [migrateLicenseId, setMigrateLicenseId] = useState<string | null>(null);
   const [hwidListLicenseId, setHwidListLicenseId] = useState<string | null>(null);
   const [diagnosticLicenseId, setDiagnosticLicenseId] = useState<string | null>(null);
@@ -506,9 +508,13 @@ export default function LicensesPage() {
                     <Svg size={14}>{Icon.view}</Svg>Details
                   </button>
                   {l.productId && (expired || (d != null && d <= EXPIRING_DAYS)) && (
-                    <Link href={`/products/${l.productId}`} className="btn-primary lc-renew">
+                    <button
+                      type="button"
+                      className="btn-primary lc-renew"
+                      onClick={() => setRenewalCheckout({ licenseId: l.id!, productId: l.productId! })}
+                    >
                       <Svg size={14}>{Icon.renew}</Svg>{expired ? "Buy again" : "Renew"}
-                    </Link>
+                    </button>
                   )}
                 </footer>
               </article>
@@ -525,6 +531,13 @@ export default function LicensesPage() {
 
       {/* ---------- Modals ---------- */}
       <LicenseDetailsModal isOpen={!!detailsLicense} onClose={() => setDetailsLicense(null)} license={detailsLicense} />
+
+      <RenewalCheckoutModal
+        isOpen={!!renewalCheckout}
+        licenseId={renewalCheckout?.licenseId ?? ""}
+        productId={renewalCheckout?.productId ?? ""}
+        onClose={() => setRenewalCheckout(null)}
+      />
 
       {isStaff && (
         <>

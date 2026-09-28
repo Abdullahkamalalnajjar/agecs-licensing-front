@@ -2137,6 +2137,44 @@ export type PostApiPaymentsCheckoutResponses = {
 
 export type PostApiPaymentsCheckoutResponse = PostApiPaymentsCheckoutResponses[keyof PostApiPaymentsCheckoutResponses];
 
+export type PostApiPaymentsRenewByLicenseIdCheckoutData = {
+    /**
+     * The payment checkout details. `ResourceId` is the PayablePrice id to renew with; AmountInMinorUnits/ReferenceCode/Currency
+     * are recomputed server-side from that price.
+     */
+    body?: PaymentCheckoutSessionRequest;
+    path: {
+        /**
+         * The License id to renew.
+         */
+        licenseId: string;
+    };
+    query?: never;
+    url: '/api/payments/renew/{licenseId}/checkout';
+};
+
+export type PostApiPaymentsRenewByLicenseIdCheckoutErrors = {
+    /**
+     * Bad Request
+     */
+    400: ObjectResult;
+    /**
+     * Internal Server Error
+     */
+    500: ObjectResult;
+};
+
+export type PostApiPaymentsRenewByLicenseIdCheckoutError = PostApiPaymentsRenewByLicenseIdCheckoutErrors[keyof PostApiPaymentsRenewByLicenseIdCheckoutErrors];
+
+export type PostApiPaymentsRenewByLicenseIdCheckoutResponses = {
+    /**
+     * OK
+     */
+    200: PaymentCheckoutStartResponseResult;
+};
+
+export type PostApiPaymentsRenewByLicenseIdCheckoutResponse = PostApiPaymentsRenewByLicenseIdCheckoutResponses[keyof PostApiPaymentsRenewByLicenseIdCheckoutResponses];
+
 export type GetApiPaymentsByIdData = {
     body?: never;
     path: {
