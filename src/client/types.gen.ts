@@ -125,7 +125,6 @@ export type CreateChildProductRequest = {
     withTaxes?: boolean;
     version?: string | null;
     janDrozdId?: string | null;
-    company?: "AGECS" | "NanoCAD";
     prices?: Array<ProductPriceRequest> | null;
 };
 
@@ -142,6 +141,15 @@ export type CreateLicenseCommand = {
     type?: string | null;
 };
 
+export type CreateOfferCommand = {
+    productId?: string;
+    discountType?: DiscountType;
+    discountValue?: number;
+    startDate?: string | null;
+    endDate?: string;
+    isActive?: boolean;
+};
+
 export type CreateProductCommand = {
     name?: string | null;
     fullName?: string | null;
@@ -154,13 +162,24 @@ export type CreateProductCommand = {
     withTaxes?: boolean;
     version?: string | null;
     janDrozdId?: string | null;
-    company?: "AGECS" | "NanoCAD";
+    company?: ProductCompany;
     prices?: Array<ProductPriceRequest> | null;
     media?: Array<ProductMediaRequest> | null;
 };
 
 export type CreatePromocodeCommand = {
     code?: string | null;
+    defaultPriceMultiplier?: number | null;
+    fixedDiscount?: number | null;
+    constantDiscount?: number | null;
+    hidden?: boolean;
+    withTaxes?: boolean;
+    expiresAt?: string | null;
+    maxUses?: number | null;
+};
+
+export type CreateRoleRequest = {
+    name: string;
 };
 
 export type CreateTicketCategoryCommand = {
@@ -172,6 +191,26 @@ export type CreateTicketRequest = {
     description?: string | null;
     categoryId?: string | null;
     priority?: string | null;
+};
+
+export type DailyRevenueDto = {
+    day?: number;
+    date?: string | null;
+    totalRevenue?: number;
+};
+
+export type DashboardChartDto = {
+    year?: number;
+    month?: number;
+    totalMonthlyRevenue?: number;
+    dailyRevenues?: Array<DailyRevenueDto> | null;
+};
+
+export type DashboardChartDtoResult = {
+    readonly isSuccess?: boolean;
+    readonly isError?: boolean;
+    value?: DashboardChartDto;
+    readonly errors?: Array<Error> | null;
 };
 
 export type DashboardStatsDto = {
@@ -200,6 +239,8 @@ export type DeletedResult = {
     readonly errors?: Array<Error> | null;
 };
 
+export type DiscountType = 0 | 1;
+
 export type Error = {
     readonly code?: string | null;
     readonly description?: string | null;
@@ -212,7 +253,6 @@ export type GetLicenseDiagnosticResponse = {
     id?: string;
     serial?: string | null;
     janDrozdId?: string | null;
-    company?: "AGECS" | "NanoCAD";
     provider?: string | null;
     isActive?: boolean;
     willExpire?: boolean;
@@ -288,7 +328,6 @@ export type LicenseDto = {
     expiryDate?: string | null;
     serial?: string | null;
     janDrozdId?: string | null;
-    company?: "AGECS" | "NanoCAD";
     isTrial?: boolean;
     type?: string | null;
     version?: string | null;
@@ -329,10 +368,36 @@ export type ObjectResult = {
     readonly errors?: Array<Error> | null;
 };
 
+export type OfferDto = {
+    id?: string;
+    productId?: string;
+    discountType?: DiscountType;
+    discountValue?: number;
+    startDate?: string | null;
+    endDate?: string;
+    isActive?: boolean;
+    appliedPrices?: Array<PayablePriceDto> | null;
+};
+
+export type OfferDtoListResult = {
+    readonly isSuccess?: boolean;
+    readonly isError?: boolean;
+    readonly value?: Array<OfferDto> | null;
+    readonly errors?: Array<Error> | null;
+};
+
+export type OfferDtoResult = {
+    readonly isSuccess?: boolean;
+    readonly isError?: boolean;
+    value?: OfferDto;
+    readonly errors?: Array<Error> | null;
+};
+
 export type PayablePriceDto = {
     id?: string;
     country?: string | null;
     price?: number;
+    originalPrice?: number | null;
     period?: number | null;
     periodType?: PeriodType;
     active?: boolean;
@@ -355,7 +420,9 @@ export type PaymentBillingData = {
 
 export type PaymentCheckoutSessionRequest = {
     resourceId: string;
-    referenceCode: string;
+    referenceCode?: string | null;
+    provider?: string | null;
+    method?: string | null;
     amountInMinorUnits?: number;
     currency: string;
     paymentMethodIntegrationIds?: Array<number> | null;
@@ -408,6 +475,8 @@ export type PaymentWebhookParseResultResult = {
 
 export type PeriodType = 'Day' | 'Month' | 'Year';
 
+export type ProductCompany = 'AGECS' | 'NanoCAD';
+
 export type ProductDto = {
     id?: string;
     name?: string | null;
@@ -422,7 +491,7 @@ export type ProductDto = {
     withTaxes?: boolean;
     version?: string | null;
     janDrozdId?: string | null;
-    company?: "AGECS" | "NanoCAD";
+    company?: ProductCompany;
     createdAtUtc?: string;
     createdBy?: string | null;
     lastModifiedUtc?: string;
@@ -546,6 +615,7 @@ export type PromocodeDto = {
     expiresAt?: string | null;
     maxUses?: number | null;
     useCount?: number;
+    isActive?: boolean;
 };
 
 export type PromocodeDtoListResult = {
@@ -592,6 +662,25 @@ export type RestoreDeletedUserRequest = {
     password: string;
 };
 
+export type RoleDto = {
+    id?: string | null;
+    name?: string | null;
+};
+
+export type RoleDtoListResult = {
+    readonly isSuccess?: boolean;
+    readonly isError?: boolean;
+    readonly value?: Array<RoleDto> | null;
+    readonly errors?: Array<Error> | null;
+};
+
+export type RoleDtoResult = {
+    readonly isSuccess?: boolean;
+    readonly isError?: boolean;
+    value?: RoleDto;
+    readonly errors?: Array<Error> | null;
+};
+
 export type StringIReadOnlyCollectionResult = {
     readonly isSuccess?: boolean;
     readonly isError?: boolean;
@@ -636,7 +725,15 @@ export type UpdateLicenseCommand = {
     isActive?: boolean;
     serial?: string | null;
     janDrozdId?: string | null;
-    company?: "AGECS" | "NanoCAD";
+};
+
+export type UpdateOfferCommand = {
+    id?: string;
+    discountType?: DiscountType;
+    discountValue?: number;
+    startDate?: string | null;
+    endDate?: string;
+    isActive?: boolean;
 };
 
 export type UpdateProductCommand = {
@@ -653,24 +750,24 @@ export type UpdateProductCommand = {
     withTaxes?: boolean;
     version?: string | null;
     janDrozdId?: string | null;
-    company?: "AGECS" | "NanoCAD";
+    company?: ProductCompany;
     prices?: Array<ProductPriceRequest> | null;
     media?: Array<ProductMediaRequest> | null;
 };
 
-export type UpdatePromocodeAudienceCommand = {
-    id?: string;
-    hidden?: boolean;
-    withTaxes?: boolean;
-};
-
-export type UpdatePromocodeDiscountsCommand = {
+export type UpdatePromocodeCommand = {
     id?: string;
     defaultPriceMultiplier?: number | null;
     fixedDiscount?: number | null;
     constantDiscount?: number | null;
+    hidden?: boolean;
+    withTaxes?: boolean;
     expiresAt?: string | null;
     maxUses?: number | null;
+};
+
+export type UpdateRoleRequest = {
+    name: string;
 };
 
 export type UpdateTicketCategoryCommand = {
@@ -738,6 +835,10 @@ export type ClaimsIdentityWritable = {
     label?: string | null;
 };
 
+export type DashboardChartDtoResultWritable = {
+    value?: DashboardChartDto;
+};
+
 export type DashboardStatsDtoResultWritable = {
     value?: DashboardStatsDto;
 };
@@ -772,6 +873,14 @@ export type LicenseDtoResultWritable = {
 
 export type ObjectResultWritable = {
     [key: string]: never;
+};
+
+export type OfferDtoListResultWritable = {
+    [key: string]: never;
+};
+
+export type OfferDtoResultWritable = {
+    value?: OfferDto;
 };
 
 export type PaymentCheckoutSessionResponseResultWritable = {
@@ -816,6 +925,14 @@ export type PromocodeDtoListResultWritable = {
 
 export type PromocodeDtoResultWritable = {
     value?: PromocodeDto;
+};
+
+export type RoleDtoListResultWritable = {
+    [key: string]: never;
+};
+
+export type RoleDtoResultWritable = {
+    value?: RoleDto;
 };
 
 export type StringIReadOnlyCollectionResultWritable = {
@@ -1440,6 +1557,166 @@ export type PostIdentityStudentUpgradeVerifyResponses = {
 
 export type PostIdentityStudentUpgradeVerifyResponse = PostIdentityStudentUpgradeVerifyResponses[keyof PostIdentityStudentUpgradeVerifyResponses];
 
+export type GetIdentityRolesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/identity/roles';
+};
+
+export type GetIdentityRolesErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ObjectResult;
+    /**
+     * Forbidden
+     */
+    403: ObjectResult;
+};
+
+export type GetIdentityRolesError = GetIdentityRolesErrors[keyof GetIdentityRolesErrors];
+
+export type GetIdentityRolesResponses = {
+    /**
+     * OK
+     */
+    200: RoleDtoListResult;
+};
+
+export type GetIdentityRolesResponse = GetIdentityRolesResponses[keyof GetIdentityRolesResponses];
+
+export type PostIdentityRolesData = {
+    /**
+     * The role details.
+     */
+    body?: CreateRoleRequest;
+    path?: never;
+    query?: never;
+    url: '/identity/roles';
+};
+
+export type PostIdentityRolesErrors = {
+    /**
+     * Bad Request
+     */
+    400: ObjectResult;
+    /**
+     * Unauthorized
+     */
+    401: ObjectResult;
+    /**
+     * Forbidden
+     */
+    403: ObjectResult;
+    /**
+     * Conflict
+     */
+    409: ObjectResult;
+};
+
+export type PostIdentityRolesError = PostIdentityRolesErrors[keyof PostIdentityRolesErrors];
+
+export type PostIdentityRolesResponses = {
+    /**
+     * Created
+     */
+    201: RoleDtoResult;
+};
+
+export type PostIdentityRolesResponse = PostIdentityRolesResponses[keyof PostIdentityRolesResponses];
+
+export type DeleteIdentityRolesByRoleIdData = {
+    body?: never;
+    path: {
+        /**
+         * The unique identifier of the role.
+         */
+        roleId: string;
+    };
+    query?: never;
+    url: '/identity/roles/{roleId}';
+};
+
+export type DeleteIdentityRolesByRoleIdErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ObjectResult;
+    /**
+     * Forbidden
+     */
+    403: ObjectResult;
+    /**
+     * Not Found
+     */
+    404: ObjectResult;
+    /**
+     * Conflict
+     */
+    409: ObjectResult;
+};
+
+export type DeleteIdentityRolesByRoleIdError = DeleteIdentityRolesByRoleIdErrors[keyof DeleteIdentityRolesByRoleIdErrors];
+
+export type DeleteIdentityRolesByRoleIdResponses = {
+    /**
+     * OK
+     */
+    200: DeletedResult;
+};
+
+export type DeleteIdentityRolesByRoleIdResponse = DeleteIdentityRolesByRoleIdResponses[keyof DeleteIdentityRolesByRoleIdResponses];
+
+export type PutIdentityRolesByRoleIdData = {
+    /**
+     * The role details to update.
+     */
+    body?: UpdateRoleRequest;
+    path: {
+        /**
+         * The unique identifier of the role.
+         */
+        roleId: string;
+    };
+    query?: never;
+    url: '/identity/roles/{roleId}';
+};
+
+export type PutIdentityRolesByRoleIdErrors = {
+    /**
+     * Bad Request
+     */
+    400: ObjectResult;
+    /**
+     * Unauthorized
+     */
+    401: ObjectResult;
+    /**
+     * Forbidden
+     */
+    403: ObjectResult;
+    /**
+     * Not Found
+     */
+    404: ObjectResult;
+    /**
+     * Conflict
+     */
+    409: ObjectResult;
+};
+
+export type PutIdentityRolesByRoleIdError = PutIdentityRolesByRoleIdErrors[keyof PutIdentityRolesByRoleIdErrors];
+
+export type PutIdentityRolesByRoleIdResponses = {
+    /**
+     * OK
+     */
+    200: UpdatedResult;
+};
+
+export type PutIdentityRolesByRoleIdResponse = PutIdentityRolesByRoleIdResponses[keyof PutIdentityRolesByRoleIdResponses];
+
 export type DeleteApiV1CartsMyCartData = {
     body?: never;
     path?: never;
@@ -1553,6 +1830,25 @@ export type GetStatsResponses = {
 };
 
 export type GetStatsResponse = GetStatsResponses[keyof GetStatsResponses];
+
+export type GetChartData = {
+    body?: never;
+    path?: never;
+    query?: {
+        year?: number;
+        month?: number;
+    };
+    url: '/chart';
+};
+
+export type GetChartResponses = {
+    /**
+     * OK
+     */
+    200: DashboardChartDtoResult;
+};
+
+export type GetChartResponse = GetChartResponses[keyof GetChartResponses];
 
 export type GetApiLicensesData = {
     body?: never;
@@ -1705,6 +2001,22 @@ export type PostApiLicensesAdminByIdRevokeResponses = {
     200: unknown;
 };
 
+export type PostApiLicensesAdminByIdActivateData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/licenses/admin/{id}/activate';
+};
+
+export type PostApiLicensesAdminByIdActivateResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
 export type GetApiLicensesAdminByIdHwidsData = {
     body?: never;
     path: {
@@ -1847,6 +2159,7 @@ export type GetApiProductsData = {
          * If true, includes hidden products in the response. Default is false.
          */
         includeHidden?: boolean;
+        company?: ProductCompany;
     };
     url: '/api/products';
 };
@@ -2008,6 +2321,36 @@ export type PutApiProductsByIdResponses = {
 };
 
 export type PutApiProductsByIdResponse = PutApiProductsByIdResponses[keyof PutApiProductsByIdResponses];
+
+export type GetApiProductsByParentIdChildrenData = {
+    body?: never;
+    path: {
+        /**
+         * The unique identifier of the parent product.
+         */
+        parentId: string;
+    };
+    query?: never;
+    url: '/api/products/{parentId}/children';
+};
+
+export type GetApiProductsByParentIdChildrenErrors = {
+    /**
+     * Bad Request
+     */
+    400: ObjectResult;
+};
+
+export type GetApiProductsByParentIdChildrenError = GetApiProductsByParentIdChildrenErrors[keyof GetApiProductsByParentIdChildrenErrors];
+
+export type GetApiProductsByParentIdChildrenResponses = {
+    /**
+     * OK
+     */
+    200: ProductDtoListResult;
+};
+
+export type GetApiProductsByParentIdChildrenResponse = GetApiProductsByParentIdChildrenResponses[keyof GetApiProductsByParentIdChildrenResponses];
 
 export type PostApiProductsByParentIdChildrenData = {
     /**
@@ -2215,6 +2558,7 @@ export type DeleteApiProductsByProductIdMediaByMediaIdResponse = DeleteApiProduc
 export type PutApiProductsByProductIdMediaByMediaIdData = {
     body?: {
         File?: Blob | File;
+        Url?: string;
         Order?: number;
     };
     path: {
@@ -2512,6 +2856,78 @@ export type GetApiProductsByProductIdVersionsByVersionIdDownloadResponses = {
     200: unknown;
 };
 
+export type GetApiProductsByProductIdOffersData = {
+    body?: never;
+    path: {
+        productId: string;
+    };
+    query?: never;
+    url: '/api/products/{productId}/offers';
+};
+
+export type GetApiProductsByProductIdOffersResponses = {
+    /**
+     * OK
+     */
+    200: OfferDtoListResult;
+};
+
+export type GetApiProductsByProductIdOffersResponse = GetApiProductsByProductIdOffersResponses[keyof GetApiProductsByProductIdOffersResponses];
+
+export type PostApiProductsByProductIdOffersData = {
+    body?: CreateOfferCommand;
+    path: {
+        productId: string;
+    };
+    query?: never;
+    url: '/api/products/{productId}/offers';
+};
+
+export type PostApiProductsByProductIdOffersResponses = {
+    /**
+     * Created
+     */
+    201: OfferDtoResult;
+};
+
+export type PostApiProductsByProductIdOffersResponse = PostApiProductsByProductIdOffersResponses[keyof PostApiProductsByProductIdOffersResponses];
+
+export type DeleteApiProductsOffersByOfferIdData = {
+    body?: never;
+    path: {
+        offerId: string;
+    };
+    query?: never;
+    url: '/api/products/offers/{offerId}';
+};
+
+export type DeleteApiProductsOffersByOfferIdResponses = {
+    /**
+     * OK
+     */
+    200: DeletedResult;
+};
+
+export type DeleteApiProductsOffersByOfferIdResponse = DeleteApiProductsOffersByOfferIdResponses[keyof DeleteApiProductsOffersByOfferIdResponses];
+
+export type PutApiProductsOffersByOfferIdData = {
+    body?: UpdateOfferCommand;
+    path: {
+        offerId: string;
+    };
+    query?: never;
+    url: '/api/products/offers/{offerId}';
+};
+
+export type PutApiProductsOffersByOfferIdResponses = {
+    /**
+     * OK
+     */
+    200: UpdatedResult;
+};
+
+export type PutApiProductsOffersByOfferIdResponse = PutApiProductsOffersByOfferIdResponses[keyof PutApiProductsOffersByOfferIdResponses];
+
 export type GetApiPromocodesData = {
     body?: never;
     path?: never;
@@ -2658,11 +3074,11 @@ export type GetApiPromocodesByIdResponses = {
 
 export type GetApiPromocodesByIdResponse = GetApiPromocodesByIdResponses[keyof GetApiPromocodesByIdResponses];
 
-export type PutApiPromocodesByIdDiscountsData = {
+export type PutApiPromocodesByIdData = {
     /**
-     * The discount details to update.
+     * The details to update.
      */
-    body?: UpdatePromocodeDiscountsCommand;
+    body?: UpdatePromocodeCommand;
     path: {
         /**
          * The unique identifier of the promocode.
@@ -2670,10 +3086,10 @@ export type PutApiPromocodesByIdDiscountsData = {
         id: string;
     };
     query?: never;
-    url: '/api/promocodes/{id}/discounts';
+    url: '/api/promocodes/{id}';
 };
 
-export type PutApiPromocodesByIdDiscountsErrors = {
+export type PutApiPromocodesByIdErrors = {
     /**
      * Bad Request
      */
@@ -2692,61 +3108,44 @@ export type PutApiPromocodesByIdDiscountsErrors = {
     404: ObjectResult;
 };
 
-export type PutApiPromocodesByIdDiscountsError = PutApiPromocodesByIdDiscountsErrors[keyof PutApiPromocodesByIdDiscountsErrors];
+export type PutApiPromocodesByIdError = PutApiPromocodesByIdErrors[keyof PutApiPromocodesByIdErrors];
 
-export type PutApiPromocodesByIdDiscountsResponses = {
+export type PutApiPromocodesByIdResponses = {
     /**
      * OK
      */
     200: PromocodeDtoResult;
 };
 
-export type PutApiPromocodesByIdDiscountsResponse = PutApiPromocodesByIdDiscountsResponses[keyof PutApiPromocodesByIdDiscountsResponses];
+export type PutApiPromocodesByIdResponse = PutApiPromocodesByIdResponses[keyof PutApiPromocodesByIdResponses];
 
-export type PutApiPromocodesByIdAudienceData = {
+export type PostApiStripeWebhookData = {
     /**
-     * The audience targeting details to update.
+     * The raw JSON payload from Stripe.
      */
-    body?: UpdatePromocodeAudienceCommand;
-    path: {
-        /**
-         * The unique identifier of the promocode.
-         */
-        id: string;
-    };
+    body?: unknown;
+    path?: never;
     query?: never;
-    url: '/api/promocodes/{id}/audience';
+    url: '/api/stripe/webhook';
 };
 
-export type PutApiPromocodesByIdAudienceErrors = {
+export type PostApiStripeWebhookErrors = {
     /**
      * Bad Request
      */
     400: ObjectResult;
-    /**
-     * Unauthorized
-     */
-    401: ObjectResult;
-    /**
-     * Forbidden
-     */
-    403: ObjectResult;
-    /**
-     * Not Found
-     */
-    404: ObjectResult;
 };
 
-export type PutApiPromocodesByIdAudienceError = PutApiPromocodesByIdAudienceErrors[keyof PutApiPromocodesByIdAudienceErrors];
+export type PostApiStripeWebhookError = PostApiStripeWebhookErrors[keyof PostApiStripeWebhookErrors];
 
-export type PutApiPromocodesByIdAudienceResponses = {
+export type PostApiStripeWebhookResponses = {
     /**
      * OK
      */
-    200: PromocodeDtoResult;
+    200: PaymentWebhookParseResultResult;
 };
 
-export type PutApiPromocodesByIdAudienceResponse = PutApiPromocodesByIdAudienceResponses[keyof PutApiPromocodesByIdAudienceResponses];
+export type PostApiStripeWebhookResponse = PostApiStripeWebhookResponses[keyof PostApiStripeWebhookResponses];
 
 export type GetApiTicketCategoriesData = {
     body?: never;

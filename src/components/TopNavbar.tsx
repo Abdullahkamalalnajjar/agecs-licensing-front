@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import BrandLogo from "./BrandLogo";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useAuth } from "./AuthProvider";
@@ -8,6 +9,7 @@ import CartSidebar from "./CartSidebar";
 import { getApiV1CartsMyCart } from "@/client";
 import Image from "next/image";
 import { ThemeSwitcher } from "./ThemeSwitcher";
+import { useCurrency, CURRENCIES, SupportedCurrency } from "@/context/CurrencyContext";
 
 const navItems = [
   { name: "Home", path: "/home" },
@@ -30,6 +32,8 @@ function TopNavbarInner() {
   const [cartItemCount, setCartItemCount] = useState(0);
   const [showPromoBar, setShowPromoBar] = useState(true);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isCurrencyMenuOpen, setIsCurrencyMenuOpen] = useState(false);
+  const { currency, setCurrency, currentCurrencyMeta } = useCurrency();
 
   // Fetch cart count on load if user is logged in
   useEffect(() => {
@@ -125,12 +129,7 @@ function TopNavbarInner() {
           {/* Brand */}
           <div className="navbar-brand-section">
             <Link href="/home" style={{ display: 'flex', alignItems: 'center' }}>
-              <img
-                src="/agecs-logo-color.png"
-                alt="AGECS Software Solutions"
-                className="brand-logo-img"
-                style={{ height: '36px', width: 'auto', objectFit: 'contain' }}
-              />
+              <BrandLogo height={34} alt="AGECS Software Solutions" />
             </Link>
           </div>
 
@@ -275,8 +274,63 @@ function TopNavbarInner() {
             )}
 {/* 2. Thin divider */}
             {user && <div style={{ width: 1, height: 24, background: 'var(--border)', flexShrink: 0, margin: '0 0.1rem' }} />}
-            {/* 3. Currency */}
-            <div className="currency">EGP</div>
+            {/* 3. Currency Switcher */}
+            <div style={{ position: 'relative' }}>
+              <button
+                onClick={() => setIsCurrencyMenuOpen(!isCurrencyMenuOpen)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '0.35rem',
+                  padding: '0.3rem 0.65rem', borderRadius: '8px', border: '1px solid var(--border)',
+                  background: 'var(--bg-elevated)', color: 'var(--text-primary)',
+                  fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
+                  transition: 'all 0.2s', letterSpacing: '0.02em',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent-border)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; }}
+              >
+                <span>{currentCurrencyMeta.flag}</span>
+                <span>{currentCurrencyMeta.label}</span>
+                <svg style={{ color: 'var(--text-muted)', transform: isCurrencyMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
+              </button>
+
+              {isCurrencyMenuOpen && (
+                <>
+                  <div onClick={() => setIsCurrencyMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 90 }} />
+                  <div style={{
+                    position: 'absolute', top: 'calc(100% + 8px)', right: 0,
+                    minWidth: '140px', padding: '0.4rem',
+                    background: 'rgba(15, 23, 42, 0.95)', border: '1px solid rgba(255,255,255,0.1)',
+                    backdropFilter: 'blur(12px)', borderRadius: '10px',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.4)', zIndex: 100,
+                    display: 'flex', flexDirection: 'column', gap: '0.15rem',
+                  }}>
+                    {CURRENCIES.map((c) => (
+                      <button
+                        key={c.code}
+                        onClick={() => { setCurrency(c.code as SupportedCurrency); setIsCurrencyMenuOpen(false); }}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '0.6rem',
+                          padding: '0.55rem 0.75rem', borderRadius: '8px', border: 'none',
+                          background: currency === c.code ? 'rgba(59,130,246,0.15)' : 'transparent',
+                          color: currency === c.code ? '#60a5fa' : '#e2e8f0',
+                          fontSize: '0.85rem', fontWeight: currency === c.code ? 700 : 500,
+                          cursor: 'pointer', textAlign: 'left', width: '100%',
+                          transition: 'all 0.15s',
+                        }}
+                        onMouseEnter={e => { if (currency !== c.code) e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
+                        onMouseLeave={e => { if (currency !== c.code) e.currentTarget.style.background = 'transparent'; }}
+                      >
+                        <span>{c.flag}</span>
+                        <span>{c.label}</span>
+                        {currency === c.code && (
+                          <svg style={{ marginLeft: 'auto' }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
 
             {/* 4. Cart icon */}
             {user && (

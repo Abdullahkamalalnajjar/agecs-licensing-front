@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { postApiProducts, putApiProductsById } from "@/client";
+import "./product-form.css";
 
 type ProductFormModalProps = {
   initialData?: any;
@@ -97,131 +98,173 @@ export default function ProductFormModal({ initialData, onClose, onSuccess }: Pr
           )}
           
           <form id="productForm" onSubmit={handleSubmit}>
-            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-              
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label" htmlFor="name">Name</label>
-                <input id="name" type="text" className="form-input" value={productData.name} onChange={(e) => setProductData({ ...productData, name: e.target.value })} required />
-              </div>
+            <div className="pf-body">
 
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label" htmlFor="fullName">Full Name</label>
-                <input id="fullName" type="text" className="form-input" value={productData.fullName} onChange={(e) => setProductData({ ...productData, fullName: e.target.value })} />
-              </div>
+              <div className="pf-section">
+                <div className="pf-section-title">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>
+                  Details
+                </div>
 
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label" htmlFor="description">Description</label>
-                <textarea id="description" className="form-input" value={productData.description} onChange={(e) => setProductData({ ...productData, description: e.target.value })} rows={3} style={{ resize: "vertical" }} />
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label" htmlFor="family">Family</label>
-                  <select id="family" className="form-input" value={["SES", "NanoCAD"].includes(productData.family) ? productData.family : "Other"} onChange={(e) => {
-                      if (e.target.value === "Other") {
-                        setProductData({ ...productData, family: "" });
-                      } else {
-                        setProductData({ ...productData, family: e.target.value });
-                      }
-                  }} style={{ appearance: "auto" }}>
-                    <option value="SES">SES</option>
-                    <option value="NanoCAD">NanoCAD</option>
-                    <option value="Other">Other</option>
-                  </select>
-                  {!["SES", "NanoCAD"].includes(productData.family) && (
-                      <input 
-                          type="text" 
-                          className="form-input" 
-                          placeholder="Enter custom family"
-                          value={productData.family === "Other" ? "" : productData.family}
-                          onChange={(e) => setProductData({ ...productData, family: e.target.value })}
-                          style={{ marginTop: "0.5rem" }}
-                          required
-                      />
-                  )}
+                  <label className="form-label" htmlFor="name">Name</label>
+                  <input id="name" type="text" className="form-input" value={productData.name} onChange={(e) => setProductData({ ...productData, name: e.target.value })} required />
                 </div>
+
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label" htmlFor="version">Version</label>
-                  <input id="version" type="text" className="form-input" value={productData.version} onChange={(e) => setProductData({ ...productData, version: e.target.value })} />
+                  <label className="form-label" htmlFor="fullName">Full Name</label>
+                  <input id="fullName" type="text" className="form-input" value={productData.fullName} onChange={(e) => setProductData({ ...productData, fullName: e.target.value })} />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" htmlFor="description">Description</label>
+                  <textarea id="description" className="form-input" value={productData.description} onChange={(e) => setProductData({ ...productData, description: e.target.value })} rows={3} style={{ resize: "vertical" }} />
+                </div>
+
+                <div className="pf-row">
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label" htmlFor="family">Family</label>
+                    <select id="family" className="form-input" value={["SES", "NanoCAD"].includes(productData.family) ? productData.family : "Other"} onChange={(e) => {
+                        if (e.target.value === "Other") {
+                          setProductData({ ...productData, family: "" });
+                        } else {
+                          setProductData({ ...productData, family: e.target.value });
+                        }
+                    }} style={{ appearance: "auto" }}>
+                      <option value="SES">SES</option>
+                      <option value="NanoCAD">NanoCAD</option>
+                      <option value="Other">Other</option>
+                    </select>
+                    {!["SES", "NanoCAD"].includes(productData.family) && (
+                        <input
+                            type="text"
+                            className="form-input pf-custom-family"
+                            placeholder="Enter custom family"
+                            value={productData.family === "Other" ? "" : productData.family}
+                            onChange={(e) => setProductData({ ...productData, family: e.target.value })}
+                            required
+                        />
+                    )}
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label" htmlFor="version">Version</label>
+                    <input id="version" type="text" className="form-input" value={productData.version} onChange={(e) => setProductData({ ...productData, version: e.target.value })} />
+                  </div>
+                </div>
+
+                <div className="pf-row">
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label" htmlFor="janDrozdId">JanDrozd ID</label>
+                    <input id="janDrozdId" type="text" className="form-input" value={productData.janDrozdId} onChange={(e) => setProductData({ ...productData, janDrozdId: e.target.value })} />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label" htmlFor="company">Company</label>
+                    <select id="company" className="form-input" value={productData.company} onChange={(e) => setProductData({ ...productData, company: e.target.value as any })} style={{ appearance: "auto" }}>
+                      <option value="AGECS">AGECS</option>
+                      <option value="NanoCAD">NanoCAD</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label" htmlFor="janDrozdId">JanDrozd ID</label>
-                  <input id="janDrozdId" type="text" className="form-input" value={productData.janDrozdId} onChange={(e) => setProductData({ ...productData, janDrozdId: e.target.value })} />
-                </div>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label" htmlFor="company">Company</label>
-                  <select id="company" className="form-input" value={productData.company} onChange={(e) => setProductData({ ...productData, company: e.target.value as any })} style={{ appearance: "auto" }}>
-                    <option value="AGECS">AGECS</option>
-                    <option value="NanoCAD">NanoCAD</option>
-                  </select>
-                </div>
-              </div>
+              <hr className="pf-divider" />
 
-              {/* Dynamic Prices Section */}
-              <div style={{ padding: "1rem", background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
-                  <label className="form-label" style={{ margin: 0, fontSize: "0.9rem", color: "var(--accent-light)" }}>Pricing Tiers</label>
-                  <button type="button" className="btn-ghost" style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }} onClick={() => setPrices([...prices, { period: 1, price: 0, country: "II", active: true }])}>
-                    + Add Price
-                  </button>
+              <div className="pf-section">
+                <div className="pf-section-title">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                  Pricing Tiers
                 </div>
-                
-                {prices.length === 0 && <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontStyle: "italic" }}>No prices added. Free product.</div>}
-                
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                  {prices.map((priceObj, index) => (
-                    <div key={index} style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: "0.5rem", alignItems: "flex-end" }}>
-                      <div>
-                        <label style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginBottom: "0.2rem", display: "block" }}>Period (days)</label>
-                        <input type="number" className="form-input" style={{ padding: "0.4rem" }} value={priceObj.period} onChange={(e) => {
-                          const newPrices = [...prices];
-                          newPrices[index].period = Number(e.target.value);
-                          setPrices(newPrices);
-                        }} />
+
+                <div className="pf-prices">
+                  <div className="pf-prices-header">
+                    <span className="pf-field-hint">{prices.length === 0 ? "Free product — no charges apply" : `${prices.length} tier${prices.length !== 1 ? "s" : ""} configured`}</span>
+                    <button type="button" className="btn-ghost pf-add-price" onClick={() => setPrices([...prices, { period: 1, price: 0, country: "II", active: true }])}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                      Add Price
+                    </button>
+                  </div>
+
+                  {prices.length === 0 && <div className="pf-prices-empty">No prices added. Free product.</div>}
+
+                  <div className="pf-prices-list">
+                    {prices.map((priceObj, index) => (
+                      <div key={index} className="pf-price-row">
+                        <div>
+                          <label>Period (days)</label>
+                          <input type="number" className="form-input" value={priceObj.period} onChange={(e) => {
+                            const newPrices = [...prices];
+                            newPrices[index].period = Number(e.target.value);
+                            setPrices(newPrices);
+                          }} />
+                        </div>
+                        <div>
+                          <label>Country</label>
+                          <select className="form-input" style={{ appearance: "auto" }} value={priceObj.country} onChange={(e) => {
+                            const newPrices = [...prices];
+                            newPrices[index].country = e.target.value;
+                            setPrices(newPrices);
+                          }}>
+                            <option value="EG">🇪🇬 EGP (مصر)</option>
+                            <option value="US">🇺🇸 USD (أمريكا)</option>
+                            <option value="SA">🇸🇦 SAR (السعودية)</option>
+                            <option value="II">🌐 Default (دولي)</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label>Price ($)</label>
+                          <input type="number" className="form-input" value={priceObj.price} onChange={(e) => {
+                            const newPrices = [...prices];
+                            newPrices[index].price = Number(e.target.value);
+                            setPrices(newPrices);
+                          }} />
+                        </div>
+                        <div className="pf-price-remove-cell">
+                          <button type="button" className="pf-price-remove" onClick={() => setPrices(prices.filter((_, i) => i !== index))} aria-label="Remove price tier">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                          </button>
+                        </div>
                       </div>
-                      <div>
-                        <label style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginBottom: "0.2rem", display: "block" }}>Price ($)</label>
-                        <input type="number" className="form-input" style={{ padding: "0.4rem" }} value={priceObj.price} onChange={(e) => {
-                          const newPrices = [...prices];
-                          newPrices[index].price = Number(e.target.value);
-                          setPrices(newPrices);
-                        }} />
-                      </div>
-                      <div style={{ paddingBottom: "0.4rem" }}>
-                        <button type="button" onClick={() => setPrices(prices.filter((_, i) => i !== index))} style={{
-                          background: "none", border: "none", color: "var(--danger)", cursor: "pointer", padding: "0.2rem", display: "flex", alignItems: "center", justifyContent: "center"
-                        }}>
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "1rem" }}>
+              <hr className="pf-divider" />
+
+              <div className="pf-section">
+                <div className="pf-section-title">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                  Settings
+                </div>
+
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label" htmlFor="order">Display Order</label>
                   <input id="order" type="number" className="form-input" value={productData.order} onChange={(e) => setProductData({ ...productData, order: Number(e.target.value) })} />
                 </div>
-              </div>
 
-              <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginTop: "0.5rem" }}>
-                <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.875rem", cursor: "pointer", color: "var(--text-primary)" }}>
-                  <input type="checkbox" checked={productData.comingSoon} onChange={(e) => setProductData({ ...productData, comingSoon: e.target.checked })} style={{ width: "16px", height: "16px" }} />
-                  Coming Soon
-                </label>
-                <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.875rem", cursor: "pointer", color: "var(--text-primary)" }}>
-                  <input type="checkbox" checked={productData.hidden} onChange={(e) => setProductData({ ...productData, hidden: e.target.checked })} style={{ width: "16px", height: "16px" }} />
-                  Hidden
-                </label>
-                <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.875rem", cursor: "pointer", color: "var(--text-primary)" }}>
-                  <input type="checkbox" checked={productData.withTaxes} onChange={(e) => setProductData({ ...productData, withTaxes: e.target.checked })} style={{ width: "16px", height: "16px" }} />
-                  With Taxes
-                </label>
+                <div className="pf-toggles">
+                  <label className="pf-toggle">
+                    <span className="pf-toggle-switch">
+                      <input type="checkbox" checked={productData.comingSoon} onChange={(e) => setProductData({ ...productData, comingSoon: e.target.checked })} />
+                      <span className="pf-toggle-track" />
+                    </span>
+                    <span className="pf-toggle-label">Coming Soon</span>
+                  </label>
+                  <label className="pf-toggle">
+                    <span className="pf-toggle-switch">
+                      <input type="checkbox" checked={productData.hidden} onChange={(e) => setProductData({ ...productData, hidden: e.target.checked })} />
+                      <span className="pf-toggle-track" />
+                    </span>
+                    <span className="pf-toggle-label">Hidden</span>
+                  </label>
+                  <label className="pf-toggle">
+                    <span className="pf-toggle-switch">
+                      <input type="checkbox" checked={productData.withTaxes} onChange={(e) => setProductData({ ...productData, withTaxes: e.target.checked })} />
+                      <span className="pf-toggle-track" />
+                    </span>
+                    <span className="pf-toggle-label">With Taxes</span>
+                  </label>
+                </div>
               </div>
 
             </div>

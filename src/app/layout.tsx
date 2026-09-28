@@ -4,6 +4,7 @@ import { GoogleAuthProviderWrapper } from "@/components/GoogleAuthProviderWrappe
 import { AuthProvider } from "@/components/AuthProvider";
 import { ToastProvider } from "@/components/ToastProvider";
 import { ThemeProviderWrapper } from "@/components/ThemeProviderWrapper";
+import { CurrencyProvider } from "@/context/CurrencyContext";
 
 export const metadata: Metadata = {
   title: "Agecs Licensing | Admin Dashboard",
@@ -30,7 +31,9 @@ export default function RootLayout({
           <AuthProvider>
             <GoogleAuthProviderWrapper>
               <ThemeProviderWrapper>
-                {children}
+                <CurrencyProvider>
+                  {children}
+                </CurrencyProvider>
               </ThemeProviderWrapper>
             </GoogleAuthProviderWrapper>
           </AuthProvider>

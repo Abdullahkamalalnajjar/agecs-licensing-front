@@ -1,5 +1,6 @@
 "use client";
 import React from 'react';
+import BrandLogo from '../BrandLogo';
 
 
 export default function LandingFooter() {
@@ -9,7 +10,7 @@ export default function LandingFooter() {
     <div className="container footer-inner">
       <div className="footer-col footer-brand">
         <a href="#" className="footer-logo" aria-label="AGECS Software Solutions">
-          <img src="agecs-theme/assets/images/logo.png" alt="AGECS Software Solutions" loading="lazy" />
+          <BrandLogo variant="full" tone="dark" height={56} alt="AGECS Software Solutions" />
         </a>
         <p className="footer-tagline">Engineering Software Built for Real Structural Workflows</p>
         <div className="footer-social" aria-label="Social Media">

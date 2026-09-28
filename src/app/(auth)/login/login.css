@@ -1,0 +1,354 @@
+/* ============================================================
+   LOGIN PAGE — split layout, uses theme tokens from globals.css
+   ============================================================ */
+.lp {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  background: var(--bg-base);
+  position: relative;
+  z-index: 1;
+}
+
+/* ---------- Brand panel ---------- */
+.lp-brand {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 2.5rem 3.5rem;
+  color: #ffffff;
+  background: linear-gradient(160deg, #0b3274 0%, #071f49 55%, #04142f 100%);
+}
+
+.lp-brand::before {
+  /* fine engineering grid */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(ellipse 80% 70% at 30% 40%, #000 30%, transparent 85%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 30% 40%, #000 30%, transparent 85%);
+  pointer-events: none;
+}
+
+.lp-brand::after {
+  /* large arc echoing the logo's "G" */
+  content: "";
+  position: absolute;
+  width: 620px;
+  height: 620px;
+  right: -260px;
+  bottom: -260px;
+  border-radius: 50%;
+  border: 70px solid rgba(255, 255, 255, 0.04);
+  pointer-events: none;
+}
+
+.lp-brand > * { position: relative; z-index: 1; }
+
+.lp-logo { align-self: flex-start; }
+
+.lp-brand-body { max-width: 440px; }
+
+.lp-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9cc0ff;
+  margin-bottom: 1rem;
+}
+
+.lp-eyebrow::before {
+  content: "";
+  width: 22px;
+  height: 2px;
+  background: var(--yellow, #ffc400);
+  border-radius: 2px;
+}
+
+.lp-brand h2 {
+  font-size: clamp(1.9rem, 2.6vw, 2.6rem);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin-bottom: 1rem;
+}
+
+.lp-brand-lead {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 1rem;
+  line-height: 1.65;
+  margin-bottom: 2rem;
+}
+
+.lp-features { list-style: none; display: grid; gap: 0.9rem; }
+
+.lp-features li {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.lp-feature-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #9cc0ff;
+}
+
+.lp-brand-foot {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* ---------- Form panel ---------- */
+.lp-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 2rem 2.5rem;
+  background: var(--bg-surface);
+}
+
+.lp-back {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 0.4rem 0.75rem 0.4rem 0.5rem;
+  border-radius: 8px;
+  transition: color 0.2s, background 0.2s;
+}
+
+.lp-back:hover { color: var(--accent); background: var(--accent-dim); }
+
+.lp-form-wrap {
+  flex: 1;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 2rem 0;
+}
+
+.lp-mobile-logo { display: none; margin-bottom: 2rem; }
+
+.lp-title {
+  font-size: 1.9rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  margin-bottom: 0.35rem;
+}
+
+.lp-subtitle {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  margin-bottom: 2rem;
+}
+
+.lp-form { display: flex; flex-direction: column; gap: 1.1rem; }
+
+.lp-field { display: flex; flex-direction: column; gap: 0.45rem; }
+
+.lp-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.lp-input-wrap { position: relative; }
+
+.lp-input-icon {
+  position: absolute;
+  left: 0.95rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+  display: flex;
+  transition: color 0.2s;
+}
+
+.lp-input {
+  width: 100%;
+  height: 50px;
+  padding: 0 1rem 0 2.75rem;
+  font: inherit;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  background: var(--bg-base);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+.lp-input.has-toggle { padding-right: 3rem; }
+.lp-input::placeholder { color: var(--text-muted); opacity: 0.8; }
+.lp-input:hover { border-color: var(--border-strong); }
+
+.lp-input:focus {
+  border-color: var(--accent);
+  background: var(--bg-surface);
+  box-shadow: 0 0 0 4px var(--accent-dim);
+}
+
+.lp-input-wrap:focus-within .lp-input-icon { color: var(--accent); }
+
+[data-theme="dark"] .lp-input { background: rgba(255, 255, 255, 0.04); }
+[data-theme="dark"] .lp-input:focus { background: rgba(255, 255, 255, 0.06); }
+
+.lp-toggle {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
+}
+
+.lp-toggle:hover { color: var(--text-primary); background: var(--bg-hover); }
+
+.lp-submit {
+  margin-top: 0.6rem;
+  height: 50px;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #ffffff;
+  background: var(--blue, #1456bd);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+  box-shadow: 0 8px 20px -8px rgba(20, 86, 189, 0.6);
+}
+
+.lp-submit:hover:not(:disabled) { background: var(--navy-2, #0b3274); }
+.lp-submit:active:not(:disabled) { transform: scale(0.98); }
+.lp-submit:focus-visible { outline: 3px solid var(--accent-glow); outline-offset: 2px; }
+.lp-submit:disabled { opacity: 0.7; cursor: not-allowed; }
+
+.lp-submit svg { transition: transform 0.2s; }
+.lp-submit:hover:not(:disabled) svg { transform: translateX(3px); }
+
+.lp-divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 1.75rem 0;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.lp-divider::before,
+.lp-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.lp-google { position: relative; width: 100%; height: 50px; }
+
+.lp-google-btn {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  z-index: 1;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.lp-google:hover .lp-google-btn { border-color: var(--border-strong); background: var(--bg-hover); }
+.lp-google-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+
+[data-theme="dark"] .lp-google-btn { background: rgba(255, 255, 255, 0.04); }
+[data-theme="dark"] .lp-google:hover .lp-google-btn { background: rgba(255, 255, 255, 0.08); }
+
+.lp-google-overlay {
+  position: absolute;
+  inset: 0;
+  opacity: 0.0001;
+  z-index: 10;
+  overflow: hidden;
+  cursor: pointer;
+  border-radius: 12px;
+}
+
+.lp-google-overlay > div {
+  transform: scale(1.5);
+  transform-origin: top left;
+  width: 100%;
+  height: 100%;
+}
+
+.lp-google-btn .spinner,
+.lp-spinner-dark {
+  border-color: var(--border-strong);
+  border-top-color: var(--accent);
+}
+
+.lp-legal {
+  margin-top: 2rem;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.lp-alert { margin-bottom: 1.5rem; }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 960px) {
+  .lp { grid-template-columns: 1fr; }
+  .lp-brand { display: none; }
+  .lp-mobile-logo { display: inline-flex; }
+  .lp-panel { padding: 1.25rem 1rem; }
+  .lp-form-wrap { padding: 1.5rem 0.25rem; }
+}

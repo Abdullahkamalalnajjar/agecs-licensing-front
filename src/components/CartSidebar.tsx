@@ -6,11 +6,11 @@ import {
   deleteApiV1CartsMyCartItemsByItemId,
   postApiV1CartsMyCartPromocode,
   deleteApiV1CartsMyCartPromocode,
+  postApiPaymentsCheckout,
   CartDto
 } from "@/client";
-// Using the explicit method name provided by the user instruction
-// If it's not generated yet, you will need to regenerate your OpenAPI client
-// import { postApiV1CheckoutCart } from "@/client";
+import { useAuth } from "@/components/AuthProvider";
+import { useToast } from "@/components/ToastProvider";
 
 interface CartSidebarProps {
   isOpen: boolean;
@@ -27,6 +27,8 @@ const formatPeriod = (days?: number | null) => {
 
 
 export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
+  const { user } = useAuth();
+  const { error: toastError } = useToast();
   const [cart, setCart] = useState<CartDto | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [promoCode, setPromoCode] = useState("");
@@ -109,15 +111,49 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
   };
 
   const handleCheckout = async () => {
-    if (!cart?.id) return;
+    if (!cart?.id || !cart.items || cart.items.length === 0) return;
     try {
       setIsCheckingOut(true);
-      // As requested by user instruction:
-      // await postApiV1CheckoutCart({ body: { cartId: cart.id, provider: "System", method: "Free" } });
-      alert("Checkout triggered! Please ensure postApiV1CheckoutCart is available in the generated client.");
-      onClose();
-    } catch (error) {
+
+      const amountInMinorUnits = Math.round((cart.calculatedTotal ?? 0) * 100);
+      const [firstName, ...rest] = (user?.email?.split("@")[0] ?? "Customer").split(".");
+
+      const res = await postApiPaymentsCheckout({
+        body: {
+          resourceId: cart.id,
+          provider: "stripe",
+          method: "card",
+          amountInMinorUnits,
+          currency: "EGP",
+          billingData: {
+            firstName: firstName || "Customer",
+            lastName: rest.join(" ") || "NA",
+            email: user?.email ?? "",
+            phoneNumber: "NA",
+          },
+          items: cart.items.map((item) => ({
+            name: item.itemName ?? "License",
+            description: `Qty: ${item.quantity} • Period: ${formatPeriod(item.period)}`,
+            amountInMinorUnits: Math.round((item.unitPrice ?? 0) * 100),
+            quantity: item.quantity ?? 1,
+          })),
+          redirectionUrl: `${window.location.origin}/checkout/success`,
+        },
+        throwOnError: false,
+      });
+
+      const session = res.data?.value;
+      if (res.error || !session?.paymentPageUrl) {
+        const errObj = res.error as any;
+        const msg = errObj?.errors?.[0]?.description || errObj?.description || errObj?.title || "Could not start checkout";
+        toastError(msg);
+        return;
+      }
+
+      window.location.href = session.paymentPageUrl;
+    } catch (error: any) {
       console.error("Error during checkout:", error);
+      toastError(error?.message || "Error starting checkout");
     } finally {
       setIsCheckingOut(false);
     }

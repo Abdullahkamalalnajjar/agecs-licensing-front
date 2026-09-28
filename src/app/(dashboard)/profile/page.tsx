@@ -1,340 +1,228 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { getApiLicenses, getIdentityCurrentUser } from "@/client";
+import { client } from "@/client/client.gen";
+import type { AppUserDto, LicenseDto } from "@/client/types.gen";
 import { useAuth } from "@/components/AuthProvider";
 import StudentUpgradeModal from "@/components/StudentUpgradeModal";
+import "./profile.css";
 
-const roleConfig: Record<string, { label: string; color: string; bg: string; icon: string }> = {
-  SuperAdmin: { label: "Super Admin", color: "#f59e0b", bg: "rgba(245,158,11,0.12)", icon: "👑" },
-  Admin: { label: "Administrator", color: "#8b5cf6", bg: "rgba(139,92,246,0.12)", icon: "🛡️" },
-  Sales: { label: "Sales", color: "#10b981", bg: "rgba(16,185,129,0.12)", icon: "📊" },
-  Student: { label: "Student", color: "#3b82f6", bg: "rgba(59,130,246,0.12)", icon: "🎓" },
-  NormalUser: { label: "Normal User", color: "#94a3b8", bg: "rgba(148,163,184,0.12)", icon: "👤" },
+type Tone = "amber" | "purple" | "green" | "blue" | "neutral";
+
+const roleConfig: Record<string, { label: string; tone: Tone; blurb: string }> = {
+  SuperAdmin: { label: "Super Admin", tone: "amber", blurb: "Full access to every area of the platform, including roles and permissions." },
+  Admin: { label: "Administrator", tone: "purple", blurb: "Manage products, licenses, users and support across the platform." },
+  Sales: { label: "Sales", tone: "green", blurb: "Issue and manage customer licenses, offers and promo codes." },
+  Student: { label: "Student", tone: "blue", blurb: "Verified student account with access to student pricing." },
+  NormalUser: { label: "Customer", tone: "neutral", blurb: "Buy licenses, download software and contact support." },
 };
+
+const EXPIRING_DAYS = 30;
+
+function summarize(licenses: LicenseDto[]) {
+  const soon = Date.now() + EXPIRING_DAYS * 86_400_000;
+  const active = licenses.filter((l) => l.isActive !== false && !l.isExpired);
+  return {
+    total: licenses.length,
+    active: active.length,
+    expiring: active.filter((l) => l.willExpire && l.expiryDate && new Date(l.expiryDate).getTime() <= soon).length,
+  };
+}
+
+const Svg = ({ size = 16, children }: { size?: number; children: React.ReactNode }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{children}</svg>
+);
+
+const Icon = {
+  mail: <><rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></>,
+  key: <><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></>,
+  shield: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />,
+  phone: <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />,
+  pin: <><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></>,
+  copy: <><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></>,
+  check: <path d="M20 6 9 17l-5-5" />,
+  logout: <><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></>,
+  cap: <><path d="M22 10 12 5 2 10l10 5 10-5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" /></>,
+  license: <><rect x="2" y="5" width="20" height="14" rx="2" /><line x1="2" y1="10" x2="22" y2="10" /></>,
+  arrow: <><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></>,
+  user: <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></>,
+};
+
+function CopyButton({ value, label }: { value: string; label: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch { /* clipboard unavailable */ }
+  };
+  return (
+    <button type="button" className={`pf-copy ${copied ? "is-copied" : ""}`} onClick={copy} title={copied ? "Copied" : `Copy ${label}`} aria-label={`Copy ${label}`}>
+      <Svg size={14}>{copied ? Icon.check : Icon.copy}</Svg>
+    </button>
+  );
+}
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [details, setDetails] = useState<AppUserDto | null>(null);
+  const [licenseStats, setLicenseStats] = useState<ReturnType<typeof summarize> | null>(null);
+
+  const isCustomer = user?.role === "Student" || user?.role === "NormalUser";
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    const token = localStorage.getItem("token");
+    client.setConfig({
+      baseUrl: process.env.NEXT_PUBLIC_API_URL || "https://localhost:5003",
+      ...(token ? { auth: token } : {}),
+    });
+
+    getIdentityCurrentUser({ throwOnError: false })
+      .then((r) => { if (!cancelled && r.data?.isSuccess) setDetails(r.data.value || null); })
+      .catch(() => { /* optional extras only */ });
+
+    if (isCustomer) {
+      getApiLicenses({ throwOnError: false })
+        .then((r) => { if (!cancelled) setLicenseStats(summarize(r.data?.isSuccess ? r.data.value || [] : [])); })
+        .catch(() => { if (!cancelled) setLicenseStats(summarize([])); });
+    }
+    return () => { cancelled = true; };
+  }, [user, isCustomer]);
 
   if (!user) {
     return (
-      <div style={{ display: "flex", height: "100%", alignItems: "center", justifyContent: "center" }}>
-        <div className="spinner"></div>
+      <div className="pf-page">
+        <div className="skeleton" style={{ height: 28, width: 180, marginBottom: "2rem" }} />
+        <div className="skeleton" style={{ height: 128, borderRadius: "var(--radius-lg)", marginBottom: "1.5rem" }} />
+        <div className="skeleton" style={{ height: 240, borderRadius: "var(--radius-lg)" }} />
       </div>
     );
   }
 
-  const handleUpgradeSuccess = () => {
-    setShowUpgradeModal(false);
-    window.location.reload();
-  };
-
   const rc = roleConfig[user.role] || roleConfig.NormalUser;
-  const initials = user.email.substring(0, 2).toUpperCase();
-
-  const copyId = () => {
-    navigator.clipboard.writeText(user.id);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+  const handle = user.email.split("@")[0] || user.email;
+  const initials = handle.replace(/[^a-z0-9]/gi, "").slice(0, 2).toUpperCase() || "?";
 
   return (
-    <div className="dashboard-content">
+    <div className="pf-page">
       <div className="page-header">
         <div className="page-header-left">
-          <h1 className="page-title">My Profile</h1>
-          <p className="page-subtitle">Manage your personal information and account settings.</p>
+          <h1 className="page-title">My profile</h1>
+          <p className="page-subtitle">Your account details and settings.</p>
         </div>
       </div>
 
-      {/* Profile Hero Card */}
-      <div style={{
-        position: "relative",
-        overflow: "hidden",
-        borderRadius: "var(--radius-lg)",
-        background: "var(--bg-surface)",
-        border: "1px solid var(--border)",
-        marginTop: "1.5rem",
-      }}>
-        {/* Banner gradient */}
-        <div style={{
-          height: "140px",
-          background: "linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 50%, #6366f1 100%)",
-          position: "relative",
-        }}>
-          {/* Decorative dots */}
-          <div style={{ position: "absolute", top: "20px", right: "24px", display: "flex", gap: "6px", opacity: 0.3 }}>
-            {Array.from({ length: 12 }).map((_, i) => (
-              <div key={i} style={{ width: "4px", height: "4px", borderRadius: "50%", background: "white" }} />
-            ))}
-          </div>
-          <div style={{ position: "absolute", bottom: "20px", left: "24px", display: "flex", gap: "6px", opacity: 0.2 }}>
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} style={{ width: "3px", height: "3px", borderRadius: "50%", background: "white" }} />
-            ))}
-          </div>
-        </div>
-
-        {/* Avatar + info */}
-        <div style={{ padding: "0 2rem 2rem", position: "relative" }}>
-          {/* Avatar overlapping the banner */}
-          <div style={{
-            width: "100px",
-            height: "100px",
-            borderRadius: "50%",
-            background: "linear-gradient(135deg, var(--accent), var(--accent-light))",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "2.25rem",
-            fontWeight: "800",
-            color: "white",
-            border: "4px solid var(--bg-surface)",
-            marginTop: "-50px",
-            boxShadow: "0 4px 20px rgba(0,0,0,0.25)",
-            letterSpacing: "1px",
-          }}>
-            {initials}
-          </div>
-
-          <div style={{ marginTop: "1rem" }}>
-            <h2 style={{
-              fontSize: "1.5rem",
-              fontWeight: "700",
-              color: "var(--text-primary)",
-              marginBottom: "0.5rem",
-              wordBreak: "break-all",
-            }}>
-              {user.email}
-            </h2>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
-              <span style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "0.35rem",
-                padding: "0.3rem 0.75rem",
-                borderRadius: "20px",
-                fontSize: "0.8rem",
-                fontWeight: "600",
-                color: rc.color,
-                background: rc.bg,
-                border: `1px solid ${rc.color}33`,
-              }}>
-                <span>{rc.icon}</span> {rc.label}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Info Cards Grid */}
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-        gap: "1rem",
-        marginTop: "1.5rem",
-      }}>
-        {/* Account ID card */}
-        <div style={{
-          padding: "1.25rem",
-          background: "var(--bg-surface)",
-          borderRadius: "var(--radius-md)",
-          border: "1px solid var(--border)",
-          display: "flex",
-          flexDirection: "column",
-          gap: "0.5rem",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="m7 11V7a5 5 0 0 1 10 0v4"/>
-            </svg>
-            <span style={{ fontSize: "0.8rem", fontWeight: "500", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>Account ID</span>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <code style={{
-              fontSize: "0.85rem",
-              color: "var(--text-secondary)",
-              fontFamily: "var(--font-mono)",
-              background: "var(--bg-elevated)",
-              padding: "0.35rem 0.6rem",
-              borderRadius: "var(--radius-sm)",
-              flex: 1,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}>
-              {user.id}
-            </code>
-            <button
-              onClick={copyId}
-              title="Copy ID"
-              style={{
-                background: "none",
-                border: "1px solid var(--border)",
-                borderRadius: "var(--radius-sm)",
-                padding: "0.35rem 0.5rem",
-                cursor: "pointer",
-                color: copied ? "var(--success)" : "var(--text-muted)",
-                fontSize: "0.75rem",
-                transition: "all 0.2s",
-                display: "flex",
-                alignItems: "center",
-                gap: "0.25rem",
-              }}
-            >
-              {copied ? (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-              ) : (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Role card */}
-        <div style={{
-          padding: "1.25rem",
-          background: "var(--bg-surface)",
-          borderRadius: "var(--radius-md)",
-          border: "1px solid var(--border)",
-          display: "flex",
-          flexDirection: "column",
-          gap: "0.5rem",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
-            <span style={{ fontSize: "0.8rem", fontWeight: "500", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>Account Role</span>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <span style={{ fontSize: "1.5rem" }}>{rc.icon}</span>
-            <span style={{ fontSize: "1.1rem", fontWeight: "600", color: rc.color }}>{rc.label}</span>
-          </div>
-        </div>
-
-        {/* Email card */}
-        <div style={{
-          padding: "1.25rem",
-          background: "var(--bg-surface)",
-          borderRadius: "var(--radius-md)",
-          border: "1px solid var(--border)",
-          display: "flex",
-          flexDirection: "column",
-          gap: "0.5rem",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
-            </svg>
-            <span style={{ fontSize: "0.8rem", fontWeight: "500", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>Email Address</span>
-          </div>
-          <span style={{
-            fontSize: "0.95rem",
-            fontWeight: "500",
-            color: "var(--text-primary)",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}>
-            {user.email}
+      {/* ---------- Identity ---------- */}
+      <section className="pf-hero">
+        <div className="pf-avatar" aria-hidden="true">{initials}</div>
+        <div className="pf-identity">
+          <h2 className="pf-name">{handle}</h2>
+          <p className="pf-email">{user.email}</p>
+          <span className={`pf-role pf-tone-${rc.tone}`}>
+            <Svg size={13}>{user.role === "Student" ? Icon.cap : isCustomer ? Icon.user : Icon.shield}</Svg>
+            {rc.label}
           </span>
         </div>
-      </div>
+        <button type="button" className="pf-signout" onClick={logout}>
+          <Svg size={15}>{Icon.logout}</Svg>Sign out
+        </button>
+      </section>
 
-      {/* Actions Section */}
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: user.role === "NormalUser" ? "1fr 1fr" : "1fr",
-        gap: "1rem",
-        marginTop: "1.5rem",
-      }}>
-        {/* Session Card */}
-        <div style={{
-          padding: "1.5rem",
-          background: "var(--bg-surface)",
-          borderRadius: "var(--radius-md)",
-          border: "1px solid var(--border)",
-          display: "flex",
-          flexDirection: "column",
-          gap: "1rem",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-            </svg>
-            <h3 style={{ fontSize: "1.05rem", fontWeight: "600", color: "var(--text-primary)", margin: 0 }}>Session</h3>
-          </div>
-          <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", margin: 0, lineHeight: 1.6 }}>
-            You are currently logged in. Signing out will end your current session and require you to log in again.
-          </p>
-          <div>
-            <button
-              onClick={logout}
-              className="btn-danger-ghost"
-              style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem" }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
-              </svg>
-              Sign Out
-            </button>
-          </div>
+      <div className="pf-grid">
+        {/* ---------- Account details ---------- */}
+        <section className="pf-card">
+          <h3 className="pf-card-title">Account details</h3>
+          <dl className="pf-list">
+            <div className="pf-row">
+              <dt><Svg>{Icon.mail}</Svg>Email</dt>
+              <dd>
+                <span className="pf-value">{user.email}</span>
+                <CopyButton value={user.email} label="email" />
+              </dd>
+            </div>
+            <div className="pf-row">
+              <dt><Svg>{Icon.key}</Svg>Account ID</dt>
+              <dd>
+                <code className="pf-value pf-mono">{user.id}</code>
+                <CopyButton value={user.id} label="account ID" />
+              </dd>
+            </div>
+            <div className="pf-row">
+              <dt><Svg>{Icon.phone}</Svg>Phone</dt>
+              <dd><span className={`pf-value ${details?.phoneNumber ? "" : "is-empty"}`}>{details?.phoneNumber || "Not provided"}</span></dd>
+            </div>
+            <div className="pf-row">
+              <dt><Svg>{Icon.pin}</Svg>City</dt>
+              <dd><span className={`pf-value ${details?.city ? "" : "is-empty"}`}>{details?.city || "Not provided"}</span></dd>
+            </div>
+          </dl>
+        </section>
+
+        <div className="pf-side">
+          {/* ---------- Licenses (customers) / role (staff) ---------- */}
+          {isCustomer ? (
+            <section className="pf-card">
+              <div className="pf-card-head">
+                <h3 className="pf-card-title">My licenses</h3>
+                <Link href="/licenses" className="pf-link">View all <Svg size={14}>{Icon.arrow}</Svg></Link>
+              </div>
+              <div className="pf-stats">
+                {[
+                  { label: "Active", value: licenseStats?.active, cls: "is-green" },
+                  { label: `Expiring ≤ ${EXPIRING_DAYS}d`, value: licenseStats?.expiring, cls: licenseStats?.expiring ? "is-amber" : "" },
+                  { label: "Total", value: licenseStats?.total, cls: "" },
+                ].map((s) => (
+                  <div key={s.label} className={`pf-stat ${s.cls}`}>
+                    {licenseStats ? <span className="pf-stat-value">{s.value}</span> : <span className="skeleton pf-stat-skel" />}
+                    <span className="pf-stat-label">{s.label}</span>
+                  </div>
+                ))}
+              </div>
+              {licenseStats?.total === 0 && (
+                <p className="pf-hint">
+                  No licenses yet. <Link href="/products" className="pf-link-inline">Browse the software catalog</Link>
+                </p>
+              )}
+            </section>
+          ) : (
+            <section className="pf-card">
+              <h3 className="pf-card-title">Access level</h3>
+              <div className="pf-access">
+                <span className={`pf-access-icon pf-tone-${rc.tone}`}><Svg size={20}>{Icon.shield}</Svg></span>
+                <div>
+                  <p className="pf-access-role">{rc.label}</p>
+                  <p className="pf-hint">{rc.blurb}</p>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* ---------- Student upgrade ---------- */}
+          {user.role === "NormalUser" && (
+            <section className="pf-card pf-upgrade">
+              <span className="pf-upgrade-icon"><Svg size={20}>{Icon.cap}</Svg></span>
+              <div className="pf-upgrade-body">
+                <h3 className="pf-card-title">Are you a student?</h3>
+                <p className="pf-hint">Verify your <strong>.edu</strong> email to unlock student discounts and special license pricing.</p>
+                <button type="button" className="btn-primary" onClick={() => setShowUpgradeModal(true)}>
+                  Verify student status
+                </button>
+              </div>
+            </section>
+          )}
         </div>
-
-        {/* Upgrade Card */}
-        {user.role === "NormalUser" && (
-          <div style={{
-            padding: "1.5rem",
-            background: "linear-gradient(145deg, rgba(59,130,246,0.08), rgba(99,102,241,0.06))",
-            borderRadius: "var(--radius-md)",
-            border: "1px solid var(--accent-border)",
-            display: "flex",
-            flexDirection: "column",
-            gap: "1rem",
-            position: "relative",
-            overflow: "hidden",
-          }}>
-            {/* Subtle decorative element */}
-            <div style={{
-              position: "absolute",
-              top: "-20px",
-              right: "-20px",
-              width: "100px",
-              height: "100px",
-              borderRadius: "50%",
-              background: "radial-gradient(circle, var(--accent-dim), transparent)",
-              opacity: 0.5,
-            }} />
-
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", position: "relative" }}>
-              <span style={{ fontSize: "1.25rem" }}>🎓</span>
-              <h3 style={{ fontSize: "1.05rem", fontWeight: "600", color: "var(--text-primary)", margin: 0 }}>Upgrade to Student</h3>
-            </div>
-            <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", margin: 0, lineHeight: 1.6, position: "relative" }}>
-              Verify your <strong>.edu</strong> email address to unlock exclusive student discounts and special license pricing.
-            </p>
-            <div style={{ position: "relative" }}>
-              <button
-                onClick={() => setShowUpgradeModal(true)}
-                className="btn-primary"
-                style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem" }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="m18 15-6-6-6 6"/>
-                </svg>
-                Upgrade Now
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
       {showUpgradeModal && (
         <StudentUpgradeModal
           onClose={() => setShowUpgradeModal(false)}
-          onSuccess={handleUpgradeSuccess}
+          onSuccess={() => { setShowUpgradeModal(false); window.location.reload(); }}
         />
       )}
     </div>

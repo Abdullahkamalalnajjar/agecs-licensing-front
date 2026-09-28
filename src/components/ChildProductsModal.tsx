@@ -258,7 +258,7 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
                   
                   <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
                     {prices.map((priceObj, index) => (
-                      <div key={index} style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: "0.5rem", alignItems: "flex-end" }}>
+                      <div key={index} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr auto", gap: "0.5rem", alignItems: "flex-end" }}>
                         <div>
                           <label style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginBottom: "0.2rem", display: "block" }}>Period (number)</label>
                           <input type="number" required className="form-input" style={{ padding: "0.35rem 0.5rem", fontSize: "0.8rem" }} value={priceObj.period} onChange={(e) => {
@@ -277,6 +277,19 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
                             <option value="Day">Day</option>
                             <option value="Month">Month</option>
                             <option value="Year">Year</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginBottom: "0.2rem", display: "block" }}>Country</label>
+                          <select required className="form-input" style={{ padding: "0.35rem 0.5rem", fontSize: "0.8rem", appearance: "auto" }} value={priceObj.country} onChange={(e) => {
+                            const newPrices = [...prices];
+                            newPrices[index].country = e.target.value;
+                            setPrices(newPrices);
+                          }}>
+                            <option value="EG">🇪🇬 EGP (مصر)</option>
+                            <option value="US">🇺🇸 USD (أمريكا)</option>
+                            <option value="SA">🇸🇦 SAR (السعودية)</option>
+                            <option value="II">🌐 Default (دولي)</option>
                           </select>
                         </div>
                         <div>

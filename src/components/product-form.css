@@ -1,0 +1,245 @@
+/* ============================================================
+   PRODUCT FORM MODAL
+   ============================================================ */
+.pf-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.pf-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.pf-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.pf-section-title svg {
+  width: 14px;
+  height: 14px;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.pf-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.pf-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.pf-field-hint {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.pf-custom-family {
+  margin-top: 0.5rem;
+}
+
+.pf-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 0;
+}
+
+/* Pricing tiers card */
+.pf-prices {
+  padding: 1.1rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.pf-prices-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pf-add-price {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.pf-add-price svg {
+  width: 14px;
+  height: 14px;
+}
+
+.pf-prices-empty {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 0.5rem 0;
+  text-align: center;
+}
+
+.pf-prices-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.pf-price-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 0.6rem;
+  align-items: flex-end;
+  padding: 0.65rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.pf-price-row label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.3rem;
+  display: block;
+}
+
+.pf-price-row .form-input {
+  padding: 0.5rem 0.6rem;
+  font-size: 0.85rem;
+}
+
+.pf-price-remove {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.pf-price-remove svg {
+  width: 16px;
+  height: 16px;
+}
+
+.pf-price-remove:hover {
+  background: var(--danger-dim);
+  color: var(--danger);
+}
+
+/* Toggle switches */
+.pf-toggles {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.pf-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  flex: 1 1 160px;
+}
+
+.pf-toggle:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.pf-toggle-switch {
+  position: relative;
+  width: 34px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.pf-toggle-switch input {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+}
+
+.pf-toggle-track {
+  position: absolute;
+  inset: 0;
+  background: var(--border-strong);
+  border-radius: 999px;
+  transition: background 0.18s ease;
+}
+
+.pf-toggle-track::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.18s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.pf-toggle-switch input:checked ~ .pf-toggle-track {
+  background: var(--accent);
+}
+
+.pf-toggle-switch input:checked ~ .pf-toggle-track::before {
+  transform: translateX(14px);
+}
+
+.pf-toggle-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+@media (max-width: 560px) {
+  .pf-row {
+    grid-template-columns: 1fr;
+  }
+
+  .pf-price-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .pf-price-row .pf-price-remove-cell {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: flex-end;
+  }
+}

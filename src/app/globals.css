@@ -271,16 +271,27 @@ a {
   margin: 0 auto;
 }
 
-[data-theme="light"] .brand-logo-img {
-  /* No filter, keep original colors */
+/* Brand logo: two-tone artwork per theme (see BrandLogo.tsx) */
+.brand-logo {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  line-height: 0;
 }
 
-/* In dark/glass mode, invert the dark-colored logo so it shows white on dark navbar */
-[data-theme="dark"] .brand-logo-img,
-[data-theme="dark"] .brand-logo-img {
-  filter: brightness(0) invert(1);
-  opacity: 0.92;
+.brand-logo img {
+  display: block;
+  height: var(--brand-logo-h, 36px);
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
 }
+
+.brand-logo-on-dark { display: none !important; }
+[data-theme="dark"] .brand-logo-on-light { display: none !important; }
+[data-theme="dark"] .brand-logo-on-dark { display: block !important; }
 
 /* ============================================================
    TOP NAVBAR

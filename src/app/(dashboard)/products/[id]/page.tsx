@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { getApiProductsById, deleteApiProductsById, getApiProductsByIdVersions, postApiV1CartsMyCartItems } from "@/client";
 import { client } from "@/client/client.gen";
 import { useRouter, useParams } from "next/navigation";
@@ -9,10 +9,106 @@ import ProductMediaModal from "@/components/ProductMediaModal";
 import ChildProductsModal from "@/components/ChildProductsModal";
 import ProductFeaturesModal from "@/components/ProductFeaturesModal";
 import ProductVersionsModal from "@/components/ProductVersionsModal";
-import { ProductDto, ProductVersionDto } from "@/client/types.gen";
+import type { PayablePriceDto, ProductDto, ProductVersionDto } from "@/client/types.gen";
 import { resolveMediaUrl } from "@/lib/mediaUrl";
 import { useAuth } from "@/components/AuthProvider";
+import { useCurrency, type SupportedCurrency } from "@/context/CurrencyContext";
 import { useToast } from "@/components/ToastProvider";
+import "../products.css";
+import "./product-detail.css";
+
+const priceFmt = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 });
+const dateFmt = (iso?: string) =>
+  iso ? new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "—";
+
+/** Active prices in the selected currency, falling back to Intl, then anything. */
+function pricesFor(product: ProductDto | undefined, currency: SupportedCurrency): PayablePriceDto[] {
+  const all = (product?.prices || []).filter((p) => p.active !== false && p.price != null);
+  const inCurrency = all.filter((p) => p.country === currency);
+  if (inCurrency.length) return inCurrency;
+  const intl = all.filter((p) => p.country === "II");
+  return intl.length ? intl : all;
+}
+
+const cheapest = (prices: PayablePriceDto[]) =>
+  prices.length ? prices.reduce((min, p) => ((p.price ?? 0) < (min.price ?? 0) ? p : min)) : null;
+
+function periodText(period?: number | null, type?: string | null) {
+  const unit = (type || "Year").toLowerCase();
+  const n = period || 1;
+  return n === 1 ? `1 ${unit}` : `${n} ${unit}s`;
+}
+
+function formatBytes(bytes?: number) {
+  if (!bytes) return null;
+  const units = ["B", "KB", "MB", "GB"];
+  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  return `${priceFmt.format(bytes / 1024 ** i)} ${units[i]}`;
+}
+
+const Svg = ({ size = 16, children }: { size?: number; children: React.ReactNode }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{children}</svg>
+);
+
+const Icon = {
+  back: <><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></>,
+  cart: <><circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" /></>,
+  download: <><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></>,
+  edit: <><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></>,
+  trash: <><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></>,
+  check: <path d="M20 6 9 17l-5-5" />,
+  text: <><line x1="21" y1="10" x2="3" y2="10" /><line x1="21" y1="6" x2="3" y2="6" /><line x1="21" y1="14" x2="3" y2="14" /><line x1="15" y1="18" x2="3" y2="18" /></>,
+  notes: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></>,
+  info: <><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></>,
+  features: <><polyline points="9 11 12 14 22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></>,
+  variations: <><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /></>,
+  media: <><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></>,
+  versions: <><circle cx="6" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><path d="M6 9v6" /><path d="M18 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" /><path d="M18 9c0 6-12 3-12 9" /></>,
+  settings: <><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></>,
+};
+
+function Gallery({ product }: { product: ProductDto }) {
+  const media = useMemo(
+    () => [...(product.media || [])].filter((m) => m.url).sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
+    [product.media]
+  );
+  const [active, setActive] = useState(0);
+  const [failed, setFailed] = useState<Record<string, boolean>>({});
+  const current = media[Math.min(active, media.length - 1)];
+
+  return (
+    <div className="pd-gallery">
+      <div className="pd-gallery-main pr-thumb">
+        {current && !failed[current.url!] ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={resolveMediaUrl(current.url!)} alt={product.name || "Product"} onError={() => setFailed((f) => ({ ...f, [current.url!]: true }))} />
+        ) : (
+          <span className="pr-thumb-fallback pd-gallery-fallback" aria-hidden="true">
+            {(product.name || "?").slice(0, 2).toUpperCase()}
+          </span>
+        )}
+      </div>
+      {media.length > 1 && (
+        <div className="pd-gallery-strip" role="tablist" aria-label="Product images">
+          {media.map((m, i) => (
+            <button
+              key={m.id || i}
+              type="button"
+              role="tab"
+              aria-selected={i === active}
+              aria-label={`Image ${i + 1}`}
+              className={`pd-gallery-thumb ${i === active ? "is-active" : ""}`}
+              onClick={() => setActive(i)}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={resolveMediaUrl(m.url!)} alt="" loading="lazy" />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function ProductDetailsPage() {
   const { id } = useParams();
@@ -20,32 +116,17 @@ export default function ProductDetailsPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { success, error: toastError } = useToast();
+  const { currency, currentCurrencyMeta } = useCurrency();
 
   const [product, setProduct] = useState<ProductDto | null>(null);
   const [activeVersions, setActiveVersions] = useState<ProductVersionDto[]>([]);
-  const [isDownloading, setIsDownloading] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedEditionId, setSelectedEditionId] = useState<string | null>(null);
-  const [selectedPeriod, setSelectedPeriod] = useState<number | null>(null);
-
-  useEffect(() => {
-    if (product && product.children && product.children.length > 0) {
-      setSelectedEditionId(product.children[0].id || null);
-    } else {
-      setSelectedEditionId(null);
-    }
-  }, [product]);
-
-  useEffect(() => {
-    const targetProduct = selectedEditionId && product?.children ? product.children.find(c => c.id === selectedEditionId) : product;
-    if (targetProduct && targetProduct.prices && targetProduct.prices.length > 0) {
-      setSelectedPeriod(targetProduct.prices[0].period || 1);
-    } else {
-      setSelectedPeriod(null);
-    }
-  }, [selectedEditionId, product]);
+  const [selectedPriceId, setSelectedPriceId] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
@@ -53,52 +134,70 @@ export default function ProductDetailsPage() {
   const [isFeaturesModalOpen, setIsFeaturesModalOpen] = useState(false);
   const [isVersionsModalOpen, setIsVersionsModalOpen] = useState(false);
 
+  const isAdmin = user != null && user.role !== "Student" && user.role !== "NormalUser";
+
+  const editions = product?.children || [];
+  const target = (selectedEditionId && editions.find((c) => c.id === selectedEditionId)) || product || undefined;
+  const prices = useMemo(
+    () => [...pricesFor(target, currency)].sort((a, b) => (a.price ?? 0) - (b.price ?? 0)),
+    [target, currency]
+  );
+  const currentPrice = prices.find((p) => p.id === selectedPriceId) || prices[0] || null;
+  const features = (target?.features?.length ? target.features : product?.features) || [];
+  const latestVersion = activeVersions[0];
+
   const fetchProduct = useCallback(async () => {
     if (!productId) return;
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-
       client.setConfig({
-        baseUrl: (process.env.NEXT_PUBLIC_API_URL || "https://localhost:5003"),
+        baseUrl: process.env.NEXT_PUBLIC_API_URL || "https://localhost:5003",
         ...(token ? { auth: token } : {}),
       });
 
       const response = await getApiProductsById({ path: { id: productId }, throwOnError: false });
       if (response.data?.isSuccess) {
-        setProduct(response.data.value || null);
-        
+        const loaded = response.data.value || null;
+        setProduct(loaded);
+        // Keep the chosen edition across refreshes if it still exists
+        setSelectedEditionId((prev) =>
+          loaded?.children?.some((c) => c.id === prev) ? prev : loaded?.children?.[0]?.id || null
+        );
         try {
           const versionsResp = await getApiProductsByIdVersions({ path: { id: productId }, query: { onlyActive: true }, throwOnError: false });
-          if (versionsResp.data?.isSuccess) {
-            setActiveVersions(versionsResp.data.value || []);
-          }
+          if (versionsResp.data?.isSuccess) setActiveVersions(versionsResp.data.value || []);
         } catch (e) {
           console.error("Failed to fetch versions", e);
         }
       } else if (response.error || response.data?.isError) {
         setError(response.data?.errors?.map((e) => e.description).join(", ") || "Failed to load product.");
       }
-    } catch (err: any) {
-      setError(err.message || "An error occurred.");
+    } catch (err) {
+      setError((err instanceof Error && err.message) || "An error occurred.");
     } finally {
       setLoading(false);
     }
-  }, [productId, router]);
+  }, [productId]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchProduct(); }, [fetchProduct]);
 
   const handleDelete = async () => {
-    if (!confirm("Are you sure you want to delete this product?")) return;
+    setIsDeleting(true);
     try {
       const response = await deleteApiProductsById({ path: { id: productId! }, throwOnError: false });
       if (response.data?.isSuccess) {
+        success("Product deleted.");
         router.push("/products");
       } else {
-        toastError(response.data?.errors?.map((e: any) => e.description).join(", ") || "Failed to delete.");
+        toastError(response.data?.errors?.map((e) => e.description).join(", ") || "Failed to delete.");
       }
-    } catch (err: any) {
-      toastError(err.message || "Error deleting product.");
+    } catch (err) {
+      toastError((err instanceof Error && err.message) || "Error deleting product.");
+    } finally {
+      setIsDeleting(false);
+      setConfirmDelete(false);
     }
   };
 
@@ -116,18 +215,13 @@ export default function ProductDetailsPage() {
       router.push("/login");
       return;
     }
-    if (activeVersions.length === 0) return;
-    const versionToDownload = activeVersions[0];
-    if (versionToDownload.id) {
-      const baseUrl = client.getConfig().baseUrl || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5004";
-      // Ensure baseUrl does not end with a slash if we append /api
-      const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
-      const downloadUrl = `${cleanBaseUrl}/api/products/${productId}/versions/${versionToDownload.id}/download`;
-      window.open(downloadUrl, '_blank');
-    }
+    if (!latestVersion?.id) return;
+    const baseUrl = client.getConfig().baseUrl || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5004";
+    const cleanBaseUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
+    window.open(`${cleanBaseUrl}/api/products/${productId}/versions/${latestVersion.id}/download`, "_blank");
   };
 
-    const handleAddToCart = async () => {
+  const handleAddToCart = async () => {
     if (!productId) return;
     if (!user) {
       router.push("/login");
@@ -135,472 +229,296 @@ export default function ProductDetailsPage() {
     }
     try {
       setIsAddingToCart(true);
-      const targetId = selectedEditionId || productId;
-      
       const res = await postApiV1CartsMyCartItems({
         body: {
           itemType: "Product",
-          itemId: targetId as string,
+          itemId: (selectedEditionId || productId) as string,
           quantity: 1,
-          period: selectedPeriod || 12
+          period: currentPrice?.period || 12,
         },
-        throwOnError: false
+        throwOnError: false,
       });
-      
-      if (res.error || (res.data as any)?.isError) {
-        const errs = (res.data as any)?.errors;
-        toastError(errs?.map((e: any) => e.description).join(", ") || "Failed to add to cart");
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = res.data as any;
+      if (res.error || data?.isError) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        toastError(data?.errors?.map((e: any) => e.description).join(", ") || "Failed to add to cart");
       } else {
         success("Added to cart successfully!");
         window.dispatchEvent(new Event("cartUpdated"));
       }
-    } catch (e: any) {
-      toastError("Error adding to cart: " + e.message);
+    } catch (e) {
+      toastError("Error adding to cart: " + (e instanceof Error ? e.message : String(e)));
     } finally {
       setIsAddingToCart(false);
     }
   };
 
+  const formatMoney = (n: number) =>
+    currentCurrencyMeta.symbol === "$" ? `$${priceFmt.format(n)}` : `${priceFmt.format(n)} ${currentCurrencyMeta.symbol}`;
+
   if (loading) {
     return (
-      <div style={{ padding: "2rem", maxWidth: "1200px", margin: "0 auto" }}>
-        <div className="skeleton" style={{ height: "400px", borderRadius: "var(--radius-lg)" }}></div>
+      <div className="pr-page pd-page">
+        <div className="skeleton" style={{ height: 14, width: 160, marginBottom: "1.25rem" }} />
+        <div className="pd-hero">
+          <div className="skeleton" style={{ aspectRatio: "1 / 1", borderRadius: "var(--radius-lg)" }} />
+          <div className="pd-info">
+            <div className="skeleton" style={{ height: 12, width: "30%" }} />
+            <div className="skeleton" style={{ height: 32, width: "65%" }} />
+            <div className="skeleton" style={{ height: 14, width: "85%" }} />
+            <div className="skeleton" style={{ height: 70, width: "100%", marginTop: "1rem" }} />
+            <div className="skeleton" style={{ height: 44, width: "50%" }} />
+          </div>
+        </div>
       </div>
     );
   }
 
   if (error || !product) {
     return (
-      <div style={{ padding: "2rem", maxWidth: "1200px", margin: "0 auto", textAlign: "center" }}>
-        <h2 style={{ color: "var(--danger)" }}>{error || "Product not found"}</h2>
-        <Link href="/products" className="btn btn-primary" style={{ marginTop: "1rem" }}>Back to Products</Link>
+      <div className="pr-page pd-page">
+        <div className="pr-panel">
+          <div className="empty-state">
+            <svg className="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">{Icon.info}</svg>
+            <p className="empty-state-title">{error ? "Couldn't load this product" : "Product not found"}</p>
+            {error && <p className="empty-state-sub">{error}</p>}
+            <Link href="/products" className="btn-primary" style={{ marginTop: "1rem" }}>Back to products</Link>
+          </div>
+        </div>
       </div>
     );
   }
 
+  const company = product.company === "NanoCAD" ? "NanoCAD" : "AGECS";
+  const onSale = currentPrice?.originalPrice != null && currentPrice.originalPrice > (currentPrice.price ?? 0);
+  const salePct = onSale ? Math.round((1 - (currentPrice!.price ?? 0) / currentPrice!.originalPrice!) * 100) : 0;
+  const canBuy = !isAdmin && !product.comingSoon && !!currentPrice;
+
   return (
-    <div style={{ maxWidth: "1200px", margin: "0 auto", animation: "fadeIn 0.4s ease" }}>
-      
-      {/* ── Hero Banner ─────────────────────────────────── */}
-      <div className="product-hero-banner" style={{
-        background: "linear-gradient(135deg, #0a1628 0%, #1949a1 50%, #0d2e6b 100%)",
-        borderRadius: "var(--radius-xl)",
-        padding: "2.5rem 3rem",
-        marginBottom: "2rem",
-        position: "relative",
-        overflow: "hidden",
-        display: "flex",
-        alignItems: "center",
-        gap: "3rem",
-        minHeight: "300px",
-      }}>
-        {/* Decorative elements */}
-        <div style={{
-          position: "absolute", top: "-60px", right: "-60px",
-          width: "280px", height: "280px",
-          background: "radial-gradient(circle, rgba(254,192,16,0.15) 0%, transparent 70%)",
-          borderRadius: "50%", pointerEvents: "none",
-        }} />
-        <div style={{
-          position: "absolute", bottom: "-40px", left: "30%",
-          width: "200px", height: "200px",
-          background: "radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%)",
-          borderRadius: "50%", pointerEvents: "none",
-        }} />
-        <div style={{
-          position: "absolute", inset: 0,
-          backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px)",
-          backgroundSize: "28px 28px", pointerEvents: "none",
-        }} />
-
-        {/* Back button */}
-        <Link href="/products" style={{
-          position: "absolute", top: "1.25rem", left: "1.25rem",
-          width: "36px", height: "36px", borderRadius: "50%",
-          background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.2)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          color: "#fff", transition: "all 0.2s ease",
-        }}
-        onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.25)"; }}
-        onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; }}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="19" y1="12" x2="5" y2="12"></line>
-            <polyline points="12 19 5 12 12 5"></polyline>
-          </svg>
+    <div className="pr-page pd-page">
+      <nav className="pd-crumbs" aria-label="Breadcrumb">
+        <Link href="/products" className="pd-back">
+          <Svg size={15}>{Icon.back}</Svg>
+          {isAdmin ? "Products" : "Software catalog"}
         </Link>
+        <span aria-hidden="true">/</span>
+        <span className="pd-crumb-current">{product.name}</span>
+      </nav>
 
-        {/* Product Image */}
-        <div className="product-hero-image" style={{
-          width: "220px", height: "220px", flexShrink: 0,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          position: "relative",
-        }}>
-          {product.media && product.media.length > 0 && product.media[0].url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={resolveMediaUrl(product.media[0].url)}
-              alt={product.name || "Product"}
-              style={{
-                maxHeight: "200px", maxWidth: "100%", objectFit: "contain",
-                filter: "drop-shadow(0 20px 40px rgba(0,0,0,0.5))",
-                transition: "transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
-              }}
-              onMouseEnter={(e) => { (e.target as HTMLImageElement).style.transform = "scale(1.08) rotate(-2deg)"; }}
-              onMouseLeave={(e) => { (e.target as HTMLImageElement).style.transform = "scale(1)"; }}
-            />
-          ) : (
-            <div style={{
-              width: 140, height: 140,
-              background: "linear-gradient(135deg, rgba(254,192,16,0.3) 0%, rgba(25,73,161,0.3) 100%)",
-              borderRadius: "var(--radius-xl)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              border: "1px solid rgba(255,255,255,0.15)",
-            }}>
-              <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>
-              </svg>
-            </div>
-          )}
-        </div>
+      {/* ---------- Hero ---------- */}
+      <section className="pd-hero">
+        <Gallery product={product} />
 
-        {/* Product Info */}
-        <div style={{ flex: 1, position: "relative", zIndex: 1 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.75rem" }}>
-            <span style={{
-              background: "rgba(59,130,246,0.15)", color: "#3b82f6",
-              padding: "0.25rem 0.75rem", borderRadius: "99px",
-              fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.05em",
-              textTransform: "uppercase", border: "1px solid rgba(59,130,246,0.3)",
-            }}>
-              {product.company === "NanoCAD" ? "NanoCAD" : "AGECS"}
-            </span>
-            {product.family && (
-              <span style={{
-                background: "rgba(254,192,16,0.2)", color: "#fec010",
-                padding: "0.25rem 0.75rem", borderRadius: "99px",
-                fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.05em",
-                textTransform: "uppercase", border: "1px solid rgba(254,192,16,0.3)",
-              }}>
-                {product.family}
-              </span>
-            )}
-            {product.comingSoon && (
-              <span style={{
-                background: "rgba(251,191,36,0.15)", color: "#fbbf24",
-                padding: "0.25rem 0.75rem", borderRadius: "99px",
-                fontSize: "0.75rem", fontWeight: 700,
-              }}>
-                Coming Soon
-              </span>
-            )}
+        <div className="pd-info">
+          <div className="pr-card-meta">
+            <span>{company}</span>
+            {product.family && <><span aria-hidden="true">·</span><span>{product.family}</span></>}
           </div>
 
-          <h1 style={{
-            margin: "0 0 0.5rem", fontSize: "2.25rem", fontWeight: 800,
-            color: "#ffffff", letterSpacing: "-0.5px", lineHeight: 1.2,
-          }}>
-            {product.name}
-          </h1>
-          {product.fullName && product.fullName !== product.name && (
-            <p style={{ margin: "0 0 1.25rem", fontSize: "1rem", color: "rgba(255,255,255,0.6)", fontWeight: 500 }}>
-              {product.fullName}
-            </p>
+          <h1 className="pd-title">{product.name}</h1>
+          {product.fullName && product.fullName !== product.name && <p className="pd-fullname">{product.fullName}</p>}
+
+          <div className="pr-badges">
+            {product.version && <span className="pr-version">v{product.version}</span>}
+            {product.comingSoon && <span className="pr-badge pr-badge-soon">Coming soon</span>}
+            {isAdmin && (
+              <span className={`pr-badge ${product.hidden ? "pr-badge-hidden" : "pr-badge-visible"}`}>
+                <span className="pr-dot" />{product.hidden ? "Hidden" : "Visible"}
+              </span>
+            )}
+            {onSale && <span className="pr-badge pr-badge-sale">−{salePct}%</span>}
+          </div>
+
+          {product.miniDescription && <p className="pd-lead">{product.miniDescription}</p>}
+
+          {/* Editions */}
+          {editions.length > 0 && (
+            <div className="pd-field">
+              <span className="pd-label">Edition</span>
+              <div className="pd-editions" role="radiogroup" aria-label="Edition">
+                {editions.map((child) => {
+                  const from = cheapest(pricesFor(child, currency));
+                  const isSelected = child.id === selectedEditionId;
+                  return (
+                    <button
+                      key={child.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={isSelected}
+                      className={`pd-edition ${isSelected ? "is-active" : ""}`}
+                      onClick={() => { setSelectedEditionId(child.id!); setSelectedPriceId(null); }}
+                    >
+                      <span className="pd-edition-radio" aria-hidden="true" />
+                      <span className="pd-edition-name">{child.name}</span>
+                      <span className="pd-edition-price">{from ? `from ${formatMoney(from.price ?? 0)}` : "No pricing"}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           )}
 
-          {/* Pricing & Variants directly in Hero */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-            
-            {/* Editions Selector (if children exist) */}
-            {product.children && product.children.length > 0 && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                <span style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.7)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "1px" }}>Select Edition</span>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
-                  {product.children.map(child => {
-                    const cPrice = child.prices && child.prices.length > 0 ? child.prices[0] : null;
-                    const isSelected = selectedEditionId === child.id;
-                    return (
-                      <button 
-                        key={child.id}
-                        onClick={() => setSelectedEditionId(child.id!)}
-                        style={{
-                          padding: "0.6rem 1rem",
-                          borderRadius: "var(--radius-md)",
-                          border: isSelected ? "2px solid #fec010" : "1px solid rgba(255,255,255,0.2)",
-                          background: isSelected ? "rgba(254,192,16,0.15)" : "rgba(255,255,255,0.05)",
-                          color: isSelected ? "#fec010" : "#fff",
-                          fontWeight: 600, cursor: "pointer", transition: "all 0.2s ease",
-                          display: "flex", alignItems: "center", gap: "0.5rem"
-                        }}
-                      >
-                        {child.name}
-                        {cPrice && <span style={{ opacity: isSelected ? 1 : 0.7, fontSize: "0.85rem", fontWeight: 700 }}>${cPrice.price}</span>}
-                      </button>
-                    );
-                  })}
-                </div>
+          {/* Billing period */}
+          {prices.length > 1 && (
+            <div className="pd-field">
+              <span className="pd-label">License period</span>
+              <div className="pr-segment pd-periods" role="radiogroup" aria-label="License period">
+                {prices.map((p, i) => (
+                  <button
+                    key={p.id || i}
+                    type="button"
+                    role="radio"
+                    aria-checked={p === currentPrice}
+                    className={p === currentPrice ? "is-active" : ""}
+                    onClick={() => setSelectedPriceId(p.id || null)}
+                  >
+                    {periodText(p.period, p.periodType)}
+                  </button>
+                ))}
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Price + Actions */}
-            <div style={{ display: "flex", alignItems: "center", gap: "1.5rem", flexWrap: "wrap" }}>
-              {(() => {
-                const currentProduct = (selectedEditionId && product.children) ? product.children.find(c => c.id === selectedEditionId) || product : product;
-                const currentPrice = currentProduct.prices?.find(p => p.period === selectedPeriod) || (currentProduct.prices && currentProduct.prices.length > 0 ? currentProduct.prices[0] : null);
-                return (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                    {/* Period selection chips if there are multiple prices */}
-                    {currentProduct.prices && currentProduct.prices.length > 1 && (
-                      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                        {currentProduct.prices.map((p, idx) => (
-                          <button
-                            key={p.id || idx}
-                            onClick={() => setSelectedPeriod(p.period || 1)}
-                            style={{
-                              padding: "0.3rem 0.75rem",
-                              borderRadius: "var(--radius-sm)",
-                              border: selectedPeriod === p.period ? "1px solid #fec010" : "1px solid rgba(255,255,255,0.2)",
-                              background: selectedPeriod === p.period ? "rgba(254,192,16,0.15)" : "rgba(255,255,255,0.05)",
-                              color: selectedPeriod === p.period ? "#fec010" : "#fff",
-                              fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", transition: "all 0.2s ease",
-                            }}
-                          >
-                            {p.period} Days
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    <div style={{
-                      background: "rgba(255,255,255,0.1)", backdropFilter: "blur(8px)",
-                      border: "1px solid rgba(255,255,255,0.15)", borderRadius: "var(--radius-lg)",
-                      padding: "0.75rem 1.25rem", display: "flex", alignItems: "baseline", gap: "0.4rem",
-                    }}>
-                      <span style={{ fontSize: "1.75rem", fontWeight: 800, color: "#fec010", fontFamily: "var(--font-mono)" }}>
-                        ${currentPrice ? (currentPrice.price || 0).toFixed(2) : "0.00"}
-                      </span>
-                      <span style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.5)", fontWeight: 500 }}>
-                        / {currentPrice ? currentPrice.period : 1} days
-                      </span>
-                    </div>
-                  </div>
-                );
-              })()}
+          {/* Price + actions */}
+          <div className="pd-buy">
+            <div className="pd-price">
+              {currentPrice ? (
+                <>
+                  <span className="pd-price-row">
+                    <strong>{formatMoney(currentPrice.price ?? 0)}</strong>
+                    {onSale && <s>{formatMoney(currentPrice.originalPrice!)}</s>}
+                  </span>
+                  <small>
+                    for {periodText(currentPrice.period, currentPrice.periodType)}
+                    {product.withTaxes === false ? " · excl. taxes" : product.withTaxes ? " · incl. taxes" : ""}
+                  </small>
+                </>
+              ) : (
+                <span className="pr-muted">{product.comingSoon ? "Pricing announced at launch" : "Pricing not available"}</span>
+              )}
+            </div>
 
-              {(user == null || user.role === "Student" || user.role === "NormalUser") ? (
-                <div style={{ display: "flex", gap: "0.75rem" }}>
-                  {activeVersions.length > 0 && (
-                    <button style={{
-                      display: "flex", alignItems: "center", gap: "0.5rem",
-                      padding: "0.7rem 1.5rem", borderRadius: "var(--radius-md)",
-                      background: "rgba(16, 185, 129, 0.15)", color: "#34d399",
-                      border: "1px solid rgba(16, 185, 129, 0.3)",
-                      fontWeight: 600, cursor: "pointer", fontSize: "0.9rem",
-                      transition: "all 0.2s ease",
-                    }}
-                    onClick={handleDownload}
-                    onMouseEnter={e => { e.currentTarget.style.background = "#10b981"; e.currentTarget.style.color = "#fff"; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = "rgba(16, 185, 129, 0.15)"; e.currentTarget.style.color = "#34d399"; }}
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                      Download
+            <div className="pd-actions">
+              {isAdmin ? (
+                <>
+                  <button type="button" className="btn-primary" onClick={() => setIsFormModalOpen(true)}>
+                    <Svg size={15}>{Icon.edit}</Svg>Edit product
+                  </button>
+                  {confirmDelete ? (
+                    <span className="pd-confirm">
+                      <span className="pr-muted">Delete this product?</span>
+                      <button type="button" className="pd-btn pd-btn-danger" onClick={handleDelete} disabled={isDeleting}>
+                        {isDeleting ? "Deleting…" : "Delete"}
+                      </button>
+                      <button type="button" className="pd-btn" onClick={() => setConfirmDelete(false)}>Cancel</button>
+                    </span>
+                  ) : (
+                    <button type="button" className="pd-btn pd-btn-danger-ghost" onClick={() => setConfirmDelete(true)}>
+                      <Svg size={15}>{Icon.trash}</Svg>Delete
                     </button>
                   )}
-                  <button style={{
-                    display: "flex", alignItems: "center", gap: "0.5rem",
-                    padding: "0.7rem 1.5rem", borderRadius: "var(--radius-md)",
-                    background: "#fec010", color: "#0a1628",
-                    border: "none", fontWeight: 700, cursor: "pointer", fontSize: "0.9rem",
-                    transition: "all 0.2s ease", boxShadow: "0 4px 16px rgba(254,192,16,0.35)",
-                  }}
-                  disabled={isAddingToCart}
-                  onClick={handleAddToCart}
-                  onMouseEnter={e => { if(!isAddingToCart) { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 6px 20px rgba(254,192,16,0.45)"; } }}
-                  onMouseLeave={e => { if(!isAddingToCart) { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "0 4px 16px rgba(254,192,16,0.35)"; } }}
-                  >
-                    {isAddingToCart ? (
-                      <span>Adding...</span>
-                    ) : (
-                      <>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
-                        Add to Cart
-                      </>
-                    )}
-                  </button>
-                </div>
+                </>
               ) : (
-              <div style={{ display: "flex", gap: "0.75rem" }}>
-                <button onClick={() => setIsFormModalOpen(true)} style={{
-                  display: "flex", alignItems: "center", gap: "0.5rem",
-                  padding: "0.7rem 1.5rem", borderRadius: "var(--radius-md)",
-                  background: "rgba(255,255,255,0.12)", color: "#fff",
-                  border: "1px solid rgba(255,255,255,0.2)",
-                  fontWeight: 600, cursor: "pointer", fontSize: "0.9rem",
-                  transition: "all 0.2s ease",
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.22)"; }}
-                onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; }}
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                  Edit
-                </button>
-                <button onClick={handleDelete} style={{
-                  display: "flex", alignItems: "center", gap: "0.5rem",
-                  padding: "0.7rem 1.5rem", borderRadius: "var(--radius-md)",
-                  background: "rgba(239,68,68,0.15)", color: "#f87171",
-                  border: "1px solid rgba(239,68,68,0.3)",
-                  fontWeight: 600, cursor: "pointer", fontSize: "0.9rem",
-                  transition: "all 0.2s ease",
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = "#ef4444"; e.currentTarget.style.color = "#fff"; }}
-                onMouseLeave={e => { e.currentTarget.style.background = "rgba(239,68,68,0.15)"; e.currentTarget.style.color = "#f87171"; }}
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                  Delete
-                </button>
-              </div>
+                <>
+                  <button type="button" className="btn-primary pd-btn-lg" onClick={handleAddToCart} disabled={!canBuy || isAddingToCart}>
+                    <Svg>{Icon.cart}</Svg>
+                    {isAddingToCart ? "Adding…" : product.comingSoon ? "Coming soon" : "Add to cart"}
+                  </button>
+                  {latestVersion && (
+                    <button type="button" className="pd-btn pd-btn-lg" onClick={handleDownload}>
+                      <Svg>{Icon.download}</Svg>Download
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+            {!isAdmin && latestVersion && (
+              <p className="pd-buy-note">
+                Latest release v{latestVersion.versionNumber}
+                {formatBytes(latestVersion.fileSizeBytes) && ` · ${formatBytes(latestVersion.fileSizeBytes)}`}
+                {!user && " · sign in to download"}
+              </p>
             )}
           </div>
-          </div>
         </div>
-      </div>
+      </section>
 
-      {/* ── Content Grid ──────────────────────────────── */}
-      <div className="product-content-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "2rem" }}>
-        
-        {/* Description Card */}
-        <div style={{
-          background: "var(--bg-surface)", border: "1px solid var(--border)",
-          borderRadius: "var(--radius-xl)", padding: "1.75rem",
-          gridColumn: "1 / -1",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
-            <div style={{
-              width: "32px", height: "32px", borderRadius: "8px",
-              background: "var(--accent-dim)", color: "var(--accent)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="21" y1="10" x2="3" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="21" y1="18" x2="3" y2="18"></line></svg>
-            </div>
-            <h3 style={{ margin: 0, fontSize: "1.05rem", fontWeight: 700, color: "var(--text-primary)" }}>Description</h3>
-          </div>
-          <p style={{ margin: 0, fontSize: "0.95rem", color: "var(--text-secondary)", lineHeight: 1.7 }}>
-            {product.description || <span style={{ fontStyle: "italic", opacity: 0.6 }}>No description provided.</span>}
-          </p>
-        </div>
-
-        {/* Quick Stats Cards */}
-        {(user != null && user.role !== "Student" && user.role !== "NormalUser") && (
-          <div style={{
-            background: "var(--bg-surface)", border: "1px solid var(--border)",
-            borderRadius: "var(--radius-xl)", padding: "1.75rem",
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1.25rem" }}>
-              <div style={{
-                width: "32px", height: "32px", borderRadius: "8px",
-                background: "var(--accent-dim)", color: "var(--accent)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20v-6M6 20V10M18 20V4"/></svg>
-              </div>
-              <h3 style={{ margin: 0, fontSize: "1.05rem", fontWeight: 700, color: "var(--text-primary)" }}>Quick Stats</h3>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.6rem 0", borderBottom: "1px solid var(--border)" }}>
-                <span style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>Visibility</span>
-                {product.hidden 
-                  ? <span className="badge badge-neutral" style={{ padding: "0.25rem 0.6rem" }}>Hidden</span>
-                  : <span className="badge badge-success" style={{ padding: "0.25rem 0.6rem" }}>Visible</span>
-                }
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.6rem 0", borderBottom: "1px solid var(--border)" }}>
-                <span style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>Company</span>
-                <span style={{ fontWeight: 600, fontSize: "0.9rem" }}>{product.company === "NanoCAD" ? "NanoCAD" : "AGECS"}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.6rem 0", borderBottom: "1px solid var(--border)" }}>
-                <span style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>Version</span>
-                <span style={{ fontWeight: 600, fontSize: "0.9rem" }}>{product.version || "—"}</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Release Notes */}
-        {activeVersions.length > 0 && activeVersions[0].releaseNotes && (
-          <div style={{
-            background: "var(--bg-surface)", border: "1px solid var(--border)",
-            borderRadius: "var(--radius-xl)", padding: "1.75rem",
-            ...((user == null || user.role === "Student" || user.role === "NormalUser") ? { gridColumn: "1 / -1" } : {}),
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
-              <div style={{
-                width: "32px", height: "32px", borderRadius: "8px",
-                background: "rgba(254,192,16,0.12)", color: "#fec010",
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
-              </div>
-              <h3 style={{ margin: 0, fontSize: "1.05rem", fontWeight: 700, color: "var(--text-primary)" }}>
-                What&apos;s New in v{activeVersions[0].versionNumber}
-              </h3>
-            </div>
-            <p style={{ margin: 0, fontSize: "0.95rem", color: "var(--text-secondary)", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>
-              {activeVersions[0].releaseNotes}
-            </p>
-          </div>
-        )}
-      </div>
-
-
-      {/* ── Management Section (Admin only) ────────── */}
-      {(user != null && user.role !== "Student" && user.role !== "NormalUser") && (
-        <div style={{
-          background: "var(--bg-surface)", border: "1px solid var(--border)",
-          borderRadius: "var(--radius-xl)", padding: "2rem", marginBottom: "2rem",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1.5rem" }}>
-            <div style={{
-              width: "32px", height: "32px", borderRadius: "8px",
-              background: "var(--accent-dim)", color: "var(--accent)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-            </div>
-            <h3 style={{ margin: 0, fontSize: "1.05rem", fontWeight: 700, color: "var(--text-primary)" }}>Management</h3>
-          </div>
-          
-          <div className="product-management-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
-            {[
-              { label: "Variants", count: product.children?.length || 0, onClick: () => setIsChildrenModalOpen(true), icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6"/></svg> },
-              { label: "Media", count: product.media?.length || 0, onClick: () => setIsMediaModalOpen(true), icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg> },
-              { label: "Features", count: product.features?.length || 0, onClick: () => setIsFeaturesModalOpen(true), icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg> },
-              { label: "Versions", count: activeVersions.length || 0, onClick: () => setIsVersionsModalOpen(true), icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> },
-            ].map(item => (
-              <button key={item.label} onClick={item.onClick} style={{
-                background: "var(--bg-elevated)", border: "1px solid var(--border)",
-                padding: "1.25rem", borderRadius: "var(--radius-lg)",
-                display: "flex", alignItems: "center", gap: "1rem",
-                cursor: "pointer", transition: "all 0.25s ease",
-                textAlign: "left",
-              }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.12)"; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "none"; }}
-              >
-                <div style={{
-                  width: "42px", height: "42px", borderRadius: "10px",
-                  background: "var(--accent-dim)", color: "var(--accent)",
-                  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                }}>
-                  {item.icon}
-                </div>
-                <div>
-                  <div style={{ fontSize: "1.35rem", fontWeight: 800, color: "var(--text-primary)", lineHeight: 1 }}>{item.count}</div>
-                  <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "0.25rem", fontWeight: 500 }}>{item.label}</div>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
+      {/* ---------- Admin management ---------- */}
+      {isAdmin && (
+        <section className="pd-manage" aria-label="Manage product">
+          {[
+            { label: "Variations", count: editions.length, tone: "green", icon: Icon.variations, onClick: () => setIsChildrenModalOpen(true) },
+            { label: "Media", count: product.media?.length || 0, tone: "purple", icon: Icon.media, onClick: () => setIsMediaModalOpen(true) },
+            { label: "Features", count: product.features?.length || 0, tone: "accent", icon: Icon.features, onClick: () => setIsFeaturesModalOpen(true) },
+            { label: "Active versions", count: activeVersions.length, tone: "amber", icon: Icon.versions, onClick: () => setIsVersionsModalOpen(true) },
+          ].map((item) => (
+            <button key={item.label} type="button" className={`pd-manage-tile pr-tone-${item.tone}`} onClick={item.onClick}>
+              <span className="pd-manage-icon"><Svg size={18}>{item.icon}</Svg></span>
+              <span className="pd-manage-text">
+                <span className="pd-manage-count">{item.count}</span>
+                <span className="pd-manage-label">{item.label}</span>
+              </span>
+              <span className="pd-manage-go" aria-hidden="true">Manage →</span>
+            </button>
+          ))}
+        </section>
       )}
+
+      {/* ---------- Content ---------- */}
+      <div className="pd-content">
+        <div className="pd-main">
+          <section className="pd-card">
+            <h2 className="pd-card-title"><Svg>{Icon.text}</Svg>Overview</h2>
+            {product.description
+              ? <p className="pd-prose">{product.description}</p>
+              : <p className="pr-muted">No description provided.</p>}
+          </section>
+
+          {latestVersion?.releaseNotes && (
+            <section className="pd-card">
+              <h2 className="pd-card-title">
+                <Svg>{Icon.notes}</Svg>What&apos;s new in v{latestVersion.versionNumber}
+                <span className="pd-card-aside">{dateFmt(latestVersion.createdAtUtc)}</span>
+              </h2>
+              <p className="pd-prose">{latestVersion.releaseNotes}</p>
+            </section>
+          )}
+        </div>
+
+        <aside className="pd-side">
+          <section className="pd-card">
+            <h2 className="pd-card-title"><Svg>{Icon.info}</Svg>Details</h2>
+            <dl className="pd-specs">
+              <div><dt>Publisher</dt><dd>{company}</dd></div>
+              {product.family && <div><dt>Family</dt><dd>{product.family}</dd></div>}
+              <div><dt>Version</dt><dd>{latestVersion?.versionNumber || product.version || "—"}</dd></div>
+              {editions.length > 0 && <div><dt>Editions</dt><dd>{editions.length}</dd></div>}
+              {formatBytes(latestVersion?.fileSizeBytes) && <div><dt>Download size</dt><dd>{formatBytes(latestVersion?.fileSizeBytes)}</dd></div>}
+              {isAdmin && <div><dt>Created</dt><dd>{dateFmt(product.createdAtUtc)}</dd></div>}
+              {isAdmin && product.lastModifiedUtc && <div><dt>Last updated</dt><dd>{dateFmt(product.lastModifiedUtc)}</dd></div>}
+            </dl>
+          </section>
+
+          {features.length > 0 && (
+            <section className="pd-card">
+              <h2 className="pd-card-title">
+                <Svg>{Icon.features}</Svg>Included features
+                <span className="pd-card-aside">{features.length}</span>
+              </h2>
+              <ul className="pd-features">
+                {features.map((f, i) => (
+                  <li key={f.id || i}>
+                    <span className="pd-feature-check"><Svg size={12}>{Icon.check}</Svg></span>
+                    {f.featureName || "Unnamed feature"}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </aside>
+      </div>
 
       {isFormModalOpen && (
         <ProductFormModal initialData={product} onClose={() => setIsFormModalOpen(false)} onSuccess={handleModalSuccess} />

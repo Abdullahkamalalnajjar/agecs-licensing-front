@@ -1,0 +1,182 @@
+/* ============================================================
+   LICENSES PAGE (builds on ../products/products.css)
+   ============================================================ */
+.lc-page { animation: fadeIn 0.3s ease; }
+
+.lc-label {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Stat accents */
+.lc-stat-active .pr-stat-value { color: var(--pr-green); }
+.lc-stat-expiring .pr-stat-value { color: var(--pr-amber); }
+.lc-stat-expired .pr-stat-value { color: var(--pr-red); }
+.pr-stat:disabled { cursor: default; }
+
+.lc-badge-expired { color: var(--pr-red); background: var(--pr-red-dim); }
+
+/* ---------- Serial ---------- */
+.lc-serial {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  max-width: 170px;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--pr-border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+[data-theme="dark"] .lc-serial { background: rgba(255, 255, 255, 0.06); }
+.lc-serial svg { flex-shrink: 0; opacity: 0.7; }
+.lc-serial:hover, .lc-serial:focus-visible { color: var(--accent); border-color: var(--accent-border); outline: none; }
+[data-theme="dark"] .lc-serial:hover, [data-theme="dark"] .lc-serial:focus-visible { color: #7fb0ff; }
+.lc-serial.is-copied { color: var(--pr-green); border-color: var(--pr-green); background: var(--pr-green-dim); }
+.lc-serial.is-copied svg { opacity: 1; }
+
+.lc-serial-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.lc-serial.is-full {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  max-width: none;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+}
+
+.lc-serial.is-full .lc-serial-text { white-space: normal; overflow-wrap: anywhere; text-align: left; }
+
+/* ---------- Expiry ---------- */
+.lc-expiry { display: inline-flex; flex-direction: column; gap: 0.1rem; font-variant-numeric: tabular-nums; }
+.lc-expiry-date { font-size: 0.85rem; font-weight: 600; color: var(--text-primary); }
+.lc-expiry-left { font-size: 0.72rem; color: var(--text-muted); }
+.lc-expiry.is-expiring .lc-expiry-left { color: var(--pr-amber); font-weight: 700; }
+.lc-expiry.is-expired .lc-expiry-left { color: var(--pr-red); font-weight: 700; }
+.lc-lifetime { font-size: 0.85rem; font-weight: 700; color: var(--pr-green); }
+
+/* ---------- Meter ---------- */
+.lc-meter { display: flex; flex-direction: column; gap: 0.35rem; min-width: 110px; }
+
+.lc-meter-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.lc-meter-num { font-variant-numeric: tabular-nums; }
+.lc-meter-num strong { color: var(--text-primary); font-weight: 700; }
+
+.lc-meter-track { height: 5px; border-radius: 99px; background: var(--pr-neutral-dim); overflow: hidden; }
+.lc-meter-fill { height: 100%; border-radius: inherit; background: var(--accent); transition: width 0.4s ease; }
+.lc-meter-fill.is-full { background: var(--pr-amber); }
+
+/* ---------- Staff table ---------- */
+.lc-table tbody tr.is-dim .lc-client,
+.lc-table tbody tr.is-dim .lc-product { opacity: 0.6; }
+
+.lc-client { display: flex; align-items: center; gap: 0.7rem; min-width: 200px; }
+
+.lc-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--navy-2, #0b3274), var(--accent));
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.lc-product { font-weight: 600; color: var(--text-primary); white-space: nowrap; }
+.lc-usage-cell { min-width: 130px; }
+
+.lc-confirm { align-items: center; }
+.lc-confirm-label { font-size: 0.75rem; font-weight: 700; color: var(--pr-red); margin-right: 0.15rem; }
+
+/* ---------- Customer cards ---------- */
+.lc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.25rem;
+}
+
+.lc-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: var(--pr-surface);
+  border: 1px solid var(--pr-border);
+  border-radius: var(--radius-lg);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+[data-theme="light"] .lc-card { box-shadow: var(--shadow-sm); }
+.lc-card:hover { border-color: var(--accent-border); }
+.lc-card.is-dim .lc-card-title h3 { color: var(--text-secondary); }
+
+.lc-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; }
+.lc-card-title { display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; }
+.lc-card-title h3 { margin: 0; font-size: 1.1rem; font-weight: 800; letter-spacing: -0.01em; color: var(--text-primary); overflow-wrap: anywhere; }
+
+.lc-card-serial { display: flex; flex-direction: column; gap: 0.4rem; }
+
+.lc-card-facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-hover);
+}
+
+[data-theme="dark"] .lc-card-facts { background: rgba(255, 255, 255, 0.03); }
+.lc-card-facts .lc-label { margin-bottom: 0.3rem; }
+.lc-card-facts .lc-meter-head { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+
+.lc-devices { display: flex; flex-direction: column; gap: 0.35rem; margin: 0; padding: 0; list-style: none; font-size: 0.8rem; color: var(--text-secondary); }
+.lc-devices li { display: flex; align-items: center; gap: 0.45rem; min-width: 0; }
+.lc-devices svg { flex-shrink: 0; color: var(--text-muted); }
+.lc-device-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+
+.lc-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: auto;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--pr-border);
+}
+
+.lc-card-foot .btn-ghost { padding: 0.45rem 0.85rem; }
+.lc-renew { padding: 0.45rem 0.95rem; font-size: 0.8rem; text-decoration: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .lc-page { animation: none; }
+}
+
+@media (max-width: 640px) {
+  .lc-grid { grid-template-columns: 1fr; gap: 1rem; }
+  .lc-card { padding: 1rem; }
+  .lc-card-head { flex-direction: column; }
+}

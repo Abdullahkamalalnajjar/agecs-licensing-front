@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { postApiPromocodes, putApiPromocodesByIdDiscounts, putApiPromocodesByIdAudience } from "@/client";
+import { postApiPromocodes, putApiPromocodesById } from "@/client";
 
 type PromocodeFormModalProps = {
   isOpen: boolean;
@@ -70,7 +70,7 @@ export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promoco
         }
       }
 
-      const discountsRes = await putApiPromocodesByIdDiscounts({
+      const discountsRes = await putApiPromocodesById({
         path: { id: currentId },
         body: {
           id: currentId,
@@ -87,7 +87,7 @@ export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promoco
         throw new Error(discountsRes.data?.errors?.map((err: any) => err.description).join(", ") || "Failed to update discounts.");
       }
 
-      const audienceRes = await putApiPromocodesByIdAudience({
+      const audienceRes = await putApiPromocodesById({
         path: { id: currentId },
         body: {
           id: currentId,

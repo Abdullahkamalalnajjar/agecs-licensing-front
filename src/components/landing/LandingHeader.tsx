@@ -1,6 +1,7 @@
 "use client";
 import React from 'react';
 import Link from 'next/link';
+import BrandLogo from '../BrandLogo';
 import { useState } from 'react';
 
 export default function LandingHeader() {
@@ -21,7 +22,7 @@ export default function LandingHeader() {
         <div className="container nav">
 
           <Link href="/" className="logo" aria-label="AGECS Homepage">
-            <img src="/agecs-logo-gray.png" alt="AGECS Engineering and Technological Consultancy & Services" className="site-logo" />
+            <BrandLogo className="site-logo" />
           </Link>
 
           <div className="nav-main">
@@ -78,7 +79,7 @@ export default function LandingHeader() {
         <div className={`mobile-menu ${isMobileMenuOpen ? 'is-open' : ''}`} id="mobile-menu" aria-hidden={!isMobileMenuOpen}>
           <div className="mobile-menu-header">
             <Link href="/" className="logo mobile-logo" aria-label="AGECS Homepage" onClick={toggleMobileMenu}>
-              <img src="/agecs-logo-gray.png" alt="AGECS Engineering and Technological Consultancy & Services" className="site-logo" />
+              <BrandLogo className="site-logo" />
             </Link>
             <button className="mobile-menu-close" aria-label="Close menu" onClick={toggleMobileMenu}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

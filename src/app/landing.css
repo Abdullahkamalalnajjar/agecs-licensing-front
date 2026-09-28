@@ -1,10 +1,4 @@
 
-    
-
-    
-
-    
-
     .landing-page-wrapper {
       margin: 0;
       font-family: 'Cairo', 'Inter', Segoe UI, Arial, sans-serif;
@@ -106,10 +100,7 @@
     }
 
     .site-logo {
-      display: block;
-      height: 58px;
-      width: auto;
-      object-fit: contain;
+      --brand-logo-h: 46px;
     }
     
     .logo:hover {
@@ -1206,7 +1197,7 @@
           .home-product-family{padding:24px}
           .family-grid,.family-grid.nano-grid{grid-template-columns:1fr}
           .family-head h3{font-size:27px}
-          .site-logo{height:50px}
+          .site-logo{--brand-logo-h:42px}
         }
     
         /* Packages */
@@ -1599,10 +1590,8 @@
       gap: 16px;
     }
 
-    .footer-logo img {
-      height: 48px;
-      width: auto;
-      display: block;
+    .footer-logo {
+      display: inline-flex;
     }
 
     .footer-tagline {
@@ -1862,7 +1851,7 @@
       }
 
       .site-logo {
-        height: 50px
+        --brand-logo-h: 42px
       }
     }
 
@@ -1914,8 +1903,7 @@
 }
 
 .site-logo {
-  height: 50px;
-  max-width: 190px;
+  --brand-logo-h: 44px;
 }
 
 .nav-main {
@@ -2017,7 +2005,7 @@
   border-bottom: 1px solid var(--line);
 }
 
-.mobile-logo .site-logo { height: 44px; }
+.mobile-logo .site-logo { --brand-logo-h: 38px; }
 
 .mobile-menu-close {
   width: 38px;
@@ -2130,7 +2118,7 @@ body.menu-open { overflow: hidden; }
 }
 
 @media (max-width: 640px) {
-  .site-logo { height: 44px; }
+  .site-logo { --brand-logo-h: 38px; }
   .nav { min-height: 68px; }
   .mobile-menu { width: min(320px, 88vw); padding: 16px; }
 }
