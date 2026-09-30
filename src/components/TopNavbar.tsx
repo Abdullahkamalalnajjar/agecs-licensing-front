@@ -15,6 +15,7 @@ const navItems = [
   { name: "Home", path: "/home" },
   { name: "Licenses", path: "/licenses" },
   { name: "Products", path: "/products" },
+  { name: "Packages", path: "/packages" },
   { name: "Promocodes", path: "/promocodes" },
   { name: "Tickets", path: "/tickets" },
   { name: "Categories", path: "/ticket-categories" },

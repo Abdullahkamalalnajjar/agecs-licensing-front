@@ -150,6 +150,27 @@ export type CreateOfferCommand = {
     isActive?: boolean;
 };
 
+export type CreatePackageCommand = {
+    name?: string | null;
+    price?: number;
+    description?: string | null;
+    miniDescription?: string | null;
+    link?: string | null;
+    hidden?: boolean;
+    comingSoon?: boolean;
+    withTaxes?: boolean;
+    expiryDate?: string | null;
+    order?: number;
+    items?: Array<CreatePackageItemRequest> | null;
+};
+
+export type CreatePackageItemRequest = {
+    productId?: string;
+    period?: number;
+    licenseCount?: number;
+    migrationLimit?: number;
+};
+
 export type CreateProductCommand = {
     name?: string | null;
     fullName?: string | null;
@@ -391,6 +412,47 @@ export type OfferDtoResult = {
     readonly isError?: boolean;
     value?: OfferDto;
     readonly errors?: Array<Error> | null;
+};
+
+export type PackageDto = {
+    id?: string;
+    name?: string | null;
+    description?: string | null;
+    miniDescription?: string | null;
+    link?: string | null;
+    price?: number;
+    hidden?: boolean;
+    comingSoon?: boolean;
+    withTaxes?: boolean;
+    expiryDate?: string | null;
+    order?: number;
+    createdAtUtc?: string;
+    lastModifiedUtc?: string;
+    items?: Array<PackageItemDto> | null;
+};
+
+export type PackageDtoListResult = {
+    readonly isSuccess?: boolean;
+    readonly isError?: boolean;
+    readonly value?: Array<PackageDto> | null;
+    readonly errors?: Array<Error> | null;
+};
+
+export type PackageDtoResult = {
+    readonly isSuccess?: boolean;
+    readonly isError?: boolean;
+    value?: PackageDto;
+    readonly errors?: Array<Error> | null;
+};
+
+export type PackageItemDto = {
+    id?: string;
+    itemType?: string | null;
+    itemId?: string;
+    itemName?: string | null;
+    period?: number;
+    licenseCount?: number;
+    migrationLimit?: number;
 };
 
 export type PayablePriceDto = {
@@ -751,6 +813,20 @@ export type UpdateOfferCommand = {
     isActive?: boolean;
 };
 
+export type UpdatePackageRequest = {
+    name?: string | null;
+    price?: number;
+    description?: string | null;
+    miniDescription?: string | null;
+    link?: string | null;
+    hidden?: boolean;
+    comingSoon?: boolean;
+    withTaxes?: boolean;
+    expiryDate?: string | null;
+    order?: number;
+    items?: Array<CreatePackageItemRequest> | null;
+};
+
 export type UpdateProductCommand = {
     id?: string;
     name?: string | null;
@@ -896,6 +972,14 @@ export type OfferDtoListResultWritable = {
 
 export type OfferDtoResultWritable = {
     value?: OfferDto;
+};
+
+export type PackageDtoListResultWritable = {
+    [key: string]: never;
+};
+
+export type PackageDtoResultWritable = {
+    value?: PackageDto;
 };
 
 export type PaymentCheckoutStartResponseResultWritable = {
@@ -2104,6 +2188,134 @@ export type GetApiLicensesAdminByIdDiagnosticResponses = {
 };
 
 export type GetApiLicensesAdminByIdDiagnosticResponse = GetApiLicensesAdminByIdDiagnosticResponses[keyof GetApiLicensesAdminByIdDiagnosticResponses];
+
+export type GetApiPackagesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        includeHidden?: boolean;
+    };
+    url: '/api/packages';
+};
+
+export type GetApiPackagesResponses = {
+    /**
+     * OK
+     */
+    200: PackageDtoListResult;
+};
+
+export type GetApiPackagesResponse = GetApiPackagesResponses[keyof GetApiPackagesResponses];
+
+export type PostApiPackagesData = {
+    body?: CreatePackageCommand;
+    path?: never;
+    query?: never;
+    url: '/api/packages';
+};
+
+export type PostApiPackagesErrors = {
+    /**
+     * Bad Request
+     */
+    400: ObjectResult;
+};
+
+export type PostApiPackagesError = PostApiPackagesErrors[keyof PostApiPackagesErrors];
+
+export type PostApiPackagesResponses = {
+    /**
+     * Created
+     */
+    201: GuidResult;
+};
+
+export type PostApiPackagesResponse = PostApiPackagesResponses[keyof PostApiPackagesResponses];
+
+export type DeleteApiPackagesByIdData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/packages/{id}';
+};
+
+export type DeleteApiPackagesByIdErrors = {
+    /**
+     * Not Found
+     */
+    404: ObjectResult;
+};
+
+export type DeleteApiPackagesByIdError = DeleteApiPackagesByIdErrors[keyof DeleteApiPackagesByIdErrors];
+
+export type DeleteApiPackagesByIdResponses = {
+    /**
+     * OK
+     */
+    200: DeletedResult;
+};
+
+export type DeleteApiPackagesByIdResponse = DeleteApiPackagesByIdResponses[keyof DeleteApiPackagesByIdResponses];
+
+export type GetApiPackagesByIdData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/packages/{id}';
+};
+
+export type GetApiPackagesByIdErrors = {
+    /**
+     * Not Found
+     */
+    404: ObjectResult;
+};
+
+export type GetApiPackagesByIdError = GetApiPackagesByIdErrors[keyof GetApiPackagesByIdErrors];
+
+export type GetApiPackagesByIdResponses = {
+    /**
+     * OK
+     */
+    200: PackageDtoResult;
+};
+
+export type GetApiPackagesByIdResponse = GetApiPackagesByIdResponses[keyof GetApiPackagesByIdResponses];
+
+export type PutApiPackagesByIdData = {
+    body?: UpdatePackageRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/packages/{id}';
+};
+
+export type PutApiPackagesByIdErrors = {
+    /**
+     * Bad Request
+     */
+    400: ObjectResult;
+    /**
+     * Not Found
+     */
+    404: ObjectResult;
+};
+
+export type PutApiPackagesByIdError = PutApiPackagesByIdErrors[keyof PutApiPackagesByIdErrors];
+
+export type PutApiPackagesByIdResponses = {
+    /**
+     * OK
+     */
+    200: UpdatedResult;
+};
+
+export type PutApiPackagesByIdResponse = PutApiPackagesByIdResponses[keyof PutApiPackagesByIdResponses];
 
 export type PostApiPaymentsCheckoutData = {
     /**
