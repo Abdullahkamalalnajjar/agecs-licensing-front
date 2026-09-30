@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getStats, getApiProducts } from "@/client";
+import { getStats, getApiProducts, getApiPackages } from "@/client";
 import { client } from "@/client/client.gen";
-import { DashboardStatsDto, ProductDto } from "@/client/types.gen";
+import { DashboardStatsDto, ProductDto, PackageDto } from "@/client/types.gen";
 import { useAuth } from "@/components/AuthProvider";
 import AdminDashboardView from "@/components/dashboard/AdminDashboardView";
 import HomeLandingView from "@/components/dashboard/HomeLandingView";
@@ -12,6 +12,7 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const [stats, setStats] = useState<DashboardStatsDto | null>(null);
   const [products, setProducts] = useState<ProductDto[]>([]);
+  const [packages, setPackages] = useState<PackageDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
@@ -35,9 +36,13 @@ export default function DashboardPage() {
           if (data?.value) setStats(data.value);
         } else {
           // NormalUser, Student, or unauthenticated
-          const { data, error } = await getApiProducts({ query: { includeHidden: false }, throwOnError: false });
-          if (error) throw new Error("Failed to load products.");
-          if (data?.value) setProducts(data.value);
+          const [prodRes, pkgRes] = await Promise.all([
+            getApiProducts({ query: { includeHidden: false }, throwOnError: false }),
+            getApiPackages({ query: { includeHidden: false }, throwOnError: false })
+          ]);
+          if (prodRes.error) throw new Error("Failed to load products.");
+          if (prodRes.data?.value) setProducts(prodRes.data.value);
+          if (pkgRes.data?.value) setPackages(pkgRes.data.value);
         }
       } catch (err) {
         console.error("Error loading home page:", err);
@@ -87,7 +92,7 @@ export default function DashboardPage() {
   // NormalUser or Student landing page view
   return (
     <div className="landing-content">
-      <HomeLandingView products={products} />
+      <HomeLandingView products={products} packages={packages} />
     </div>
   );
 }

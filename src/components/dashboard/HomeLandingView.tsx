@@ -1,11 +1,12 @@
 "use client";
 import React, { useEffect, useState, useRef } from "react";
 import Link from "next/link";
-import { ProductDto } from "@/client/types.gen";
+import { ProductDto, PackageDto } from "@/client/types.gen";
 import { resolveMediaUrl } from "@/lib/mediaUrl";
 
 interface HomeLandingViewProps {
   products: ProductDto[];
+  packages: PackageDto[];
 }
 
 function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: string }) {
@@ -40,9 +41,11 @@ function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: str
   return <span ref={ref}>{count}{suffix}</span>;
 }
 
-export default function HomeLandingView({ products }: HomeLandingViewProps) {
+export default function HomeLandingView({ products, packages }: HomeLandingViewProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const totalSlides = 3;
+  const nanocadProducts = products.filter(p => p.company === "NanoCAD");
+  const agecsProducts = products.filter(p => p.company === "AGECS");
 
   useEffect(() => {
     // Slider interval
@@ -415,7 +418,7 @@ export default function HomeLandingView({ products }: HomeLandingViewProps) {
         .blue-section .section-title { color: #fff; }
         .blue-section .lead { color: rgba(255, 255, 255, .78); }
         .blue-section .eyebrow { color: var(--green); }
-        .split { display: grid; grid-template-columns: 1fr 1fr; gap: 46px; align-items: center; }
+        . { display: grid; grid-template-columns: 1fr 1fr; gap: 46px; align-items: center; }
         .feature-list { display: grid; gap: 14px; }
         .feature {
             border: 1px solid rgba(255, 255, 255, .16); background: rgba(255, 255, 255, .08);
@@ -603,7 +606,7 @@ export default function HomeLandingView({ products }: HomeLandingViewProps) {
 
         /* ─── Responsive ─── */
         @media(max-width:1050px) {
-            .hero-inner, .split, .contact-card { grid-template-columns: 1fr; }
+            .hero-inner, ., .contact-card { grid-template-columns: 1fr; }
             .hero-inner { padding: 70px 0 105px; }
             .hero h1 { font-size: 42px; }
             .overview-grid, .product-grid.product-showcase, .packages-grid, .partner-strip { grid-template-columns: repeat(2, 1fr); }
@@ -752,9 +755,45 @@ export default function HomeLandingView({ products }: HomeLandingViewProps) {
         </div>
       </section>
 
+      {/* ═══ PACKAGES ═══ */}
+      <section id="packages" className="section">
+        <div className="hl-container">
+          <div className="center reveal">
+            <div className="eyebrow">Packages</div>
+            <h2 className="section-title">Packages for Engineers, Teams, and Companies</h2>
+            <p className="lead">AGECS packages combine software tools and services to provide better value for engineers, teams, and companies.</p>
+          </div>
+          <div className="packages-grid">
+            {packages.map((pkg, i) => (
+              <article key={pkg.id || i} className="package reveal" style={{ transitionDelay: `${i * 0.1}s` }}>
+                <strong>{pkg.name}</strong>
+                <p>{pkg.description || "Package bundle"}</p>
+                <div style={{ marginTop: "1rem" }}>
+                  <span className="package-discount" style={{ background: "var(--surface-elevated)", color: "var(--ink)", border: "1px solid var(--border)", boxShadow: "none" }}>
+                    Starting at ${pkg.price}
+                  </span>
+                </div>
+                <div style={{ marginTop: "auto", paddingTop: "1rem" }}>
+                  <Link href={`/packages`} className="hl-btn btn-light-outline" style={{ minHeight: "38px", fontSize: "12px", padding: "0 18px" }}>
+                    View Package →
+                  </Link>
+                </div>
+              </article>
+            ))}
+            {packages.length === 0 && (
+              <p style={{ color: "var(--muted)" }}>No packages available yet...</p>
+            )}
+          </div>
+          <div className="section-actions reveal">
+            <a href="#" className="hl-btn btn-blue">Explore Packages</a>
+            <a href="#" className="hl-btn btn-light-outline">Company Licenses</a>
+          </div>
+        </div>
+      </section>
+
       {/* ═══ NANOCAD ═══ */}
       <section id="nanocad" className="section blue-section">
-        <div className="hl-container split">
+        <div className="hl-container ">
           <div className="reveal">
             <div className="eyebrow">nanoCAD Official Service Provider</div>
             <h2 className="section-title">Official and Sole Service Provider of nanoCAD in Egypt and the Middle East</h2>
@@ -764,21 +803,36 @@ export default function HomeLandingView({ products }: HomeLandingViewProps) {
               <a href="#contact" className="hl-btn btn-outline">Request nanoCAD Support</a>
             </div>
           </div>
-          <div className="feature-list reveal" style={{ transitionDelay: '0.15s' }}>
-            <div className="feature">
-              <div className="icon">DWG</div>
-              <div><b>DWG-Compatible CAD</b><span>Professional CAD platform for drafting and documentation workflows.</span></div>
-            </div>
-            <div className="feature">
-              <div className="icon">2D</div>
-              <div><b>2D & 3D Drafting Tools</b><span>A full set of drafting and modelling tools with tailored modules.</span></div>
-            </div>
-            <div className="feature">
-              <div className="icon">⚙</div>
-              <div><b>Local Implementation</b><span>Activation, setup, and workflow guidance by AGECS engineers.</span></div>
-            </div>
+          <div className="product-grid product-showcase reveal" style={{ marginTop: "30px", gridColumn: "1 / -1" }}>
+            {nanocadProducts.slice(0, 4).map((product, index) => (
+              <article key={product.id || index} className={`hl-product reveal`} style={{ transitionDelay: `${index * 0.08}s`, background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' }}>
+                <div className="product-media" style={{ background: 'transparent' }}>
+                  {product.media && product.media.length > 0 && product.media[0].url ? (
+                    <img src={resolveMediaUrl(product.media[0].url)} alt={product.name || "Product"} />
+                  ) : (
+                    <div style={{ color: "rgba(255,255,255,0.5)", fontWeight: "bold", fontSize: "16px" }}>{product.name}</div>
+                  )}
+                </div>
+                <div className="product-content" style={{ color: '#fff' }}>
+                  <small style={{ color: 'var(--green)' }}>{product.family || "NanoCAD"}</small>
+                  <h3 style={{ color: '#fff' }}>{product.name}</h3>
+                  <p style={{ color: 'rgba(255,255,255,0.7)' }}>{product.miniDescription || "Professional engineering software module."}</p>
+                  <div style={{ marginTop: "auto", paddingTop: "1rem" }}>
+                    <Link href={`/products/${product.id}`} className="hl-btn btn-outline" style={{ minHeight: "38px", fontSize: "12px", padding: "0 18px", color: '#fff', borderColor: 'rgba(255,255,255,0.3)' }}>
+                      Learn More →
+                    </Link>
+                  </div>
+                </div>
+              </article>
+            ))}
+            {nanocadProducts.length === 0 && (
+              <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "2rem" }}>
+                <p style={{ color: "rgba(255,255,255,0.5)" }}>No NanoCAD products available yet...</p>
+              </div>
+            )}
           </div>
         </div>
+
       </section>
 
       {/* ═══ PRODUCTS ═══ */}
@@ -790,7 +844,7 @@ export default function HomeLandingView({ products }: HomeLandingViewProps) {
             <p className="lead">From reinforcement detailing and steel drafting to CAD productivity and structural documentation.</p>
           </div>
           <div className="product-grid product-showcase">
-            {products.slice(0, 7).map((product, index) => (
+            {agecsProducts.slice(0, 7).map((product, index) => (
               <article key={product.id || index} className={`hl-product reveal ${index === 0 ? "featured" : ""}`} style={{ transitionDelay: `${index * 0.08}s` }}>
                 <div className="product-media">
                   {product.media && product.media.length > 0 && product.media[0].url ? (
@@ -824,40 +878,11 @@ export default function HomeLandingView({ products }: HomeLandingViewProps) {
             </article>
           </div>
           
-          {products.length === 0 && (
+          {agecsProducts.length === 0 && (
             <div className="reveal" style={{ textAlign: "center", padding: "3rem", background: "var(--surface-card)", borderRadius: "20px", marginTop: "2rem", border: "1px solid var(--hairline)" }}>
               <p style={{ color: "var(--muted)", margin: 0 }}>No products available yet...</p>
             </div>
           )}
-        </div>
-      </section>
-
-      {/* ═══ PACKAGES ═══ */}
-      <section id="packages" className="section">
-        <div className="hl-container">
-          <div className="center reveal">
-            <div className="eyebrow">Packages</div>
-            <h2 className="section-title">Packages for Engineers, Teams, and Companies</h2>
-            <p className="lead">AGECS packages combine software tools and services to provide better value for engineers, teams, and companies.</p>
-          </div>
-          <div className="packages-grid">
-            {[
-              { discount: "20% OFF", title: "Individual Packages", desc: "For engineers and freelancers who need professional tools for daily engineering work." },
-              { title: "Team Packages", desc: "For small technical office teams that need multiple licenses and workflow support." },
-              { title: "Company Packages", desc: "For companies looking to equip their engineering teams with AGECS tools, training, and support." },
-              { title: "Training Packages", desc: "For engineers who want to learn how to use AGECS software effectively in real project workflows." },
-            ].map((pkg, i) => (
-              <article key={i} className="package reveal" style={{ transitionDelay: `${i * 0.1}s` }}>
-                {pkg.discount && <span className="package-discount">🏷️ {pkg.discount}</span>}
-                <strong>{pkg.title}</strong>
-                <p>{pkg.desc}</p>
-              </article>
-            ))}
-          </div>
-          <div className="section-actions reveal">
-            <a href="#" className="hl-btn btn-blue">Explore Packages</a>
-            <a href="#" className="hl-btn btn-light-outline">Company Licenses</a>
-          </div>
         </div>
       </section>
 
