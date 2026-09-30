@@ -90,18 +90,31 @@ export default function PackageFormModal({ isOpen, onClose, onSuccess, pkg }: Pa
   const variationsFor = (parentId: string) => {
     if (!parentId) return [];
     const parent = products.find((p) => p.id === parentId);
-    if (parent && !parent.parentProductId && (!parent.children || parent.children.length === 0)) {
-      // Standalone product with no variations — it's itself the sellable item.
-      return [parent];
+    if (parent) {
+      if (!parent.parentProductId && (!parent.children || parent.children.length === 0)) {
+        // Standalone product with no variations — it's itself the sellable item.
+        return [parent];
+      }
+      if (parent.children && parent.children.length > 0) {
+        return parent.children;
+      }
     }
     return products.filter((p) => p.parentProductId === parentId);
   };
 
   // For edit mode, we only have the variation id — infer its parent so the two selects line up.
   const resolveTopLevelId = (variationProductId: string) => {
-    const variation = products.find((p) => p.id === variationProductId);
-    if (!variation) return "";
-    return variation.parentProductId || variation.id || "";
+    let variation = products.find((p) => p.id === variationProductId);
+    if (variation) return variation.parentProductId || variation.id || "";
+    
+    // If not found at top level, search inside children
+    for (const p of products) {
+      if (p.children) {
+        variation = p.children.find((c) => c.id === variationProductId);
+        if (variation) return p.id || "";
+      }
+    }
+    return "";
   };
 
   const updateItem = (key: string, patch: Partial<ItemRow>) => {

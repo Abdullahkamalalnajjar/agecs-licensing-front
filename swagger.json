@@ -8269,6 +8269,13 @@
           "migrationLimit": {
             "type": "integer",
             "format": "int32"
+          },
+          "media": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductMediaDto"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false

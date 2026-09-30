@@ -453,6 +453,7 @@ export type PackageItemDto = {
     period?: number;
     licenseCount?: number;
     migrationLimit?: number;
+    media?: Array<ProductMediaDto> | null;
 };
 
 export type PayablePriceDto = {

@@ -5,6 +5,7 @@ import { client } from "@/client/client.gen";
 import { useRouter } from "next/navigation";
 import PackageFormModal from "@/components/PackageFormModal";
 import { useToast } from "@/components/ToastProvider";
+import { resolveMediaUrl } from "@/lib/mediaUrl";
 import type { PackageDto } from "@/client/types.gen";
 
 export default function PackagesPage() {
@@ -154,12 +155,27 @@ export default function PackagesPage() {
                     {pkg.price?.toFixed(2)}
                   </td>
                   <td>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "0.15rem" }}>
-                      {(pkg.items || []).map((item) => (
-                        <span key={item.id} style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>
-                          {item.itemName || item.itemId} · {item.period}d
-                        </span>
-                      ))}
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+                      {(pkg.items || []).map((item) => {
+                        const thumb = item.media?.[0]?.url;
+                        return (
+                          <div key={item.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                            {thumb ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={resolveMediaUrl(thumb)}
+                                alt={item.itemName || ""}
+                                style={{ width: "28px", height: "28px", borderRadius: "6px", objectFit: "cover", border: "1px solid var(--border)", flexShrink: 0 }}
+                              />
+                            ) : (
+                              <div style={{ width: "28px", height: "28px", borderRadius: "6px", background: "var(--bg-elevated)", border: "1px solid var(--border)", flexShrink: 0 }} />
+                            )}
+                            <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>
+                              {item.itemName || item.itemId} · {item.period}d
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </td>
                   <td>
