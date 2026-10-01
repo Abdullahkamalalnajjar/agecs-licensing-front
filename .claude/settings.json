@@ -14,7 +14,8 @@
       "Bash(node scripts/validate_palette.js \"#1456bd\" --mode light)",
       "Bash(node scripts/validate_palette.js \"#3b82f6\" --mode dark --surface \"#0a1936\")",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3001/home)",
-      "Bash(npx next *)"
+      "Bash(npx next *)",
+      "Bash(grep -n -A14 \"a.pmd-view-all,$\" src/app/landing.css)"
     ]
   }
 }

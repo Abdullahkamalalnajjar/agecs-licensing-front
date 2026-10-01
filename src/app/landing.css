@@ -2128,285 +2128,156 @@ body.menu-open { overflow: hidden; }
   position: relative;
 }
 
-.products-mega-dropdown {
+/* macOS-style menu + cascading submenu */
+.pmd-wrap {
   position: absolute;
-  top: calc(100% + 14px);
+  top: calc(100% + 8px);
   left: 50%;
   transform: translateX(-50%);
-  width: 560px;
-  padding: 0;
-  background: rgba(15, 23, 42, 0.97);
-  border: 1px solid rgba(255,255,255,0.1);
-  backdrop-filter: blur(20px);
-  border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05) inset;
   z-index: 200;
-  display: flex;
-  flex-direction: row;
-  animation: pmdSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  overflow: hidden;
+  animation: pmdFade 0.14s ease-out;
+  text-transform: none;
+  letter-spacing: normal;
 }
 
-.products-mega-dropdown::before {
-  content: '';
-  position: absolute;
-  top: -7px;
-  left: 50%;
-  transform: translateX(-50%) rotate(45deg);
-  width: 14px;
-  height: 14px;
-  background: rgba(15, 23, 42, 0.97);
-  border-left: 1px solid rgba(255,255,255,0.1);
-  border-top: 1px solid rgba(255,255,255,0.1);
-}
-
-@keyframes pmdSlideIn {
-  from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+@keyframes pmdFade {
+  from { opacity: 0; transform: translateX(-50%) translateY(-3px); }
   to { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
-/* Left tabs panel */
-.pmd-tabs {
-  width: 190px;
-  flex-shrink: 0;
+.pmd-menu {
+  width: 200px;
+  padding: 5px;
   display: flex;
   flex-direction: column;
-  padding: 12px;
-  gap: 4px;
-  border-right: 1px solid rgba(255,255,255,0.06);
-  background: rgba(255,255,255,0.02);
-}
-
-.pmd-tab {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 10px;
+  background: rgba(30, 33, 40, 0.92);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 10px;
-  border: 1px solid transparent;
-  background: transparent;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-align: left;
-  width: 100%;
-  color: inherit;
+  box-shadow:
+    0 0 0 0.5px rgba(0, 0, 0, 0.6),
+    0 10px 30px rgba(0, 0, 0, 0.45);
+  font-size: 13px;
+  font-weight: 400;
+  color: #e5e7eb;
 }
 
-.pmd-tab:hover {
-  background: rgba(255,255,255,0.04);
-}
-
-.pmd-tab-active {
-  background: rgba(59, 130, 246, 0.1);
-  border-color: rgba(59, 130, 246, 0.2);
-}
-
-.pmd-tab-icon {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: rgba(255,255,255,0.06);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1rem;
-  flex-shrink: 0;
-}
-
-.pmd-tab-active .pmd-tab-icon {
-  background: rgba(59, 130, 246, 0.15);
-}
-
-.pmd-tab-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-  flex: 1;
-}
-
-.pmd-tab-info strong {
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: #e2e8f0;
-}
-
-.pmd-tab-active .pmd-tab-info strong {
-  color: #93c5fd;
-}
-
-.pmd-tab-info span {
-  font-size: 0.65rem;
-  color: rgba(255,255,255,0.4);
-  font-weight: 500;
-}
-
-.pmd-tab-arrow {
-  color: rgba(255,255,255,0.2);
-  flex-shrink: 0;
-  transition: all 0.2s;
-}
-
-.pmd-tab-active .pmd-tab-arrow {
-  color: #60a5fa;
-}
-
-.pmd-tabs-footer {
-  margin-top: auto;
-  padding-top: 8px;
-  border-top: 1px solid rgba(255,255,255,0.06);
-}
-
-/* Right products panel */
-.pmd-products-panel {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  max-height: 380px;
-}
-
-.pmd-panel-title {
-  font-size: 0.65rem;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: rgba(255,255,255,0.4);
-  padding: 14px 16px 10px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-}
-
-.pmd-products-list {
-  flex: 1;
+.pmd-submenu {
+  position: absolute;
+  left: calc(100% - 4px);
+  width: 220px;
+  max-height: 320px;
   overflow-y: auto;
-  padding: 8px 12px;
+  z-index: 1;
+  animation: pmdSubFade 0.12s ease-out;
 }
 
-.pmd-products-list::-webkit-scrollbar { width: 4px; }
-.pmd-products-list::-webkit-scrollbar-track { background: transparent; }
-.pmd-products-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
-
-.pmd-empty {
-  padding: 24px;
-  text-align: center;
-  color: rgba(255,255,255,0.3);
-  font-size: 0.85rem;
+@keyframes pmdSubFade {
+  from { opacity: 0; transform: translateX(-3px); }
+  to { opacity: 1; transform: translateX(0); }
 }
 
-.pmd-product-group {
-  margin-bottom: 4px;
-}
+.pmd-submenu::-webkit-scrollbar { width: 4px; }
+.pmd-submenu::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
 
-.pmd-product-parent {
+/* Menu rows. Selectors beat the navbar's ".menu a" pill styles. */
+.pmd-item,
+.menu .pmd-wrap a.pmd-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 8px;
-  border-radius: 10px;
-  transition: all 0.2s ease;
+  gap: 8px;
+  width: 100%;
+  height: 28px;
+  min-height: 28px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #e5e7eb;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+  text-align: left;
   text-decoration: none;
-  color: inherit;
+  white-space: nowrap;
+  cursor: default;
+  transition: none;
 }
 
-.pmd-product-parent:hover {
-  background: rgba(255,255,255,0.06);
-  transform: translateX(2px);
+.pmd-item:hover,
+.pmd-item-active,
+.menu .pmd-wrap a.pmd-item:hover {
+  background: #2f62d6;
+  color: #fff;
 }
 
-.pmd-product-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.1);
-  display: flex;
+.pmd-item:focus-visible {
+  outline: none;
+  background: #2f62d6;
+  color: #fff;
+}
+
+.pmd-item-icon {
+  width: 16px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  overflow: hidden;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.75);
 }
 
-.pmd-product-icon img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  padding: 4px;
+.pmd-item:hover .pmd-item-icon,
+.pmd-item-active .pmd-item-icon {
+  color: #fff;
 }
 
-.pmd-product-icon span {
-  font-size: 0.7rem;
-  font-weight: 800;
-  color: rgba(255,255,255,0.5);
-  letter-spacing: 0.03em;
-}
-
-.pmd-product-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.pmd-item-label {
+  flex: 1;
   min-width: 0;
-}
-
-.pmd-product-info strong {
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: #e2e8f0;
-  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.pmd-product-info span {
-  font-size: 0.72rem;
-  color: rgba(255,255,255,0.45);
-  line-height: 1.35;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+.pmd-item-meta {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
 }
 
-.pmd-variations {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  padding: 4px 8px 8px 56px;
+.pmd-item-active .pmd-item-meta,
+.pmd-item:hover .pmd-item-meta {
+  color: rgba(255, 255, 255, 0.75);
 }
 
-.pmd-variation {
-  display: inline-block;
-  padding: 3px 10px;
-  border-radius: 6px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: rgba(255,255,255,0.6);
-  text-decoration: none;
-  transition: all 0.15s ease;
+.pmd-chevron {
+  flex-shrink: 0;
+  color: rgba(255, 255, 255, 0.55);
 }
 
-.pmd-variation:hover {
-  background: rgba(59, 130, 246, 0.12);
-  border-color: rgba(59, 130, 246, 0.3);
-  color: #60a5fa;
+.pmd-item-active .pmd-chevron,
+.pmd-item:hover .pmd-chevron {
+  color: #fff;
 }
 
-.pmd-view-all {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  padding: 8px;
-  border-radius: 8px;
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: #60a5fa;
-  text-decoration: none;
-  transition: all 0.2s ease;
+/* Third level sits to the right of the products submenu (200 + 220 wide, each overlapping 4px) */
+.pmd-submenu-2 {
+  left: calc(200px - 4px + 220px - 4px);
+  width: 190px;
+  z-index: 2;
 }
 
-.pmd-view-all:hover {
-  background: rgba(59, 130, 246, 0.1);
-  color: #93c5fd;
+.pmd-item-disabled,
+.pmd-item-disabled:hover {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.pmd-sep {
+  height: 1px;
+  margin: 5px 9px;
+  background: rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
 }

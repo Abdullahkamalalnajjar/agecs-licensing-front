@@ -8,7 +8,6 @@ import StudentUpgradeModal from "./StudentUpgradeModal";
 import CartSidebar from "./CartSidebar";
 import { getApiV1CartsMyCart, getApiProducts } from "@/client";
 import type { ProductDto } from "@/client/types.gen";
-import { resolveMediaUrl } from "@/lib/mediaUrl";
 import Image from "next/image";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 import { useCurrency, CURRENCIES, SupportedCurrency } from "@/context/CurrencyContext";
@@ -45,6 +44,8 @@ function TopNavbarInner() {
   const [navProductsLoaded, setNavProductsLoaded] = useState(false);
   const productsDropdownRef = useRef<HTMLDivElement>(null);
   const productsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const productsSubmenuRef = useRef<HTMLDivElement>(null);
+  const [activeParent, setActiveParent] = useState<{ id: string; top: number } | null>(null);
 
   const fetchNavProducts = useCallback(() => {
     if (navProductsLoaded) return;
@@ -67,6 +68,7 @@ function TopNavbarInner() {
   const handleProductsMouseLeave = () => {
     productsTimeoutRef.current = setTimeout(() => {
       setIsProductsDropdownOpen(false);
+      setActiveParent(null);
     }, 200);
   };
 
@@ -183,110 +185,137 @@ function TopNavbarInner() {
                     onMouseLeave={handleProductsMouseLeave}
                     style={{ position: 'relative' }}
                   >
-                    <Link
-                      href={item.path}
+                    {/* Opens the dropdown only; it does not navigate. An <a> without href keeps the navbar link styling. */}
+                    <a
+                      role="button"
+                      tabIndex={0}
+                      aria-haspopup="menu"
+                      aria-expanded={isProductsDropdownOpen}
                       className={isActive ? "current" : ""}
-                      style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                      style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', userSelect: 'none' }}
+                      onClick={() => {
+                        fetchNavProducts();
+                        setIsProductsDropdownOpen(true);
+                      }}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          fetchNavProducts();
+                          setIsProductsDropdownOpen(open => !open);
+                        } else if (e.key === 'Escape') {
+                          setIsProductsDropdownOpen(false);
+                        }
+                      }}
                     >
                       {item.name}
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'transform 0.2s', transform: isProductsDropdownOpen ? 'rotate(180deg)' : 'none' }}><polyline points="6 9 12 15 18 9" /></svg>
-                    </Link>
+                    </a>
 
                     {isProductsDropdownOpen && (() => {
                       const agecsProducts = navProducts.filter(p => p.company !== "NanoCAD");
                       const nanocadProducts = navProducts.filter(p => p.company === "NanoCAD");
                       const activeProducts = activeCompanyTab === "AGECS" ? agecsProducts : nanocadProducts;
 
+                      const companies = [
+                        { key: "AGECS" as const, label: "AGECS", icon: "🏗️", products: agecsProducts },
+                        { key: "NanoCAD" as const, label: "NanoCAD", icon: "✏️", products: nanocadProducts },
+                      ];
+                      const activeIndex = companies.findIndex(c => c.key === activeCompanyTab);
+                      const submenuTop = activeIndex * 28;
+                      const activeParentProduct = activeParent ? activeProducts.find(p => p.id === activeParent.id) : undefined;
+                      const chevron = (
+                        <svg className="pmd-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 6 15 12 9 18" /></svg>
+                      );
+
                       return (
                         <div
-                          className="products-mega-dropdown"
+                          className="pmd-wrap"
                           onMouseEnter={() => { if (productsTimeoutRef.current) clearTimeout(productsTimeoutRef.current); }}
                           onMouseLeave={handleProductsMouseLeave}
                         >
-                          {/* Left: Company Tabs */}
-                          <div className="pmd-tabs">
-                            <button
-                              type="button"
-                              className={`pmd-tab ${activeCompanyTab === "AGECS" ? "pmd-tab-active" : ""}`}
-                              onMouseEnter={() => setActiveCompanyTab("AGECS")}
-                            >
-                              <div className="pmd-tab-icon">🏗️</div>
-                              <div className="pmd-tab-info">
-                                <strong>AGECS</strong>
-                                <span>{agecsProducts.length} product{agecsProducts.length !== 1 ? "s" : ""}</span>
-                              </div>
-                              <svg className="pmd-tab-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 6 15 12 9 18" /></svg>
-                            </button>
-                            <button
-                              type="button"
-                              className={`pmd-tab ${activeCompanyTab === "NanoCAD" ? "pmd-tab-active" : ""}`}
-                              onMouseEnter={() => setActiveCompanyTab("NanoCAD")}
-                            >
-                              <div className="pmd-tab-icon">✏️</div>
-                              <div className="pmd-tab-info">
-                                <strong>NanoCAD</strong>
-                                <span>{nanocadProducts.length} product{nanocadProducts.length !== 1 ? "s" : ""}</span>
-                              </div>
-                              <svg className="pmd-tab-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 6 15 12 9 18" /></svg>
-                            </button>
-
-                            <div className="pmd-tabs-footer">
-                              <Link
-                                href="/products"
-                                className="pmd-view-all"
-                                onClick={() => setIsProductsDropdownOpen(false)}
+                          {/* Main menu: companies */}
+                          <div className="pmd-menu" role="menu">
+                            {companies.map(c => (
+                              <button
+                                key={c.key}
+                                type="button"
+                                role="menuitem"
+                                aria-haspopup="menu"
+                                aria-expanded={activeCompanyTab === c.key}
+                                className={`pmd-item ${activeCompanyTab === c.key ? "pmd-item-active" : ""}`}
+                                onMouseEnter={() => { setActiveCompanyTab(c.key); setActiveParent(null); }}
+                                onFocus={() => { setActiveCompanyTab(c.key); setActiveParent(null); }}
                               >
-                                View All Products →
-                              </Link>
-                            </div>
+                                <span className="pmd-item-icon">{c.icon}</span>
+                                <span className="pmd-item-label">{c.label}</span>
+                                {navProductsLoaded && <span className="pmd-item-meta">{c.products.length}</span>}
+                                {chevron}
+                              </button>
+                            ))}
                           </div>
 
-                          {/* Right: Products List */}
-                          <div className="pmd-products-panel">
-                            <div className="pmd-panel-title">{activeCompanyTab === "AGECS" ? "AGECS Solutions" : "NanoCAD Products"}</div>
-                            <div className="pmd-products-list">
-                              {activeProducts.length === 0 ? (
-                                <div className="pmd-empty">No products yet</div>
-                              ) : (
-                                activeProducts.map(product => (
-                                  <div key={product.id} className="pmd-product-group">
-                                    <Link
-                                      href={`/products/${product.id}`}
-                                      className="pmd-product-parent"
-                                      onClick={() => setIsProductsDropdownOpen(false)}
-                                    >
-                                      <div className="pmd-product-icon">
-                                        {product.media && product.media.length > 0 && product.media[0].url ? (
-                                          // eslint-disable-next-line @next/next/no-img-element
-                                          <img src={resolveMediaUrl(product.media[0].url)} alt={product.name || ''} />
-                                        ) : (
-                                          <span>{(product.name || '?').slice(0, 2).toUpperCase()}</span>
-                                        )}
-                                      </div>
-                                      <div className="pmd-product-info">
-                                        <strong>{product.name}</strong>
-                                        {product.miniDescription && <span>{product.miniDescription}</span>}
-                                      </div>
-                                    </Link>
-                                    {product.children && product.children.length > 0 && (
-                                      <div className="pmd-variations">
-                                        {product.children.map(child => (
-                                          <Link
-                                            key={child.id}
-                                            href={`/products/${product.id}`}
-                                            className="pmd-variation"
-                                            onClick={() => setIsProductsDropdownOpen(false)}
-                                          >
-                                            {child.name}{child.version ? ` v${child.version}` : ''}
-                                          </Link>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </div>
-                                ))
-                              )}
-                            </div>
+                          {/* Submenu: products of the hovered company */}
+                          <div
+                            ref={productsSubmenuRef}
+                            className="pmd-menu pmd-submenu"
+                            role="menu"
+                            style={{ top: submenuTop }}
+                            onScroll={() => setActiveParent(null)}
+                          >
+                            {!navProductsLoaded ? (
+                              <div className="pmd-item pmd-item-disabled">Loading…</div>
+                            ) : activeProducts.length === 0 ? (
+                              <div className="pmd-item pmd-item-disabled">No products yet</div>
+                            ) : (
+                              activeProducts.map(product => {
+                                const hasChildren = !!product.children && product.children.length > 0;
+                                const isOpen = activeParent?.id === product.id;
+                                return (
+                                  <Link
+                                    key={product.id}
+                                    href={`/products/${product.id}`}
+                                    role="menuitem"
+                                    aria-haspopup={hasChildren ? "menu" : undefined}
+                                    aria-expanded={hasChildren ? isOpen : undefined}
+                                    className={`pmd-item ${isOpen ? "pmd-item-active" : ""}`}
+                                    onMouseEnter={e => {
+                                      if (!hasChildren || !product.id) { setActiveParent(null); return; }
+                                      const scroll = productsSubmenuRef.current?.scrollTop ?? 0;
+                                      // offsetTop includes the submenu's 5px padding; the variations menu has the same padding.
+                                      setActiveParent({ id: product.id, top: submenuTop + e.currentTarget.offsetTop - scroll - 5 });
+                                    }}
+                                    onClick={() => setIsProductsDropdownOpen(false)}
+                                  >
+                                    <span className="pmd-item-label">{product.name}</span>
+                                    {hasChildren && chevron}
+                                  </Link>
+                                );
+                              })
+                            )}
                           </div>
+
+                          {/* Third level: variations of the hovered parent product */}
+                          {activeParentProduct && activeParentProduct.children && activeParentProduct.children.length > 0 && (
+                            <div
+                              key={activeParentProduct.id}
+                              className="pmd-menu pmd-submenu pmd-submenu-2"
+                              role="menu"
+                              style={{ top: activeParent!.top }}
+                            >
+                              {activeParentProduct.children.map(child => (
+                                <Link
+                                  key={child.id}
+                                  href={`/products/${activeParentProduct.id}`}
+                                  role="menuitem"
+                                  className="pmd-item"
+                                  onClick={() => setIsProductsDropdownOpen(false)}
+                                >
+                                  <span className="pmd-item-label">{child.name}</span>
+                                  {child.version && <span className="pmd-item-meta">v{child.version}</span>}
+                                </Link>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       );
                     })()}
