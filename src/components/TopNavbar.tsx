@@ -40,6 +40,7 @@ function TopNavbarInner() {
 
   // Products dropdown
   const [isProductsDropdownOpen, setIsProductsDropdownOpen] = useState(false);
+  const [activeCompanyTab, setActiveCompanyTab] = useState<"AGECS" | "NanoCAD">("AGECS");
   const [navProducts, setNavProducts] = useState<ProductDto[]>([]);
   const [navProductsLoaded, setNavProductsLoaded] = useState(false);
   const productsDropdownRef = useRef<HTMLDivElement>(null);
@@ -173,8 +174,6 @@ function TopNavbarInner() {
 
               // Products gets a special dropdown
               if (item.name === "Products") {
-                const agecsProducts = navProducts.filter(p => p.company !== "NanoCAD");
-                const nanocadProducts = navProducts.filter(p => p.company === "NanoCAD");
                 return (
                   <div
                     key={item.path}
@@ -193,110 +192,104 @@ function TopNavbarInner() {
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'transform 0.2s', transform: isProductsDropdownOpen ? 'rotate(180deg)' : 'none' }}><polyline points="6 9 12 15 18 9" /></svg>
                     </Link>
 
-                    {isProductsDropdownOpen && (
-                      <div
-                        className="products-mega-dropdown"
-                        onMouseEnter={() => { if (productsTimeoutRef.current) clearTimeout(productsTimeoutRef.current); }}
-                        onMouseLeave={handleProductsMouseLeave}
-                      >
-                        {/* AGECS Column */}
-                        {agecsProducts.length > 0 && (
-                          <div className="pmd-column">
-                            <div className="pmd-column-title">AGECS Solutions</div>
-                            {agecsProducts.map(product => (
-                              <div key={product.id} className="pmd-product-group">
-                                <Link
-                                  href={`/products/${product.id}`}
-                                  className="pmd-product-parent"
-                                  onClick={() => setIsProductsDropdownOpen(false)}
-                                >
-                                  <div className="pmd-product-icon">
-                                    {product.media && product.media.length > 0 && product.media[0].url ? (
-                                      // eslint-disable-next-line @next/next/no-img-element
-                                      <img src={resolveMediaUrl(product.media[0].url)} alt={product.name || ''} />
-                                    ) : (
-                                      <span>{(product.name || '?').slice(0, 2).toUpperCase()}</span>
+                    {isProductsDropdownOpen && (() => {
+                      const agecsProducts = navProducts.filter(p => p.company !== "NanoCAD");
+                      const nanocadProducts = navProducts.filter(p => p.company === "NanoCAD");
+                      const activeProducts = activeCompanyTab === "AGECS" ? agecsProducts : nanocadProducts;
+
+                      return (
+                        <div
+                          className="products-mega-dropdown"
+                          onMouseEnter={() => { if (productsTimeoutRef.current) clearTimeout(productsTimeoutRef.current); }}
+                          onMouseLeave={handleProductsMouseLeave}
+                        >
+                          {/* Left: Company Tabs */}
+                          <div className="pmd-tabs">
+                            <button
+                              type="button"
+                              className={`pmd-tab ${activeCompanyTab === "AGECS" ? "pmd-tab-active" : ""}`}
+                              onMouseEnter={() => setActiveCompanyTab("AGECS")}
+                            >
+                              <div className="pmd-tab-icon">🏗️</div>
+                              <div className="pmd-tab-info">
+                                <strong>AGECS</strong>
+                                <span>{agecsProducts.length} product{agecsProducts.length !== 1 ? "s" : ""}</span>
+                              </div>
+                              <svg className="pmd-tab-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 6 15 12 9 18" /></svg>
+                            </button>
+                            <button
+                              type="button"
+                              className={`pmd-tab ${activeCompanyTab === "NanoCAD" ? "pmd-tab-active" : ""}`}
+                              onMouseEnter={() => setActiveCompanyTab("NanoCAD")}
+                            >
+                              <div className="pmd-tab-icon">✏️</div>
+                              <div className="pmd-tab-info">
+                                <strong>NanoCAD</strong>
+                                <span>{nanocadProducts.length} product{nanocadProducts.length !== 1 ? "s" : ""}</span>
+                              </div>
+                              <svg className="pmd-tab-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 6 15 12 9 18" /></svg>
+                            </button>
+
+                            <div className="pmd-tabs-footer">
+                              <Link
+                                href="/products"
+                                className="pmd-view-all"
+                                onClick={() => setIsProductsDropdownOpen(false)}
+                              >
+                                View All Products →
+                              </Link>
+                            </div>
+                          </div>
+
+                          {/* Right: Products List */}
+                          <div className="pmd-products-panel">
+                            <div className="pmd-panel-title">{activeCompanyTab === "AGECS" ? "AGECS Solutions" : "NanoCAD Products"}</div>
+                            <div className="pmd-products-list">
+                              {activeProducts.length === 0 ? (
+                                <div className="pmd-empty">No products yet</div>
+                              ) : (
+                                activeProducts.map(product => (
+                                  <div key={product.id} className="pmd-product-group">
+                                    <Link
+                                      href={`/products/${product.id}`}
+                                      className="pmd-product-parent"
+                                      onClick={() => setIsProductsDropdownOpen(false)}
+                                    >
+                                      <div className="pmd-product-icon">
+                                        {product.media && product.media.length > 0 && product.media[0].url ? (
+                                          // eslint-disable-next-line @next/next/no-img-element
+                                          <img src={resolveMediaUrl(product.media[0].url)} alt={product.name || ''} />
+                                        ) : (
+                                          <span>{(product.name || '?').slice(0, 2).toUpperCase()}</span>
+                                        )}
+                                      </div>
+                                      <div className="pmd-product-info">
+                                        <strong>{product.name}</strong>
+                                        {product.miniDescription && <span>{product.miniDescription}</span>}
+                                      </div>
+                                    </Link>
+                                    {product.children && product.children.length > 0 && (
+                                      <div className="pmd-variations">
+                                        {product.children.map(child => (
+                                          <Link
+                                            key={child.id}
+                                            href={`/products/${product.id}`}
+                                            className="pmd-variation"
+                                            onClick={() => setIsProductsDropdownOpen(false)}
+                                          >
+                                            {child.name}{child.version ? ` v${child.version}` : ''}
+                                          </Link>
+                                        ))}
+                                      </div>
                                     )}
                                   </div>
-                                  <div className="pmd-product-info">
-                                    <strong>{product.name}</strong>
-                                    {product.miniDescription && <span>{product.miniDescription}</span>}
-                                  </div>
-                                </Link>
-                                {product.children && product.children.length > 0 && (
-                                  <div className="pmd-variations">
-                                    {product.children.map(child => (
-                                      <Link
-                                        key={child.id}
-                                        href={`/products/${product.id}`}
-                                        className="pmd-variation"
-                                        onClick={() => setIsProductsDropdownOpen(false)}
-                                      >
-                                        {child.name}{child.version ? ` v${child.version}` : ''}
-                                      </Link>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            ))}
+                                ))
+                              )}
+                            </div>
                           </div>
-                        )}
-
-                        {/* NanoCAD Column */}
-                        {nanocadProducts.length > 0 && (
-                          <div className="pmd-column">
-                            <div className="pmd-column-title">NanoCAD</div>
-                            {nanocadProducts.map(product => (
-                              <div key={product.id} className="pmd-product-group">
-                                <Link
-                                  href={`/products/${product.id}`}
-                                  className="pmd-product-parent"
-                                  onClick={() => setIsProductsDropdownOpen(false)}
-                                >
-                                  <div className="pmd-product-icon">
-                                    {product.media && product.media.length > 0 && product.media[0].url ? (
-                                      // eslint-disable-next-line @next/next/no-img-element
-                                      <img src={resolveMediaUrl(product.media[0].url)} alt={product.name || ''} />
-                                    ) : (
-                                      <span>{(product.name || '?').slice(0, 2).toUpperCase()}</span>
-                                    )}
-                                  </div>
-                                  <div className="pmd-product-info">
-                                    <strong>{product.name}</strong>
-                                    {product.miniDescription && <span>{product.miniDescription}</span>}
-                                  </div>
-                                </Link>
-                                {product.children && product.children.length > 0 && (
-                                  <div className="pmd-variations">
-                                    {product.children.map(child => (
-                                      <Link
-                                        key={child.id}
-                                        href={`/products/${product.id}`}
-                                        className="pmd-variation"
-                                        onClick={() => setIsProductsDropdownOpen(false)}
-                                      >
-                                        {child.name}{child.version ? ` v${child.version}` : ''}
-                                      </Link>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Footer */}
-                        <div className="pmd-footer">
-                          <Link
-                            href="/products"
-                            className="pmd-view-all"
-                            onClick={() => setIsProductsDropdownOpen(false)}
-                          >
-                            View All Products →
-                          </Link>
                         </div>
-                      </div>
-                    )}
+                      );
+                    })()}
                   </div>
                 );
               }

@@ -2133,8 +2133,7 @@ body.menu-open { overflow: hidden; }
   top: calc(100% + 14px);
   left: 50%;
   transform: translateX(-50%);
-  min-width: 420px;
-  max-width: 600px;
+  width: 560px;
   padding: 0;
   background: rgba(15, 23, 42, 0.97);
   border: 1px solid rgba(255,255,255,0.1);
@@ -2144,7 +2143,6 @@ body.menu-open { overflow: hidden; }
   z-index: 200;
   display: flex;
   flex-direction: row;
-  flex-wrap: wrap;
   animation: pmdSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
 }
@@ -2167,26 +2165,132 @@ body.menu-open { overflow: hidden; }
   to { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
-.pmd-column {
-  flex: 1;
-  min-width: 200px;
-  padding: 16px;
+/* Left tabs panel */
+.pmd-tabs {
+  width: 190px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  gap: 4px;
   border-right: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.02);
 }
 
-.pmd-column:last-of-type {
-  border-right: none;
+.pmd-tab {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 10px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  width: 100%;
+  color: inherit;
 }
 
-.pmd-column-title {
+.pmd-tab:hover {
+  background: rgba(255,255,255,0.04);
+}
+
+.pmd-tab-active {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+.pmd-tab-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.pmd-tab-active .pmd-tab-icon {
+  background: rgba(59, 130, 246, 0.15);
+}
+
+.pmd-tab-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.pmd-tab-info strong {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.pmd-tab-active .pmd-tab-info strong {
+  color: #93c5fd;
+}
+
+.pmd-tab-info span {
+  font-size: 0.65rem;
+  color: rgba(255,255,255,0.4);
+  font-weight: 500;
+}
+
+.pmd-tab-arrow {
+  color: rgba(255,255,255,0.2);
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.pmd-tab-active .pmd-tab-arrow {
+  color: #60a5fa;
+}
+
+.pmd-tabs-footer {
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+/* Right products panel */
+.pmd-products-panel {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: 380px;
+}
+
+.pmd-panel-title {
   font-size: 0.65rem;
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: rgba(255,255,255,0.4);
-  padding: 4px 8px 10px;
+  padding: 14px 16px 10px;
   border-bottom: 1px solid rgba(255,255,255,0.06);
-  margin-bottom: 8px;
+}
+
+.pmd-products-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 12px;
+}
+
+.pmd-products-list::-webkit-scrollbar { width: 4px; }
+.pmd-products-list::-webkit-scrollbar-track { background: transparent; }
+.pmd-products-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+
+.pmd-empty {
+  padding: 24px;
+  text-align: center;
+  color: rgba(255,255,255,0.3);
+  font-size: 0.85rem;
 }
 
 .pmd-product-group {
@@ -2286,13 +2390,6 @@ body.menu-open { overflow: hidden; }
   background: rgba(59, 130, 246, 0.12);
   border-color: rgba(59, 130, 246, 0.3);
   color: #60a5fa;
-}
-
-.pmd-footer {
-  width: 100%;
-  padding: 10px 16px;
-  border-top: 1px solid rgba(255,255,255,0.06);
-  background: rgba(255,255,255,0.02);
 }
 
 .pmd-view-all {
