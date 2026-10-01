@@ -36,13 +36,16 @@ export default function DashboardPage() {
           if (data?.value) setStats(data.value);
         } else {
           // NormalUser, Student, or unauthenticated
-          const [prodRes, pkgRes] = await Promise.all([
+          const [prodRes, pkgRes] = await Promise.allSettled([
             getApiProducts({ query: { includeHidden: false }, throwOnError: false }),
-            getApiPackages({ query: { includeHidden: false }, throwOnError: false })
+            getApiPackages({ throwOnError: false })
           ]);
-          if (prodRes.error) throw new Error("Failed to load products.");
-          if (prodRes.data?.value) setProducts(prodRes.data.value);
-          if (pkgRes.data?.value) setPackages(pkgRes.data.value);
+          if (prodRes.status === "fulfilled" && prodRes.value.data?.value) {
+            setProducts(prodRes.value.data.value);
+          }
+          if (pkgRes.status === "fulfilled" && pkgRes.value.data?.value) {
+            setPackages(pkgRes.value.data.value);
+          }
         }
       } catch (err) {
         console.error("Error loading home page:", err);

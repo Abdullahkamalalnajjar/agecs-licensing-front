@@ -2,11 +2,13 @@
 import Link from "next/link";
 import BrandLogo from "./BrandLogo";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "./AuthProvider";
 import StudentUpgradeModal from "./StudentUpgradeModal";
 import CartSidebar from "./CartSidebar";
-import { getApiV1CartsMyCart } from "@/client";
+import { getApiV1CartsMyCart, getApiProducts } from "@/client";
+import type { ProductDto } from "@/client/types.gen";
+import { resolveMediaUrl } from "@/lib/mediaUrl";
 import Image from "next/image";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 import { useCurrency, CURRENCIES, SupportedCurrency } from "@/context/CurrencyContext";
@@ -35,6 +37,37 @@ function TopNavbarInner() {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isCurrencyMenuOpen, setIsCurrencyMenuOpen] = useState(false);
   const { currency, setCurrency, currentCurrencyMeta } = useCurrency();
+
+  // Products dropdown
+  const [isProductsDropdownOpen, setIsProductsDropdownOpen] = useState(false);
+  const [navProducts, setNavProducts] = useState<ProductDto[]>([]);
+  const [navProductsLoaded, setNavProductsLoaded] = useState(false);
+  const productsDropdownRef = useRef<HTMLDivElement>(null);
+  const productsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const fetchNavProducts = useCallback(() => {
+    if (navProductsLoaded) return;
+    getApiProducts({ query: { includeHidden: false }, throwOnError: false })
+      .then(res => {
+        if (res.data?.value) {
+          setNavProducts(res.data.value.filter(p => !p.parentProductId));
+          setNavProductsLoaded(true);
+        }
+      })
+      .catch(() => {});
+  }, [navProductsLoaded]);
+
+  const handleProductsMouseEnter = () => {
+    if (productsTimeoutRef.current) clearTimeout(productsTimeoutRef.current);
+    fetchNavProducts();
+    setIsProductsDropdownOpen(true);
+  };
+
+  const handleProductsMouseLeave = () => {
+    productsTimeoutRef.current = setTimeout(() => {
+      setIsProductsDropdownOpen(false);
+    }, 200);
+  };
 
   // Fetch cart count on load if user is logged in
   useEffect(() => {
@@ -137,6 +170,137 @@ function TopNavbarInner() {
           <nav className="menu desktop-only">
             {filteredNavItems.map((item) => {
               const isActive = pathname.startsWith(item.path);
+
+              // Products gets a special dropdown
+              if (item.name === "Products") {
+                const agecsProducts = navProducts.filter(p => p.company !== "NanoCAD");
+                const nanocadProducts = navProducts.filter(p => p.company === "NanoCAD");
+                return (
+                  <div
+                    key={item.path}
+                    ref={productsDropdownRef}
+                    className="nav-products-trigger"
+                    onMouseEnter={handleProductsMouseEnter}
+                    onMouseLeave={handleProductsMouseLeave}
+                    style={{ position: 'relative' }}
+                  >
+                    <Link
+                      href={item.path}
+                      className={isActive ? "current" : ""}
+                      style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      {item.name}
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'transform 0.2s', transform: isProductsDropdownOpen ? 'rotate(180deg)' : 'none' }}><polyline points="6 9 12 15 18 9" /></svg>
+                    </Link>
+
+                    {isProductsDropdownOpen && (
+                      <div
+                        className="products-mega-dropdown"
+                        onMouseEnter={() => { if (productsTimeoutRef.current) clearTimeout(productsTimeoutRef.current); }}
+                        onMouseLeave={handleProductsMouseLeave}
+                      >
+                        {/* AGECS Column */}
+                        {agecsProducts.length > 0 && (
+                          <div className="pmd-column">
+                            <div className="pmd-column-title">AGECS Solutions</div>
+                            {agecsProducts.map(product => (
+                              <div key={product.id} className="pmd-product-group">
+                                <Link
+                                  href={`/products/${product.id}`}
+                                  className="pmd-product-parent"
+                                  onClick={() => setIsProductsDropdownOpen(false)}
+                                >
+                                  <div className="pmd-product-icon">
+                                    {product.media && product.media.length > 0 && product.media[0].url ? (
+                                      // eslint-disable-next-line @next/next/no-img-element
+                                      <img src={resolveMediaUrl(product.media[0].url)} alt={product.name || ''} />
+                                    ) : (
+                                      <span>{(product.name || '?').slice(0, 2).toUpperCase()}</span>
+                                    )}
+                                  </div>
+                                  <div className="pmd-product-info">
+                                    <strong>{product.name}</strong>
+                                    {product.miniDescription && <span>{product.miniDescription}</span>}
+                                  </div>
+                                </Link>
+                                {product.children && product.children.length > 0 && (
+                                  <div className="pmd-variations">
+                                    {product.children.map(child => (
+                                      <Link
+                                        key={child.id}
+                                        href={`/products/${product.id}`}
+                                        className="pmd-variation"
+                                        onClick={() => setIsProductsDropdownOpen(false)}
+                                      >
+                                        {child.name}{child.version ? ` v${child.version}` : ''}
+                                      </Link>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* NanoCAD Column */}
+                        {nanocadProducts.length > 0 && (
+                          <div className="pmd-column">
+                            <div className="pmd-column-title">NanoCAD</div>
+                            {nanocadProducts.map(product => (
+                              <div key={product.id} className="pmd-product-group">
+                                <Link
+                                  href={`/products/${product.id}`}
+                                  className="pmd-product-parent"
+                                  onClick={() => setIsProductsDropdownOpen(false)}
+                                >
+                                  <div className="pmd-product-icon">
+                                    {product.media && product.media.length > 0 && product.media[0].url ? (
+                                      // eslint-disable-next-line @next/next/no-img-element
+                                      <img src={resolveMediaUrl(product.media[0].url)} alt={product.name || ''} />
+                                    ) : (
+                                      <span>{(product.name || '?').slice(0, 2).toUpperCase()}</span>
+                                    )}
+                                  </div>
+                                  <div className="pmd-product-info">
+                                    <strong>{product.name}</strong>
+                                    {product.miniDescription && <span>{product.miniDescription}</span>}
+                                  </div>
+                                </Link>
+                                {product.children && product.children.length > 0 && (
+                                  <div className="pmd-variations">
+                                    {product.children.map(child => (
+                                      <Link
+                                        key={child.id}
+                                        href={`/products/${product.id}`}
+                                        className="pmd-variation"
+                                        onClick={() => setIsProductsDropdownOpen(false)}
+                                      >
+                                        {child.name}{child.version ? ` v${child.version}` : ''}
+                                      </Link>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Footer */}
+                        <div className="pmd-footer">
+                          <Link
+                            href="/products"
+                            className="pmd-view-all"
+                            onClick={() => setIsProductsDropdownOpen(false)}
+                          >
+                            View All Products →
+                          </Link>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
               return (
                 <Link
                   key={item.path}
