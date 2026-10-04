@@ -504,6 +504,10 @@ export default function HomeLandingView({ products, packages }: HomeLandingViewP
             transition: all .35s cubic-bezier(.4,0,.2,1);
         }
         .package:hover { border-color: var(--accent); transform: translateY(-5px); box-shadow: 0 15px 35px rgba(0,0,0,0.1); }
+        .package-image {
+            display: block; width: calc(100% + 56px); height: 150px; object-fit: cover;
+            margin: -28px -28px 20px; border-bottom: 1px solid var(--hairline);
+        }
         .package strong { display: block; color: var(--ink); font-size: 20px; margin-bottom: 10px; }
         .package p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.65; }
         .package-discount {
@@ -766,6 +770,10 @@ export default function HomeLandingView({ products, packages }: HomeLandingViewP
           <div className="packages-grid">
             {packages.map((pkg, i) => (
               <article key={pkg.id || i} className="package reveal" style={{ transitionDelay: `${i * 0.1}s` }}>
+                {pkg.imageUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img className="package-image" src={resolveMediaUrl(pkg.imageUrl)} alt={pkg.name || "Package"} loading="lazy" />
+                )}
                 <strong>{pkg.name}</strong>
                 <p>{pkg.description || "Package bundle"}</p>
                 <div style={{ marginTop: "1rem" }}>

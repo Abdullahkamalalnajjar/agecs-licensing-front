@@ -155,12 +155,10 @@ export type CreatePackageCommand = {
     price?: number;
     description?: string | null;
     miniDescription?: string | null;
-    link?: string | null;
     hidden?: boolean;
     comingSoon?: boolean;
     withTaxes?: boolean;
     expiryDate?: string | null;
-    order?: number;
     items?: Array<CreatePackageItemRequest> | null;
 };
 
@@ -322,6 +320,13 @@ export type GuidResult = {
     readonly errors?: Array<Error> | null;
 };
 
+export type StringResult = {
+    readonly isSuccess?: boolean;
+    readonly isError?: boolean;
+    readonly value?: string | null;
+    readonly errors?: Array<Error> | null;
+};
+
 export type LicenseClientDto = {
     id?: string;
     userId?: string;
@@ -419,7 +424,7 @@ export type PackageDto = {
     name?: string | null;
     description?: string | null;
     miniDescription?: string | null;
-    link?: string | null;
+    imageUrl?: string | null;
     price?: number;
     hidden?: boolean;
     comingSoon?: boolean;
@@ -453,7 +458,6 @@ export type PackageItemDto = {
     period?: number;
     licenseCount?: number;
     migrationLimit?: number;
-    media?: Array<ProductMediaDto> | null;
 };
 
 export type PayablePriceDto = {
@@ -819,12 +823,10 @@ export type UpdatePackageRequest = {
     price?: number;
     description?: string | null;
     miniDescription?: string | null;
-    link?: string | null;
     hidden?: boolean;
     comingSoon?: boolean;
     withTaxes?: boolean;
     expiryDate?: string | null;
-    order?: number;
     items?: Array<CreatePackageItemRequest> | null;
 };
 
@@ -2317,6 +2319,130 @@ export type PutApiPackagesByIdResponses = {
 };
 
 export type PutApiPackagesByIdResponse = PutApiPackagesByIdResponses[keyof PutApiPackagesByIdResponses];
+
+export type DeleteApiPackagesByIdImageData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/packages/{id}/image';
+};
+
+export type DeleteApiPackagesByIdImageErrors = {
+    /**
+     * Not Found
+     */
+    404: ObjectResult;
+};
+
+export type DeleteApiPackagesByIdImageError = DeleteApiPackagesByIdImageErrors[keyof DeleteApiPackagesByIdImageErrors];
+
+export type DeleteApiPackagesByIdImageResponses = {
+    /**
+     * OK
+     */
+    200: DeletedResult;
+};
+
+export type DeleteApiPackagesByIdImageResponse = DeleteApiPackagesByIdImageResponses[keyof DeleteApiPackagesByIdImageResponses];
+
+export type ReorderPackagesCommand = {
+    packageIds?: Array<string> | null;
+};
+
+export type PutApiPackagesReorderData = {
+    body?: ReorderPackagesCommand;
+    path?: never;
+    query?: never;
+    url: '/api/packages/reorder';
+};
+
+export type PutApiPackagesReorderErrors = {
+    /**
+     * Bad Request
+     */
+    400: ObjectResult;
+    /**
+     * Not Found
+     */
+    404: ObjectResult;
+};
+
+export type PutApiPackagesReorderError = PutApiPackagesReorderErrors[keyof PutApiPackagesReorderErrors];
+
+export type PutApiPackagesReorderResponses = {
+    /**
+     * OK
+     */
+    200: UpdatedResult;
+};
+
+export type PutApiPackagesReorderResponse = PutApiPackagesReorderResponses[keyof PutApiPackagesReorderResponses];
+
+export type SetPackageHiddenRequest = {
+    hidden?: boolean;
+};
+
+export type PatchApiPackagesByIdHiddenData = {
+    body?: SetPackageHiddenRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/packages/{id}/hidden';
+};
+
+export type PatchApiPackagesByIdHiddenErrors = {
+    /**
+     * Not Found
+     */
+    404: ObjectResult;
+};
+
+export type PatchApiPackagesByIdHiddenError = PatchApiPackagesByIdHiddenErrors[keyof PatchApiPackagesByIdHiddenErrors];
+
+export type PatchApiPackagesByIdHiddenResponses = {
+    /**
+     * OK
+     */
+    200: UpdatedResult;
+};
+
+export type PatchApiPackagesByIdHiddenResponse = PatchApiPackagesByIdHiddenResponses[keyof PatchApiPackagesByIdHiddenResponses];
+
+export type PutApiPackagesByIdImageData = {
+    body?: {
+        File?: Blob | File;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/packages/{id}/image';
+};
+
+export type PutApiPackagesByIdImageErrors = {
+    /**
+     * Bad Request
+     */
+    400: ObjectResult;
+    /**
+     * Not Found
+     */
+    404: ObjectResult;
+};
+
+export type PutApiPackagesByIdImageError = PutApiPackagesByIdImageErrors[keyof PutApiPackagesByIdImageErrors];
+
+export type PutApiPackagesByIdImageResponses = {
+    /**
+     * OK
+     */
+    200: StringResult;
+};
+
+export type PutApiPackagesByIdImageResponse = PutApiPackagesByIdImageResponses[keyof PutApiPackagesByIdImageResponses];
 
 export type PostApiPaymentsCheckoutData = {
     /**

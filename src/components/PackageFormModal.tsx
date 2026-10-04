@@ -37,7 +37,6 @@ export default function PackageFormModal({ isOpen, onClose, onSuccess, pkg }: Pa
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [description, setDescription] = useState("");
-  const [order, setOrder] = useState("0");
   const [hidden, setHidden] = useState(false);
   const [comingSoon, setComingSoon] = useState(false);
   const [withTaxes, setWithTaxes] = useState(true);
@@ -55,7 +54,6 @@ export default function PackageFormModal({ isOpen, onClose, onSuccess, pkg }: Pa
       setName(pkg.name || "");
       setPrice(pkg.price != null ? pkg.price.toString() : "");
       setDescription(pkg.description || "");
-      setOrder(pkg.order != null ? pkg.order.toString() : "0");
       setHidden(pkg.hidden || false);
       setComingSoon(pkg.comingSoon || false);
       setWithTaxes(pkg.withTaxes ?? true);
@@ -75,7 +73,6 @@ export default function PackageFormModal({ isOpen, onClose, onSuccess, pkg }: Pa
       setName("");
       setPrice("");
       setDescription("");
-      setOrder("0");
       setHidden(false);
       setComingSoon(false);
       setWithTaxes(true);
@@ -152,12 +149,10 @@ export default function PackageFormModal({ isOpen, onClose, onSuccess, pkg }: Pa
         price: Number(price) || 0,
         description: description || null,
         miniDescription: null,
-        link: null,
         hidden,
         comingSoon,
         withTaxes,
         expiryDate: null,
-        order: Number(order) || 0,
         items: resolvedItems,
       };
 
@@ -306,13 +301,6 @@ export default function PackageFormModal({ isOpen, onClose, onSuccess, pkg }: Pa
                 <p style={{ margin: "0.6rem 0 0", fontSize: "0.75rem", color: "var(--text-muted)" }}>
                   Columns: Product, Variation, Period (days), License count, Migration limit.
                 </p>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "1rem" }}>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Display Order</label>
-                  <input type="number" value={order} onChange={(e) => setOrder(e.target.value)} className="form-input" />
-                </div>
               </div>
 
               <div style={{ display: "flex", gap: "1.5rem", marginTop: "0.5rem" }}>
