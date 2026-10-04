@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { postApiProducts, putApiProductsById } from "@/client";
+import CatalogSelect from "./CatalogSelect";
 import "./product-form.css";
 
 type ProductFormModalProps = {
@@ -15,18 +16,17 @@ export default function ProductFormModal({ initialData, onClose, onSuccess }: Pr
   const [productData, setProductData] = useState({
     name: initialData?.name || "",
     fullName: initialData?.fullName || "",
-    family: initialData?.family || "SES",
+    familyId: initialData?.familyId || "",
     description: initialData?.description || "",
     miniDescription: initialData?.miniDescription || "",
     storagePath: initialData?.storagePath || "",
     parentProductId: initialData?.parentProductId || "",
     comingSoon: initialData?.comingSoon || false,
     hidden: initialData?.hidden || false,
-    order: initialData?.order || 0,
     withTaxes: initialData?.withTaxes ?? true,
     version: initialData?.version || "",
     janDrozdId: initialData?.janDrozdId || "",
-    company: initialData?.company ?? "AGECS",
+    companyId: initialData?.companyId || "",
   });
 
   const [prices, setPrices] = useState<{ id?: string, period: number, price: number, country: string, active: boolean }[]>(
@@ -47,7 +47,6 @@ export default function ProductFormModal({ initialData, onClose, onSuccess }: Pr
       const payload = {
         ...productData,
         parentProductId: productData.parentProductId || undefined,
-        order: Number(productData.order) || 0,
         prices: prices.map(p => ({
           id: p.id,
           country: p.country,
@@ -124,27 +123,7 @@ export default function ProductFormModal({ initialData, onClose, onSuccess }: Pr
                 <div className="pf-row">
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label className="form-label" htmlFor="family">Family</label>
-                    <select id="family" className="form-input" value={["SES", "NanoCAD"].includes(productData.family) ? productData.family : "Other"} onChange={(e) => {
-                        if (e.target.value === "Other") {
-                          setProductData({ ...productData, family: "" });
-                        } else {
-                          setProductData({ ...productData, family: e.target.value });
-                        }
-                    }} style={{ appearance: "auto" }}>
-                      <option value="SES">SES</option>
-                      <option value="NanoCAD">NanoCAD</option>
-                      <option value="Other">Other</option>
-                    </select>
-                    {!["SES", "NanoCAD"].includes(productData.family) && (
-                        <input
-                            type="text"
-                            className="form-input pf-custom-family"
-                            placeholder="Enter custom family"
-                            value={productData.family === "Other" ? "" : productData.family}
-                            onChange={(e) => setProductData({ ...productData, family: e.target.value })}
-                            required
-                        />
-                    )}
+                    <CatalogSelect kind="family" id="family" value={productData.familyId} onChange={(familyId) => setProductData({ ...productData, familyId })} required />
                   </div>
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label className="form-label" htmlFor="version">Version</label>
@@ -159,10 +138,7 @@ export default function ProductFormModal({ initialData, onClose, onSuccess }: Pr
                   </div>
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label className="form-label" htmlFor="company">Company</label>
-                    <select id="company" className="form-input" value={productData.company} onChange={(e) => setProductData({ ...productData, company: e.target.value as any })} style={{ appearance: "auto" }}>
-                      <option value="AGECS">AGECS</option>
-                      <option value="NanoCAD">NanoCAD</option>
-                    </select>
+                    <CatalogSelect kind="company" id="company" value={productData.companyId} onChange={(companyId) => setProductData({ ...productData, companyId })} required />
                   </div>
                 </div>
               </div>
@@ -235,11 +211,6 @@ export default function ProductFormModal({ initialData, onClose, onSuccess }: Pr
                 <div className="pf-section-title">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                   Settings
-                </div>
-
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label" htmlFor="order">Display Order</label>
-                  <input id="order" type="number" className="form-input" value={productData.order} onChange={(e) => setProductData({ ...productData, order: Number(e.target.value) })} />
                 </div>
 
                 <div className="pf-toggles">

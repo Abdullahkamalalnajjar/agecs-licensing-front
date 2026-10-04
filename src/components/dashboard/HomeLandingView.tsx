@@ -3,6 +3,7 @@ import React, { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { ProductDto, PackageDto } from "@/client/types.gen";
 import { resolveMediaUrl } from "@/lib/mediaUrl";
+import { useCatalog } from "@/lib/catalog";
 
 interface HomeLandingViewProps {
   products: ProductDto[];
@@ -44,16 +45,26 @@ function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: str
 export default function HomeLandingView({ products, packages }: HomeLandingViewProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const totalSlides = 3;
-  const nanocadProducts = products.filter(p => p.company === "NanoCAD");
-  const agecsProducts = products.filter(p => p.company === "AGECS");
+  const { companies } = useCatalog();
+  // One home page section per company, in the admin-defined order; sections alternate between two layouts.
+  const companySections = companies.map((company, index) => ({
+    company,
+    products: products.filter(p => p.companyId === company.id),
+    // The first section keeps the "products" anchor the hero buttons link to; others get e.g. "nanocad".
+    anchor: index === 0 ? "products" : (company.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
+    dark: index % 2 === 1,
+  }));
 
   useEffect(() => {
     // Slider interval
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % totalSlides);
     }, 5200);
+    return () => clearInterval(interval);
+  }, []);
 
-    // Scroll reveal observer
+  useEffect(() => {
+    // Scroll reveal observer. Re-runs when companies/products/packages load, since their sections render later.
     const obs = new IntersectionObserver((entries) => {
       entries.forEach((e) => {
         if (e.isIntersecting) {
@@ -62,15 +73,10 @@ export default function HomeLandingView({ products, packages }: HomeLandingViewP
       });
     }, { threshold: 0.12 });
 
-    const revealElements = document.querySelectorAll('.reveal');
-    revealElements.forEach((el) => obs.observe(el));
+    document.querySelectorAll('.reveal:not(.visible)').forEach((el) => obs.observe(el));
 
-    return () => {
-      clearInterval(interval);
-      revealElements.forEach((el) => obs.unobserve(el));
-      obs.disconnect();
-    };
-  }, []);
+    return () => obs.disconnect();
+  }, [companies, products, packages]);
 
   return (
     <div className="home-landing-container">
@@ -799,100 +805,104 @@ export default function HomeLandingView({ products, packages }: HomeLandingViewP
         </div>
       </section>
 
-      {/* ═══ NANOCAD ═══ */}
-      <section id="nanocad" className="section blue-section">
-        <div className="hl-container ">
-          <div className="reveal">
-            <div className="eyebrow">nanoCAD Official Service Provider</div>
-            <h2 className="section-title">Official and Sole Service Provider of nanoCAD in Egypt and the Middle East</h2>
-            <p className="lead" style={{ marginLeft: 0 }}>AGECS helps engineering teams adopt a reliable, cost-effective CAD environment supported by professional local expertise, implementation support, technical assistance, and workflow guidance.</p>
-            <div className="cta">
-              <a href="#" className="hl-btn btn-yellow">Explore nanoCAD</a>
-              <a href="#contact" className="hl-btn btn-outline">Request nanoCAD Support</a>
-            </div>
-          </div>
-          <div className="product-grid product-showcase reveal" style={{ marginTop: "30px", gridColumn: "1 / -1" }}>
-            {nanocadProducts.slice(0, 4).map((product, index) => (
-              <article key={product.id || index} className={`hl-product reveal`} style={{ transitionDelay: `${index * 0.08}s`, background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' }}>
-                <div className="product-media" style={{ background: 'transparent' }}>
-                  {product.media && product.media.length > 0 && product.media[0].url ? (
-                    <img src={resolveMediaUrl(product.media[0].url)} alt={product.name || "Product"} />
-                  ) : (
-                    <div style={{ color: "rgba(255,255,255,0.5)", fontWeight: "bold", fontSize: "16px" }}>{product.name}</div>
-                  )}
-                </div>
-                <div className="product-content" style={{ color: '#fff' }}>
-                  <small style={{ color: 'var(--green)' }}>{product.family || "NanoCAD"}</small>
-                  <h3 style={{ color: '#fff' }}>{product.name}</h3>
-                  <p style={{ color: 'rgba(255,255,255,0.7)' }}>{product.miniDescription || "Professional engineering software module."}</p>
-                  <div style={{ marginTop: "auto", paddingTop: "1rem" }}>
-                    <Link href={`/products/${product.id}`} className="hl-btn btn-outline" style={{ minHeight: "38px", fontSize: "12px", padding: "0 18px", color: '#fff', borderColor: 'rgba(255,255,255,0.3)' }}>
-                      Learn More →
-                    </Link>
-                  </div>
-                </div>
-              </article>
-            ))}
-            {nanocadProducts.length === 0 && (
-              <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "2rem" }}>
-                <p style={{ color: "rgba(255,255,255,0.5)" }}>No NanoCAD products available yet...</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-      </section>
-
-      {/* ═══ PRODUCTS ═══ */}
-      <section id="products" className="section products-bg">
-        <div className="hl-container">
-          <div className="center reveal">
-            <div className="eyebrow">Products</div>
-            <h2 className="section-title">Choose the Right AGECS Product for Your Workflow</h2>
-            <p className="lead">From reinforcement detailing and steel drafting to CAD productivity and structural documentation.</p>
-          </div>
-          <div className="product-grid product-showcase">
-            {agecsProducts.slice(0, 7).map((product, index) => (
-              <article key={product.id || index} className={`hl-product reveal ${index === 0 ? "featured" : ""}`} style={{ transitionDelay: `${index * 0.08}s` }}>
-                <div className="product-media">
-                  {product.media && product.media.length > 0 && product.media[0].url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={resolveMediaUrl(product.media[0].url)} alt={product.name || "Product"} />
-                  ) : (
-                    <div style={{ color: "var(--muted)", fontWeight: "bold", opacity: 0.5, fontSize: index === 0 ? "24px" : "16px" }}>{product.name}</div>
-                  )}
-                </div>
-                <div className="product-content">
-                  <small>{product.family || "AGECS Ecosystem"}</small>
-                  <h3>{product.name}</h3>
-                  <p>{product.miniDescription || "Professional engineering software module for advanced structural workflows."}</p>
-                  <div style={{ marginTop: "auto", paddingTop: "1rem" }}>
-                    <Link href={`/products/${product.id}`} className="hl-btn btn-light-outline" style={{ minHeight: "38px", fontSize: "12px", padding: "0 18px" }}>
-                      Learn More →
-                    </Link>
-                  </div>
-                </div>
-              </article>
-            ))}
-
-            <article className="hl-product cta-product reveal">
-              <div className="product-content">
-                <h3>Explore the AGECS Product Ecosystem</h3>
-                <p>Choose the right tool for drafting, detailing, modeling, documentation, and workflow automation.</p>
-                <div className="cta" style={{ justifyContent: "center" }}>
-                  <Link href="/products" className="hl-btn btn-yellow">View All Products</Link>
+      {/* ═══ COMPANY SECTIONS ═══ */}
+      {companySections.map(({ company, products: companyProducts, anchor, dark }) => {
+        const name = company.name || "";
+        return dark ? (
+          <section key={company.id} id={anchor} className="section blue-section">
+            <div className="hl-container ">
+              <div className="reveal">
+                <div className="eyebrow">{company.tagline || name}</div>
+                <h2 className="section-title">{company.headline || `${name} Products`}</h2>
+                {company.description && <p className="lead" style={{ marginLeft: 0 }}>{company.description}</p>}
+                <div className="cta">
+                  <Link href="/products" className="hl-btn btn-yellow">Explore {name}</Link>
+                  <a href="#contact" className="hl-btn btn-outline">Request {name} Support</a>
                 </div>
               </div>
-            </article>
-          </div>
-          
-          {agecsProducts.length === 0 && (
-            <div className="reveal" style={{ textAlign: "center", padding: "3rem", background: "var(--surface-card)", borderRadius: "20px", marginTop: "2rem", border: "1px solid var(--hairline)" }}>
-              <p style={{ color: "var(--muted)", margin: 0 }}>No products available yet...</p>
+              <div className="product-grid product-showcase reveal" style={{ marginTop: "30px", gridColumn: "1 / -1" }}>
+                {companyProducts.slice(0, 4).map((product, index) => (
+                  <article key={product.id || index} className={`hl-product reveal`} style={{ transitionDelay: `${index * 0.08}s`, background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' }}>
+                    <div className="product-media" style={{ background: 'transparent' }}>
+                      {product.media && product.media.length > 0 && product.media[0].url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={resolveMediaUrl(product.media[0].url)} alt={product.name || "Product"} />
+                      ) : (
+                        <div style={{ color: "rgba(255,255,255,0.5)", fontWeight: "bold", fontSize: "16px" }}>{product.name}</div>
+                      )}
+                    </div>
+                    <div className="product-content" style={{ color: '#fff' }}>
+                      <small style={{ color: 'var(--green)' }}>{product.family || name}</small>
+                      <h3 style={{ color: '#fff' }}>{product.name}</h3>
+                      <p style={{ color: 'rgba(255,255,255,0.7)' }}>{product.miniDescription || "Professional engineering software module."}</p>
+                      <div style={{ marginTop: "auto", paddingTop: "1rem" }}>
+                        <Link href={`/products/${product.id}`} className="hl-btn btn-outline" style={{ minHeight: "38px", fontSize: "12px", padding: "0 18px", color: '#fff', borderColor: 'rgba(255,255,255,0.3)' }}>
+                          Learn More →
+                        </Link>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+                {companyProducts.length === 0 && (
+                  <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "2rem" }}>
+                    <p style={{ color: "rgba(255,255,255,0.5)" }}>No {name} products available yet...</p>
+                  </div>
+                )}
+              </div>
             </div>
-          )}
-        </div>
-      </section>
+          </section>
+        ) : (
+          <section key={company.id} id={anchor} className="section products-bg">
+            <div className="hl-container">
+              <div className="center reveal">
+                <div className="eyebrow">{company.tagline || name}</div>
+                <h2 className="section-title">{company.headline || `${name} Products`}</h2>
+                {company.description && <p className="lead">{company.description}</p>}
+              </div>
+              <div className="product-grid product-showcase">
+                {companyProducts.slice(0, 7).map((product, index) => (
+                  <article key={product.id || index} className={`hl-product reveal ${index === 0 ? "featured" : ""}`} style={{ transitionDelay: `${index * 0.08}s` }}>
+                    <div className="product-media">
+                      {product.media && product.media.length > 0 && product.media[0].url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={resolveMediaUrl(product.media[0].url)} alt={product.name || "Product"} />
+                      ) : (
+                        <div style={{ color: "var(--muted)", fontWeight: "bold", opacity: 0.5, fontSize: index === 0 ? "24px" : "16px" }}>{product.name}</div>
+                      )}
+                    </div>
+                    <div className="product-content">
+                      <small>{product.family || `${name} Ecosystem`}</small>
+                      <h3>{product.name}</h3>
+                      <p>{product.miniDescription || "Professional engineering software module for advanced structural workflows."}</p>
+                      <div style={{ marginTop: "auto", paddingTop: "1rem" }}>
+                        <Link href={`/products/${product.id}`} className="hl-btn btn-light-outline" style={{ minHeight: "38px", fontSize: "12px", padding: "0 18px" }}>
+                          Learn More →
+                        </Link>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+
+                <article className="hl-product cta-product reveal">
+                  <div className="product-content">
+                    <h3>Explore the {name} Product Ecosystem</h3>
+                    <p>Choose the right tool for drafting, detailing, modeling, documentation, and workflow automation.</p>
+                    <div className="cta" style={{ justifyContent: "center" }}>
+                      <Link href="/products" className="hl-btn btn-yellow">View All Products</Link>
+                    </div>
+                  </div>
+                </article>
+              </div>
+
+              {companyProducts.length === 0 && (
+                <div className="reveal" style={{ textAlign: "center", padding: "3rem", background: "var(--surface-card)", borderRadius: "20px", marginTop: "2rem", border: "1px solid var(--hairline)" }}>
+                  <p style={{ color: "var(--muted)", margin: 0 }}>No products available yet...</p>
+                </div>
+              )}
+            </div>
+          </section>
+        );
+      })}
 
       {/* ═══ PARTNERS + WORKFLOW ═══ */}
       <section id="partners" className="section workflow-section">

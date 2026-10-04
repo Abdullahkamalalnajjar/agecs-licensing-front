@@ -48,10 +48,6 @@
   color: var(--text-muted);
 }
 
-.pf-custom-family {
-  margin-top: 0.5rem;
-}
-
 .pf-divider {
   border: none;
   border-top: 1px solid var(--border);

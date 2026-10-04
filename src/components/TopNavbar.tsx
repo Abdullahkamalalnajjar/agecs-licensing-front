@@ -11,6 +11,7 @@ import type { ProductDto } from "@/client/types.gen";
 import Image from "next/image";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 import { useCurrency, CURRENCIES, SupportedCurrency } from "@/context/CurrencyContext";
+import { useCatalog } from "@/lib/catalog";
 
 const navItems = [
   { name: "Home", path: "/home" },
@@ -39,7 +40,8 @@ function TopNavbarInner() {
 
   // Products dropdown
   const [isProductsDropdownOpen, setIsProductsDropdownOpen] = useState(false);
-  const [activeCompanyTab, setActiveCompanyTab] = useState<"AGECS" | "NanoCAD">("AGECS");
+  const [activeCompanyTab, setActiveCompanyTab] = useState<string | null>(null); // company id; null = first company
+  const { companies: catalogCompanies } = useCatalog();
   const [navProducts, setNavProducts] = useState<ProductDto[]>([]);
   const [navProductsLoaded, setNavProductsLoaded] = useState(false);
   const productsDropdownRef = useRef<HTMLDivElement>(null);
@@ -212,15 +214,15 @@ function TopNavbarInner() {
                     </a>
 
                     {isProductsDropdownOpen && (() => {
-                      const agecsProducts = navProducts.filter(p => p.company !== "NanoCAD");
-                      const nanocadProducts = navProducts.filter(p => p.company === "NanoCAD");
-                      const activeProducts = activeCompanyTab === "AGECS" ? agecsProducts : nanocadProducts;
-
-                      const companies = [
-                        { key: "AGECS" as const, label: "AGECS", icon: "🏗️", products: agecsProducts },
-                        { key: "NanoCAD" as const, label: "NanoCAD", icon: "✏️", products: nanocadProducts },
-                      ];
-                      const activeIndex = companies.findIndex(c => c.key === activeCompanyTab);
+                      const companies = catalogCompanies.map(c => ({
+                        key: c.id!,
+                        label: c.name || "",
+                        icon: c.icon || "📦",
+                        products: navProducts.filter(p => p.companyId === c.id),
+                      }));
+                      const activeKey = activeCompanyTab ?? companies[0]?.key;
+                      const activeProducts = companies.find(c => c.key === activeKey)?.products ?? [];
+                      const activeIndex = Math.max(0, companies.findIndex(c => c.key === activeKey));
                       const submenuTop = activeIndex * 28;
                       const activeParentProduct = activeParent ? activeProducts.find(p => p.id === activeParent.id) : undefined;
                       const chevron = (
@@ -241,8 +243,8 @@ function TopNavbarInner() {
                                 type="button"
                                 role="menuitem"
                                 aria-haspopup="menu"
-                                aria-expanded={activeCompanyTab === c.key}
-                                className={`pmd-item ${activeCompanyTab === c.key ? "pmd-item-active" : ""}`}
+                                aria-expanded={activeKey === c.key}
+                                className={`pmd-item ${activeKey === c.key ? "pmd-item-active" : ""}`}
                                 onMouseEnter={() => { setActiveCompanyTab(c.key); setActiveParent(null); }}
                                 onFocus={() => { setActiveCompanyTab(c.key); setActiveParent(null); }}
                               >

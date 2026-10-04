@@ -291,7 +291,7 @@ export default function ProductDetailsPage() {
     );
   }
 
-  const company = product.company === "NanoCAD" ? "NanoCAD" : "AGECS";
+  const company = product.company || "—";
   const onSale = currentPrice?.originalPrice != null && currentPrice.originalPrice > (currentPrice.price ?? 0);
   const salePct = onSale ? Math.round((1 - (currentPrice!.price ?? 0) / currentPrice!.originalPrice!) * 100) : 0;
   const canBuy = !isAdmin && !product.comingSoon && !!currentPrice;

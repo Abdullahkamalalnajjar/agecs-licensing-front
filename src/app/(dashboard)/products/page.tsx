@@ -1,11 +1,12 @@
 "use client";
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { getApiProducts, deleteApiProductsById } from "@/client";
+import { getApiProducts, deleteApiProductsById, putApiProductsReorder } from "@/client";
 import { client } from "@/client/client.gen";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { PayablePriceDto, ProductDto } from "@/client/types.gen";
 import { resolveMediaUrl } from "@/lib/mediaUrl";
+import { useCatalog } from "@/lib/catalog";
 import ProductFormModal from "@/components/ProductFormModal";
 import ProductMediaModal from "@/components/ProductMediaModal";
 import ChildProductsModal from "@/components/ChildProductsModal";
@@ -37,7 +38,7 @@ function periodLabel(period?: number | null, type?: string | null) {
   return n === 1 ? `/ ${unit}` : `/ ${n} ${unit}s`;
 }
 
-const companyName = (p: ProductDto) => (p.company === "NanoCAD" ? "NanoCAD" : "AGECS");
+const companyName = (p: ProductDto) => p.company || "—";
 const coverUrl = (p: ProductDto) => {
   const media = [...(p.media || [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   return media[0]?.url ? resolveMediaUrl(media[0].url) : "";
@@ -103,11 +104,12 @@ export default function ProductsPage() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
-  const [company, setCompany] = useState<"all" | "AGECS" | "NanoCAD">("all");
+  const [company, setCompany] = useState<string>("all"); // "all" or a company id
   const [family, setFamily] = useState("all");
   const [status, setStatus] = useState<StatusFilter>("all");
   const [sort, setSort] = useState<SortKey>("order");
   const [view, setView] = useState<ViewMode>("table");
+  const [reordering, setReordering] = useState(false);
 
   // Read after mount so server and client render the same markup first
   // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -170,7 +172,12 @@ export default function ProductsPage() {
     [rootProducts]
   );
 
-  const companies = useMemo(() => new Set(rootProducts.map(companyName)), [rootProducts]);
+  const { companies: allCompanies } = useCatalog();
+  // Only companies that have products are worth a filter chip.
+  const companies = useMemo(
+    () => allCompanies.filter((c) => rootProducts.some((p) => p.companyId === c.id)),
+    [allCompanies, rootProducts]
+  );
 
   const stats = useMemo(() => ({
     total: rootProducts.length,
@@ -183,7 +190,7 @@ export default function ProductsPage() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const list = rootProducts.filter((p) => {
-      if (company !== "all" && companyName(p) !== company) return false;
+      if (company !== "all" && p.companyId !== company) return false;
       if (family !== "all" && p.family !== family) return false;
       if (status === "visible" && p.hidden) return false;
       if (status === "hidden" && !p.hidden) return false;
@@ -205,6 +212,39 @@ export default function ProductsPage() {
   }, [rootProducts, search, company, family, status, sort, currency]);
 
   const hasFilters = !!search || company !== "all" || family !== "all" || status !== "all";
+  // Reordering needs the full, unfiltered list in display order, since the API reorders all top-level products at once.
+  const canReorder = !hasFilters && sort === "order";
+
+  // Moves a product one step, saving the whole new order; rolls back if the save fails.
+  const handleMove = async (index: number, direction: -1 | 1) => {
+    const target = index + direction;
+    if (!canReorder || target < 0 || target >= filtered.length) return;
+
+    const next = [...filtered];
+    [next[index], next[target]] = [next[target], next[index]];
+    const newOrder = new Map(next.map((p, i) => [p.id, i]));
+
+    const previous = products;
+    setProducts((prev) => prev.map((p) => (newOrder.has(p.id) ? { ...p, order: newOrder.get(p.id) } : p)));
+
+    try {
+      setReordering(true);
+      const res = await putApiProductsReorder({
+        body: { parentProductId: null, productIds: next.map((p) => p.id!).filter(Boolean) },
+        throwOnError: false,
+      });
+      if (res.error || res.data?.isError) {
+        setProducts(previous);
+        toastError(res.data?.errors?.map((e) => e.description).join(", ") || "Failed to save the new order.");
+      }
+    } catch (err) {
+      setProducts(previous);
+      toastError((err instanceof Error && err.message) || "Error saving the new order.");
+    } finally {
+      setReordering(false);
+    }
+  };
+
   const clearFilters = () => { setSearch(""); setCompany("all"); setFamily("all"); setStatus("all"); };
 
   const formatMoney = (n: number) =>
@@ -330,11 +370,11 @@ export default function ProductsPage() {
             />
           </label>
 
-          {companies.size > 1 && (
+          {companies.length > 1 && (
             <div className="pr-segment" role="group" aria-label="Company">
-              {(["all", "AGECS", "NanoCAD"] as const).map((c) => (
-                <button key={c} type="button" className={company === c ? "is-active" : ""} onClick={() => setCompany(c)} aria-pressed={company === c}>
-                  {c === "all" ? "All" : c}
+              {[{ id: "all", name: "All" }, ...companies].map((c) => (
+                <button key={c.id} type="button" className={company === c.id ? "is-active" : ""} onClick={() => setCompany(c.id!)} aria-pressed={company === c.id}>
+                  {c.name}
                 </button>
               ))}
             </div>
@@ -427,6 +467,7 @@ export default function ProductsPage() {
           <table className="data-table pr-table">
             <thead>
               <tr>
+                <th style={{ width: "90px" }} title={canReorder ? undefined : "Clear filters and sort by Featured to reorder"}>Order</th>
                 <th>Product</th>
                 <th>Family</th>
                 <th>Version</th>
@@ -437,8 +478,40 @@ export default function ProductsPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((product) => (
+              {filtered.map((product, index) => (
                 <tr key={product.id} className={product.hidden ? "is-hidden" : ""}>
+                  <td>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8rem", color: "var(--text-muted)", minWidth: "1.25rem" }}>
+                        {index + 1}
+                      </span>
+                      <div
+                        style={{ display: "flex", flexDirection: "column", gap: "2px" }}
+                        title={canReorder ? undefined : "Clear filters and sort by Featured to reorder"}
+                      >
+                        <button
+                          type="button"
+                          className="btn-ghost"
+                          style={{ padding: "0 6px", minHeight: "20px", lineHeight: 1, fontSize: "0.7rem" }}
+                          onClick={() => handleMove(index, -1)}
+                          disabled={!canReorder || reordering || index === 0}
+                          aria-label={`Move ${product.name} up`}
+                        >
+                          ▲
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-ghost"
+                          style={{ padding: "0 6px", minHeight: "20px", lineHeight: 1, fontSize: "0.7rem" }}
+                          onClick={() => handleMove(index, 1)}
+                          disabled={!canReorder || reordering || index === filtered.length - 1}
+                          aria-label={`Move ${product.name} down`}
+                        >
+                          ▼
+                        </button>
+                      </div>
+                    </div>
+                  </td>
                   <td>
                     <Link href={`/products/${product.id}`} className="pr-row-product">
                       <ProductThumb product={product} size="sm" />

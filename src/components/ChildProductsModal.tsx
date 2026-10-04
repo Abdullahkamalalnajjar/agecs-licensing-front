@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ProductDto } from "@/client/types.gen";
-import { postApiProductsByParentIdChildren, putApiProductsById, deleteApiProductsById } from "@/client";
+import { postApiProductsByParentIdChildren, putApiProductsById, deleteApiProductsById, putApiProductsReorder } from "@/client";
 
 type ChildProductsModalProps = {
   product: ProductDto;
@@ -16,6 +16,8 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
   const [isAddingChild, setIsAddingChild] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [reordering, setReordering] = useState(false);
+  const [reordered, setReordered] = useState(false);
 
   const [newChild, setNewChild] = useState({
     id: "",
@@ -27,7 +29,6 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
     version: "",
     comingSoon: false,
     hidden: false,
-    order: 0,
     withTaxes: true
   });
 
@@ -46,7 +47,6 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
       version: child.version || "",
       comingSoon: child.comingSoon || false,
       hidden: child.hidden || false,
-      order: child.order || 0,
       withTaxes: child.withTaxes ?? true
     });
     setPrices(
@@ -57,6 +57,40 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
     setIsAddingChild(true);
     setError("");
   };
+
+  // Moves a variation one step, saving the whole new order; rolls back if the save fails.
+  const handleMove = async (index: number, direction: -1 | 1) => {
+    const target = index + direction;
+    if (!product.id || target < 0 || target >= childrenList.length) return;
+
+    const previous = childrenList;
+    const next = [...childrenList];
+    [next[index], next[target]] = [next[target], next[index]];
+    setChildrenList(next);
+    setError("");
+
+    try {
+      setReordering(true);
+      const res = await putApiProductsReorder({
+        body: { parentProductId: product.id, productIds: next.map((c) => c.id!).filter(Boolean) },
+        throwOnError: false,
+      });
+      if (res.error || res.data?.isError) {
+        setChildrenList(previous);
+        setError(res.data?.errors?.map((e) => e.description).filter(Boolean).join(", ") || "Failed to save the new order.");
+        return;
+      }
+      setReordered(true);
+    } catch (err: any) {
+      setChildrenList(previous);
+      setError(err.message || "Error saving the new order.");
+    } finally {
+      setReordering(false);
+    }
+  };
+
+  // After a reorder, close through onSuccess so the parent page reloads the product with the new order.
+  const handleClose = () => (reordered ? onSuccess() : onClose());
 
   const handleDeleteChild = async (childId: string) => {
     if (!confirm("Are you sure you want to delete this variant?")) return;
@@ -93,9 +127,8 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
         version: newChild.version,
         comingSoon: newChild.comingSoon,
         hidden: newChild.hidden,
-        order: Number(newChild.order) || 0,
         withTaxes: newChild.withTaxes,
-        family: product.family || "SES", 
+        familyId: product.familyId,
         parentProductId: product.id,
         prices: prices.map(p => ({
           id: p.id,
@@ -129,7 +162,7 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
           setChildrenList([...childrenList, response.data!.value!]);
         }
         setIsAddingChild(false);
-        setNewChild({ id: "", name: "", fullName: "", janDrozdId: "", description: "", miniDescription: "", version: "", comingSoon: false, hidden: false, order: 0, withTaxes: true });
+        setNewChild({ id: "", name: "", fullName: "", janDrozdId: "", description: "", miniDescription: "", version: "", comingSoon: false, hidden: false, withTaxes: true });
         setPrices([{ period: 1, periodType: "Day", price: 0, country: "II", active: true }]);
         onSuccess();
       } else if (response?.error || response?.data?.isError) {
@@ -163,7 +196,7 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
               </div>
             </div>
           </div>
-          <button type="button" className="modal-close" onClick={onClose}>
+          <button type="button" className="modal-close" onClick={handleClose}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
           </button>
         </div>
@@ -179,7 +212,7 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
           {/* Add Variant Button */}
           {!isAddingChild && (
             <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "1.25rem" }}>
-              <button className="btn-primary" style={{ padding: "0.55rem 1.1rem", fontSize: "0.85rem" }} onClick={() => { setNewChild({ id: "", name: "", fullName: "", janDrozdId: "", description: "", miniDescription: "", version: "", comingSoon: false, hidden: false, order: 0, withTaxes: true }); setIsAddingChild(true); }}>
+              <button className="btn-primary" style={{ padding: "0.55rem 1.1rem", fontSize: "0.85rem" }} onClick={() => { setNewChild({ id: "", name: "", fullName: "", janDrozdId: "", description: "", miniDescription: "", version: "", comingSoon: false, hidden: false, withTaxes: true }); setIsAddingChild(true); }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 Add Variant
               </button>
@@ -216,10 +249,6 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label className="form-label" style={{ fontSize: "0.72rem" }}>Version</label>
                     <input type="text" className="form-input" placeholder="e.g. 1.0.0" value={newChild.version} onChange={e => setNewChild({...newChild, version: e.target.value})} style={{ fontSize: "0.85rem", padding: "0.6rem 0.85rem" }} />
-                  </div>
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label" style={{ fontSize: "0.72rem" }}>Order</label>
-                    <input type="number" className="form-input" value={newChild.order} onChange={e => setNewChild({...newChild, order: Number(e.target.value)})} style={{ fontSize: "0.85rem", padding: "0.6rem 0.85rem" }} />
                   </div>
                   <div className="form-group" style={{ marginBottom: 0, display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "1rem" }}>
                     <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.75rem" }}>
@@ -313,7 +342,7 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
                 </div>
 
                 <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
-                  <button type="button" className="btn-ghost" style={{ fontSize: "0.85rem" }} onClick={() => { setIsAddingChild(false); setNewChild({ id: "", name: "", fullName: "", janDrozdId: "", description: "", miniDescription: "", version: "", comingSoon: false, hidden: false, order: 0, withTaxes: true }); setPrices([{ period: 1, periodType: "Day", price: 0, country: "II", active: true }]); }}>Cancel</button>
+                  <button type="button" className="btn-ghost" style={{ fontSize: "0.85rem" }} onClick={() => { setIsAddingChild(false); setNewChild({ id: "", name: "", fullName: "", janDrozdId: "", description: "", miniDescription: "", version: "", comingSoon: false, hidden: false, withTaxes: true }); setPrices([{ period: 1, periodType: "Day", price: 0, country: "II", active: true }]); }}>Cancel</button>
                   <button type="submit" className="btn-primary" disabled={loading} style={{ fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
                     {loading ? (
                       <><span className="spinner" style={{ width: 14, height: 14 }}></span> Saving...</>
@@ -381,6 +410,14 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
 
                   {/* Actions */}
                   <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", flexShrink: 0 }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                      <button type="button" className="btn-ghost" style={{ padding: "0 6px", minHeight: "16px", lineHeight: 1, fontSize: "0.65rem" }}
+                        onClick={() => handleMove(index, -1)} disabled={reordering || index === 0}
+                        title="Move up" aria-label={`Move ${child.name} up`}>▲</button>
+                      <button type="button" className="btn-ghost" style={{ padding: "0 6px", minHeight: "16px", lineHeight: 1, fontSize: "0.65rem" }}
+                        onClick={() => handleMove(index, 1)} disabled={reordering || index === childrenList.length - 1}
+                        title="Move down" aria-label={`Move ${child.name} down`}>▼</button>
+                    </div>
                     <button type="button" title="Edit Variant" onClick={() => handleEditClick(child)} style={{
                       width: "32px", height: "32px", borderRadius: "8px",
                       display: "flex", alignItems: "center", justifyContent: "center",
@@ -411,7 +448,7 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
 
         </div>
         <div className="modal-footer" style={{ padding: "1rem 2rem" }}>
-          <button type="button" className="btn-ghost" onClick={onClose}>Close</button>
+          <button type="button" className="btn-ghost" onClick={handleClose}>Close</button>
         </div>
       </div>
     </div>

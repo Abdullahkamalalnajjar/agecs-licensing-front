@@ -2,7 +2,7 @@
 
 import { type Client, type ClientMeta, formDataBodySerializer, type Options as Options2, type RequestResult, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { DeleteApiLicensesAdminByIdHwidsByHwidData, DeleteApiLicensesAdminByIdHwidsByHwidResponses, DeleteApiLicensesByIdData, DeleteApiLicensesByIdResponses, DeleteApiPackagesByIdData, DeleteApiPackagesByIdImageData, DeleteApiPackagesByIdImageErrors, DeleteApiPackagesByIdImageResponses, DeleteApiPackagesByIdErrors, DeleteApiPackagesByIdResponses, DeleteApiProductsByIdData, DeleteApiProductsByIdErrors, DeleteApiProductsByIdResponses, DeleteApiProductsByProductIdFeaturesByFeatureIdData, DeleteApiProductsByProductIdFeaturesByFeatureIdErrors, DeleteApiProductsByProductIdFeaturesByFeatureIdResponses, DeleteApiProductsByProductIdMediaByMediaIdData, DeleteApiProductsByProductIdMediaByMediaIdErrors, DeleteApiProductsByProductIdMediaByMediaIdResponses, DeleteApiProductsByProductIdVersionsByVersionIdData, DeleteApiProductsByProductIdVersionsByVersionIdResponses, DeleteApiProductsOffersByOfferIdData, DeleteApiProductsOffersByOfferIdResponses, DeleteApiPromocodesByIdData, DeleteApiPromocodesByIdErrors, DeleteApiPromocodesByIdResponses, DeleteApiTicketCategoriesByIdData, DeleteApiTicketCategoriesByIdResponses, DeleteApiV1CartsMyCartData, DeleteApiV1CartsMyCartItemsByItemIdData, DeleteApiV1CartsMyCartItemsByItemIdResponses, DeleteApiV1CartsMyCartPromocodeData, DeleteApiV1CartsMyCartPromocodeResponses, DeleteApiV1CartsMyCartResponses, DeleteIdentityByUserIdData, DeleteIdentityByUserIdErrors, DeleteIdentityByUserIdResponses, DeleteIdentityCurrentUserData, DeleteIdentityCurrentUserErrors, DeleteIdentityCurrentUserResponses, DeleteIdentityRolesByRoleIdData, DeleteIdentityRolesByRoleIdErrors, DeleteIdentityRolesByRoleIdResponses, GetApiLicensesAdminByIdDiagnosticData, GetApiLicensesAdminByIdDiagnosticResponses, GetApiLicensesAdminByIdHwidsData, GetApiLicensesAdminByIdHwidsResponses, GetApiLicensesByIdData, GetApiLicensesByIdResponses, GetApiLicensesData, GetApiLicensesResponses, GetApiPackagesByIdData, GetApiPackagesByIdErrors, GetApiPackagesByIdResponses, GetApiPackagesData, GetApiPackagesResponses, GetApiPaymentsByIdData, GetApiPaymentsByIdErrors, GetApiPaymentsByIdResponses, GetApiProductsByIdData, GetApiProductsByIdErrors, GetApiProductsByIdResponses, GetApiProductsByIdVersionsData, GetApiProductsByIdVersionsLatestData, GetApiProductsByIdVersionsLatestResponses, GetApiProductsByIdVersionsResponses, GetApiProductsByParentIdChildrenData, GetApiProductsByParentIdChildrenErrors, GetApiProductsByParentIdChildrenResponses, GetApiProductsByProductIdMediaData, GetApiProductsByProductIdMediaErrors, GetApiProductsByProductIdMediaResponses, GetApiProductsByProductIdOffersData, GetApiProductsByProductIdOffersResponses, GetApiProductsByProductIdVersionsByVersionIdDownloadData, GetApiProductsByProductIdVersionsByVersionIdDownloadResponses, GetApiProductsData, GetApiProductsResponses, GetApiPromocodesByIdData, GetApiPromocodesByIdErrors, GetApiPromocodesByIdResponses, GetApiPromocodesData, GetApiPromocodesErrors, GetApiPromocodesResponses, GetApiTicketCategoriesData, GetApiTicketCategoriesResponses, GetApiTicketsByIdData, GetApiTicketsByIdResponses, GetApiTicketsData, GetApiTicketsResponses, GetApiV1CartsMyCartData, GetApiV1CartsMyCartResponses, GetChartData, GetChartResponses, GetIdentityAllPermissionsData, GetIdentityAllPermissionsErrors, GetIdentityAllPermissionsResponses, GetIdentityCurrentUserData, GetIdentityCurrentUserErrors, GetIdentityCurrentUserResponses, GetIdentityMyPermissionsData, GetIdentityMyPermissionsErrors, GetIdentityMyPermissionsResponses, GetIdentityRolesData, GetIdentityRolesErrors, GetIdentityRolesResponses, GetIdentityUsersByUserIdPermissionsData, GetIdentityUsersByUserIdPermissionsErrors, GetIdentityUsersByUserIdPermissionsResponses, GetIdentityUsersData, GetIdentityUsersDeletedData, GetIdentityUsersDeletedErrors, GetIdentityUsersDeletedResponses, GetIdentityUsersErrors, GetIdentityUsersResponses, GetStatsData, GetStatsResponses, PostApiLicensesAdminByIdActivateData, PostApiLicensesAdminByIdActivateResponses, PostApiLicensesAdminByIdHwidsData, PostApiLicensesAdminByIdHwidsResponses, PostApiLicensesAdminByIdMigrateData, PostApiLicensesAdminByIdMigrateResponses, PostApiLicensesAdminByIdRevokeData, PostApiLicensesAdminByIdRevokeResponses, PostApiLicensesByIdRenewData, PostApiLicensesByIdRenewResponses, PostApiLicensesClientsByClientIdResetData, PostApiLicensesClientsByClientIdResetResponses, PostApiLicensesData, PostApiLicensesResponses, PostApiPackagesData, PostApiPackagesErrors, PostApiPackagesResponses, PostApiPaymentsCheckoutData, PostApiPaymentsCheckoutErrors, PostApiPaymentsCheckoutResponses, PostApiPaymentsRenewByLicenseIdCheckoutData, PostApiPaymentsRenewByLicenseIdCheckoutErrors, PostApiPaymentsRenewByLicenseIdCheckoutResponses, PostApiPaymobWebhookData, PostApiPaymobWebhookErrors, PostApiPaymobWebhookResponses, PostApiProductsByIdVersionsData, PostApiProductsByIdVersionsResponses, PostApiProductsByParentIdChildrenData, PostApiProductsByParentIdChildrenErrors, PostApiProductsByParentIdChildrenResponses, PostApiProductsByProductIdFeaturesData, PostApiProductsByProductIdFeaturesErrors, PostApiProductsByProductIdFeaturesResponses, PostApiProductsByProductIdMediaData, PostApiProductsByProductIdMediaErrors, PostApiProductsByProductIdMediaResponses, PostApiProductsByProductIdMediaUrlData, PostApiProductsByProductIdMediaUrlErrors, PostApiProductsByProductIdMediaUrlResponses, PostApiProductsByProductIdOffersData, PostApiProductsByProductIdOffersResponses, PostApiProductsData, PostApiProductsErrors, PostApiProductsResponses, PostApiPromocodesData, PostApiPromocodesErrors, PostApiPromocodesResponses, PostApiStripeWebhookData, PostApiStripeWebhookErrors, PostApiStripeWebhookResponses, PostApiTicketCategoriesData, PostApiTicketCategoriesResponses, PostApiTicketsByIdCommentsData, PostApiTicketsByIdCommentsResponses, PostApiTicketsData, PostApiTicketsResponses, PostApiV1CartsMyCartItemsData, PostApiV1CartsMyCartItemsResponses, PostApiV1CartsMyCartPromocodeData, PostApiV1CartsMyCartPromocodeResponses, PostIdentityRestoreDeletedUserData, PostIdentityRestoreDeletedUserErrors, PostIdentityRestoreDeletedUserResponses, PostIdentityRolesData, PostIdentityRolesErrors, PostIdentityRolesResponses, PostIdentitySignupData, PostIdentitySignupErrors, PostIdentitySignupResponses, PostIdentityStudentUpgradeRequestData, PostIdentityStudentUpgradeRequestErrors, PostIdentityStudentUpgradeRequestResponses, PostIdentityStudentUpgradeVerifyData, PostIdentityStudentUpgradeVerifyErrors, PostIdentityStudentUpgradeVerifyResponses, PostIdentityTokenGenerateData, PostIdentityTokenGenerateErrors, PostIdentityTokenGenerateResponses, PostIdentityTokenGoogleData, PostIdentityTokenGoogleErrors, PostIdentityTokenGoogleResponses, PostIdentityTokenRefreshTokenData, PostIdentityTokenRefreshTokenErrors, PostIdentityTokenRefreshTokenResponses, PutApiLicensesByIdData, PutApiLicensesByIdResponses, PutApiPackagesByIdData, PatchApiPackagesByIdHiddenData, PatchApiPackagesByIdHiddenErrors, PatchApiPackagesByIdHiddenResponses, PutApiPackagesByIdImageData, PutApiPackagesReorderData, PutApiPackagesReorderErrors, PutApiPackagesReorderResponses, PutApiPackagesByIdImageErrors, PutApiPackagesByIdImageResponses, PutApiPackagesByIdErrors, PutApiPackagesByIdResponses, PutApiProductsByIdData, PutApiProductsByIdErrors, PutApiProductsByIdResponses, PutApiProductsByProductIdFeaturesByFeatureIdData, PutApiProductsByProductIdFeaturesByFeatureIdErrors, PutApiProductsByProductIdFeaturesByFeatureIdResponses, PutApiProductsByProductIdMediaByMediaIdData, PutApiProductsByProductIdMediaByMediaIdErrors, PutApiProductsByProductIdMediaByMediaIdResponses, PutApiProductsByProductIdVersionsByVersionIdToggleStatusData, PutApiProductsByProductIdVersionsByVersionIdToggleStatusResponses, PutApiProductsOffersByOfferIdData, PutApiProductsOffersByOfferIdResponses, PutApiPromocodesByIdData, PutApiPromocodesByIdErrors, PutApiPromocodesByIdResponses, PutApiTicketCategoriesByIdData, PutApiTicketCategoriesByIdResponses, PutApiTicketsByIdStatusData, PutApiTicketsByIdStatusResponses, PutIdentityRolesByRoleIdData, PutIdentityRolesByRoleIdErrors, PutIdentityRolesByRoleIdResponses, PutIdentityUsersByUserIdPermissionsData, PutIdentityUsersByUserIdPermissionsErrors, PutIdentityUsersByUserIdPermissionsResponses, PutIdentityUsersByUserIdRestoreData, PutIdentityUsersByUserIdRestoreErrors, PutIdentityUsersByUserIdRestoreResponses, PutIdentityUsersByUserIdRoleData, PutIdentityUsersByUserIdRoleErrors, PutIdentityUsersByUserIdRoleResponses } from './types.gen';
+import type { DeleteApiCompaniesByIdData, DeleteApiCompaniesByIdErrors, DeleteApiCompaniesByIdResponses, DeleteApiFamiliesByIdData, DeleteApiFamiliesByIdErrors, DeleteApiFamiliesByIdResponses, DeleteApiLicensesAdminByIdHwidsByHwidData, DeleteApiLicensesAdminByIdHwidsByHwidResponses, DeleteApiLicensesByIdData, DeleteApiLicensesByIdResponses, DeleteApiPackagesByIdData, DeleteApiPackagesByIdErrors, DeleteApiPackagesByIdImageData, DeleteApiPackagesByIdImageErrors, DeleteApiPackagesByIdImageResponses, DeleteApiPackagesByIdResponses, DeleteApiProductsByIdData, DeleteApiProductsByIdErrors, DeleteApiProductsByIdResponses, DeleteApiProductsByProductIdFeaturesByFeatureIdData, DeleteApiProductsByProductIdFeaturesByFeatureIdErrors, DeleteApiProductsByProductIdFeaturesByFeatureIdResponses, DeleteApiProductsByProductIdMediaByMediaIdData, DeleteApiProductsByProductIdMediaByMediaIdErrors, DeleteApiProductsByProductIdMediaByMediaIdResponses, DeleteApiProductsByProductIdVersionsByVersionIdData, DeleteApiProductsByProductIdVersionsByVersionIdResponses, DeleteApiProductsOffersByOfferIdData, DeleteApiProductsOffersByOfferIdResponses, DeleteApiPromocodesByIdData, DeleteApiPromocodesByIdErrors, DeleteApiPromocodesByIdResponses, DeleteApiTicketCategoriesByIdData, DeleteApiTicketCategoriesByIdResponses, DeleteApiV1CartsMyCartData, DeleteApiV1CartsMyCartItemsByItemIdData, DeleteApiV1CartsMyCartItemsByItemIdResponses, DeleteApiV1CartsMyCartPromocodeData, DeleteApiV1CartsMyCartPromocodeResponses, DeleteApiV1CartsMyCartResponses, DeleteIdentityByUserIdData, DeleteIdentityByUserIdErrors, DeleteIdentityByUserIdResponses, DeleteIdentityCurrentUserData, DeleteIdentityCurrentUserErrors, DeleteIdentityCurrentUserResponses, DeleteIdentityRolesByRoleIdData, DeleteIdentityRolesByRoleIdErrors, DeleteIdentityRolesByRoleIdResponses, GetApiCompaniesData, GetApiCompaniesResponses, GetApiFamiliesData, GetApiFamiliesResponses, GetApiLicensesAdminByIdDiagnosticData, GetApiLicensesAdminByIdDiagnosticResponses, GetApiLicensesAdminByIdHwidsData, GetApiLicensesAdminByIdHwidsResponses, GetApiLicensesByIdData, GetApiLicensesByIdResponses, GetApiLicensesData, GetApiLicensesResponses, GetApiPackagesByIdData, GetApiPackagesByIdErrors, GetApiPackagesByIdResponses, GetApiPackagesData, GetApiPackagesResponses, GetApiPaymentsByIdData, GetApiPaymentsByIdErrors, GetApiPaymentsByIdResponses, GetApiProductsByIdData, GetApiProductsByIdErrors, GetApiProductsByIdResponses, GetApiProductsByIdVersionsData, GetApiProductsByIdVersionsLatestData, GetApiProductsByIdVersionsLatestResponses, GetApiProductsByIdVersionsResponses, GetApiProductsByParentIdChildrenData, GetApiProductsByParentIdChildrenErrors, GetApiProductsByParentIdChildrenResponses, GetApiProductsByProductIdMediaData, GetApiProductsByProductIdMediaErrors, GetApiProductsByProductIdMediaResponses, GetApiProductsByProductIdOffersData, GetApiProductsByProductIdOffersResponses, GetApiProductsByProductIdVersionsByVersionIdDownloadData, GetApiProductsByProductIdVersionsByVersionIdDownloadResponses, GetApiProductsData, GetApiProductsResponses, GetApiPromocodesByIdData, GetApiPromocodesByIdErrors, GetApiPromocodesByIdResponses, GetApiPromocodesData, GetApiPromocodesErrors, GetApiPromocodesResponses, GetApiTicketCategoriesData, GetApiTicketCategoriesResponses, GetApiTicketsByIdData, GetApiTicketsByIdResponses, GetApiTicketsData, GetApiTicketsResponses, GetApiV1CartsMyCartData, GetApiV1CartsMyCartResponses, GetChartData, GetChartResponses, GetIdentityAllPermissionsData, GetIdentityAllPermissionsErrors, GetIdentityAllPermissionsResponses, GetIdentityCurrentUserData, GetIdentityCurrentUserErrors, GetIdentityCurrentUserResponses, GetIdentityMyPermissionsData, GetIdentityMyPermissionsErrors, GetIdentityMyPermissionsResponses, GetIdentityRolesData, GetIdentityRolesErrors, GetIdentityRolesResponses, GetIdentityUsersByUserIdPermissionsData, GetIdentityUsersByUserIdPermissionsErrors, GetIdentityUsersByUserIdPermissionsResponses, GetIdentityUsersData, GetIdentityUsersDeletedData, GetIdentityUsersDeletedErrors, GetIdentityUsersDeletedResponses, GetIdentityUsersErrors, GetIdentityUsersResponses, GetStatsData, GetStatsResponses, PatchApiPackagesByIdHiddenData, PatchApiPackagesByIdHiddenErrors, PatchApiPackagesByIdHiddenResponses, PostApiCompaniesData, PostApiCompaniesErrors, PostApiCompaniesResponses, PostApiFamiliesData, PostApiFamiliesErrors, PostApiFamiliesResponses, PostApiLicensesAdminByIdActivateData, PostApiLicensesAdminByIdActivateResponses, PostApiLicensesAdminByIdHwidsData, PostApiLicensesAdminByIdHwidsResponses, PostApiLicensesAdminByIdMigrateData, PostApiLicensesAdminByIdMigrateResponses, PostApiLicensesAdminByIdRevokeData, PostApiLicensesAdminByIdRevokeResponses, PostApiLicensesByIdRenewData, PostApiLicensesByIdRenewResponses, PostApiLicensesClientsByClientIdResetData, PostApiLicensesClientsByClientIdResetResponses, PostApiLicensesData, PostApiLicensesResponses, PostApiPackagesData, PostApiPackagesErrors, PostApiPackagesResponses, PostApiPaymentsCheckoutData, PostApiPaymentsCheckoutErrors, PostApiPaymentsCheckoutResponses, PostApiPaymentsRenewByLicenseIdCheckoutData, PostApiPaymentsRenewByLicenseIdCheckoutErrors, PostApiPaymentsRenewByLicenseIdCheckoutResponses, PostApiPaymobWebhookData, PostApiPaymobWebhookErrors, PostApiPaymobWebhookResponses, PostApiProductsByIdVersionsData, PostApiProductsByIdVersionsResponses, PostApiProductsByParentIdChildrenData, PostApiProductsByParentIdChildrenErrors, PostApiProductsByParentIdChildrenResponses, PostApiProductsByProductIdFeaturesData, PostApiProductsByProductIdFeaturesErrors, PostApiProductsByProductIdFeaturesResponses, PostApiProductsByProductIdMediaData, PostApiProductsByProductIdMediaErrors, PostApiProductsByProductIdMediaResponses, PostApiProductsByProductIdMediaUrlData, PostApiProductsByProductIdMediaUrlErrors, PostApiProductsByProductIdMediaUrlResponses, PostApiProductsByProductIdOffersData, PostApiProductsByProductIdOffersResponses, PostApiProductsData, PostApiProductsErrors, PostApiProductsResponses, PostApiPromocodesData, PostApiPromocodesErrors, PostApiPromocodesResponses, PostApiStripeWebhookData, PostApiStripeWebhookErrors, PostApiStripeWebhookResponses, PostApiTicketCategoriesData, PostApiTicketCategoriesResponses, PostApiTicketsByIdCommentsData, PostApiTicketsByIdCommentsResponses, PostApiTicketsData, PostApiTicketsResponses, PostApiV1CartsMyCartItemsData, PostApiV1CartsMyCartItemsResponses, PostApiV1CartsMyCartPromocodeData, PostApiV1CartsMyCartPromocodeResponses, PostIdentityRestoreDeletedUserData, PostIdentityRestoreDeletedUserErrors, PostIdentityRestoreDeletedUserResponses, PostIdentityRolesData, PostIdentityRolesErrors, PostIdentityRolesResponses, PostIdentitySignupData, PostIdentitySignupErrors, PostIdentitySignupResponses, PostIdentityStudentUpgradeRequestData, PostIdentityStudentUpgradeRequestErrors, PostIdentityStudentUpgradeRequestResponses, PostIdentityStudentUpgradeVerifyData, PostIdentityStudentUpgradeVerifyErrors, PostIdentityStudentUpgradeVerifyResponses, PostIdentityTokenGenerateData, PostIdentityTokenGenerateErrors, PostIdentityTokenGenerateResponses, PostIdentityTokenGoogleData, PostIdentityTokenGoogleErrors, PostIdentityTokenGoogleResponses, PostIdentityTokenRefreshTokenData, PostIdentityTokenRefreshTokenErrors, PostIdentityTokenRefreshTokenResponses, PutApiCompaniesByIdData, PutApiCompaniesByIdErrors, PutApiCompaniesByIdResponses, PutApiCompaniesReorderData, PutApiCompaniesReorderErrors, PutApiCompaniesReorderResponses, PutApiFamiliesByIdData, PutApiFamiliesByIdErrors, PutApiFamiliesByIdResponses, PutApiFamiliesReorderData, PutApiFamiliesReorderErrors, PutApiFamiliesReorderResponses, PutApiLicensesByIdData, PutApiLicensesByIdResponses, PutApiPackagesByIdData, PutApiPackagesByIdErrors, PutApiPackagesByIdImageData, PutApiPackagesByIdImageErrors, PutApiPackagesByIdImageResponses, PutApiPackagesByIdResponses, PutApiPackagesReorderData, PutApiPackagesReorderErrors, PutApiPackagesReorderResponses, PutApiProductsByIdData, PutApiProductsByIdErrors, PutApiProductsByIdResponses, PutApiProductsByProductIdFeaturesByFeatureIdData, PutApiProductsByProductIdFeaturesByFeatureIdErrors, PutApiProductsByProductIdFeaturesByFeatureIdResponses, PutApiProductsByProductIdMediaByMediaIdData, PutApiProductsByProductIdMediaByMediaIdErrors, PutApiProductsByProductIdMediaByMediaIdResponses, PutApiProductsByProductIdVersionsByVersionIdToggleStatusData, PutApiProductsByProductIdVersionsByVersionIdToggleStatusResponses, PutApiProductsOffersByOfferIdData, PutApiProductsOffersByOfferIdResponses, PutApiProductsReorderData, PutApiProductsReorderErrors, PutApiProductsReorderResponses, PutApiPromocodesByIdData, PutApiPromocodesByIdErrors, PutApiPromocodesByIdResponses, PutApiTicketCategoriesByIdData, PutApiTicketCategoriesByIdResponses, PutApiTicketsByIdStatusData, PutApiTicketsByIdStatusResponses, PutIdentityRolesByRoleIdData, PutIdentityRolesByRoleIdErrors, PutIdentityRolesByRoleIdResponses, PutIdentityUsersByUserIdPermissionsData, PutIdentityUsersByUserIdPermissionsErrors, PutIdentityUsersByUserIdPermissionsResponses, PutIdentityUsersByUserIdRestoreData, PutIdentityUsersByUserIdRestoreErrors, PutIdentityUsersByUserIdRestoreResponses, PutIdentityUsersByUserIdRoleData, PutIdentityUsersByUserIdRoleErrors, PutIdentityUsersByUserIdRoleResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -301,6 +301,63 @@ export const postApiV1CartsMyCartPromocode = <ThrowOnError extends boolean = fal
     }
 });
 
+/**
+ * Lists companies in display order. Public: the site's product menu and home page sections are built from it.
+ */
+export const getApiCompanies = <ThrowOnError extends boolean = false>(options?: Options<GetApiCompaniesData, ThrowOnError>): RequestResult<GetApiCompaniesResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetApiCompaniesResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/companies',
+    ...options
+});
+
+/**
+ * Creates a company. It's added at the end of the list.
+ */
+export const postApiCompanies = <ThrowOnError extends boolean = false>(options?: Options<PostApiCompaniesData, ThrowOnError>): RequestResult<PostApiCompaniesResponses, PostApiCompaniesErrors, ThrowOnError> => (options?.client ?? client).post<PostApiCompaniesResponses, PostApiCompaniesErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/companies',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options?.headers
+    }
+});
+
+/**
+ * Sets the companies' display order: each company's Order becomes its position in the list (first = 0).
+ */
+export const putApiCompaniesReorder = <ThrowOnError extends boolean = false>(options?: Options<PutApiCompaniesReorderData, ThrowOnError>): RequestResult<PutApiCompaniesReorderResponses, PutApiCompaniesReorderErrors, ThrowOnError> => (options?.client ?? client).put<PutApiCompaniesReorderResponses, PutApiCompaniesReorderErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/companies/reorder',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options?.headers
+    }
+});
+
+/**
+ * Deletes a company (soft delete). Fails while any product still belongs to it.
+ */
+export const deleteApiCompaniesById = <ThrowOnError extends boolean = false>(options: Options<DeleteApiCompaniesByIdData, ThrowOnError>): RequestResult<DeleteApiCompaniesByIdResponses, DeleteApiCompaniesByIdErrors, ThrowOnError> => (options.client ?? client).delete<DeleteApiCompaniesByIdResponses, DeleteApiCompaniesByIdErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/companies/{id}',
+    ...options
+});
+
+/**
+ * Updates a company's name and the copy shown for it on the public site.
+ */
+export const putApiCompaniesById = <ThrowOnError extends boolean = false>(options: Options<PutApiCompaniesByIdData, ThrowOnError>): RequestResult<PutApiCompaniesByIdResponses, PutApiCompaniesByIdErrors, ThrowOnError> => (options.client ?? client).put<PutApiCompaniesByIdResponses, PutApiCompaniesByIdErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/companies/{id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
 export const getStats = <ThrowOnError extends boolean = false>(options?: Options<GetStatsData, ThrowOnError>): RequestResult<GetStatsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetStatsResponses, unknown, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/stats',
@@ -311,6 +368,63 @@ export const getChart = <ThrowOnError extends boolean = false>(options?: Options
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/chart',
     ...options
+});
+
+/**
+ * Lists product families in display order.
+ */
+export const getApiFamilies = <ThrowOnError extends boolean = false>(options?: Options<GetApiFamiliesData, ThrowOnError>): RequestResult<GetApiFamiliesResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetApiFamiliesResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/families',
+    ...options
+});
+
+/**
+ * Creates a product family. It's added at the end of the list.
+ */
+export const postApiFamilies = <ThrowOnError extends boolean = false>(options?: Options<PostApiFamiliesData, ThrowOnError>): RequestResult<PostApiFamiliesResponses, PostApiFamiliesErrors, ThrowOnError> => (options?.client ?? client).post<PostApiFamiliesResponses, PostApiFamiliesErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/families',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options?.headers
+    }
+});
+
+/**
+ * Sets the families' display order: each family's Order becomes its position in the list (first = 0).
+ */
+export const putApiFamiliesReorder = <ThrowOnError extends boolean = false>(options?: Options<PutApiFamiliesReorderData, ThrowOnError>): RequestResult<PutApiFamiliesReorderResponses, PutApiFamiliesReorderErrors, ThrowOnError> => (options?.client ?? client).put<PutApiFamiliesReorderResponses, PutApiFamiliesReorderErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/families/reorder',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options?.headers
+    }
+});
+
+/**
+ * Deletes a product family (soft delete). Fails while any product still belongs to it.
+ */
+export const deleteApiFamiliesById = <ThrowOnError extends boolean = false>(options: Options<DeleteApiFamiliesByIdData, ThrowOnError>): RequestResult<DeleteApiFamiliesByIdResponses, DeleteApiFamiliesByIdErrors, ThrowOnError> => (options.client ?? client).delete<DeleteApiFamiliesByIdResponses, DeleteApiFamiliesByIdErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/families/{id}',
+    ...options
+});
+
+/**
+ * Renames a product family. Every product in it shows the new name.
+ */
+export const putApiFamiliesById = <ThrowOnError extends boolean = false>(options: Options<PutApiFamiliesByIdData, ThrowOnError>): RequestResult<PutApiFamiliesByIdResponses, PutApiFamiliesByIdErrors, ThrowOnError> => (options.client ?? client).put<PutApiFamiliesByIdResponses, PutApiFamiliesByIdErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/families/{id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });
 
 export const getApiLicenses = <ThrowOnError extends boolean = false>(options?: Options<GetApiLicensesData, ThrowOnError>): RequestResult<GetApiLicensesResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetApiLicensesResponses, unknown, ThrowOnError>({
@@ -479,15 +593,6 @@ export const putApiPackagesById = <ThrowOnError extends boolean = false>(options
 });
 
 /**
- * Removes the package's image.
- */
-export const deleteApiPackagesByIdImage = <ThrowOnError extends boolean = false>(options: Options<DeleteApiPackagesByIdImageData, ThrowOnError>): RequestResult<DeleteApiPackagesByIdImageResponses, DeleteApiPackagesByIdImageErrors, ThrowOnError> => (options.client ?? client).delete<DeleteApiPackagesByIdImageResponses, DeleteApiPackagesByIdImageErrors, ThrowOnError>({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/packages/{id}/image',
-    ...options
-});
-
-/**
  * Sets the packages' display order: each package's Order becomes its position in the list (first = 0).
  */
 export const putApiPackagesReorder = <ThrowOnError extends boolean = false>(options?: Options<PutApiPackagesReorderData, ThrowOnError>): RequestResult<PutApiPackagesReorderResponses, PutApiPackagesReorderErrors, ThrowOnError> => (options?.client ?? client).put<PutApiPackagesReorderResponses, PutApiPackagesReorderErrors, ThrowOnError>({
@@ -511,6 +616,15 @@ export const patchApiPackagesByIdHidden = <ThrowOnError extends boolean = false>
         'Content-Type': 'application/json',
         ...options.headers
     }
+});
+
+/**
+ * Removes the package's image.
+ */
+export const deleteApiPackagesByIdImage = <ThrowOnError extends boolean = false>(options: Options<DeleteApiPackagesByIdImageData, ThrowOnError>): RequestResult<DeleteApiPackagesByIdImageResponses, DeleteApiPackagesByIdImageErrors, ThrowOnError> => (options.client ?? client).delete<DeleteApiPackagesByIdImageResponses, DeleteApiPackagesByIdImageErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/packages/{id}/image',
+    ...options
 });
 
 /**
@@ -647,6 +761,20 @@ export const postApiProductsByParentIdChildren = <ThrowOnError extends boolean =
     headers: {
         'Content-Type': 'application/json',
         ...options.headers
+    }
+});
+
+/**
+ * Reorders one group of products: all top-level products (parentProductId null) or all variations of one product.
+ * productIds must list every product in that group once; each one's Order becomes its position (first = 0).
+ */
+export const putApiProductsReorder = <ThrowOnError extends boolean = false>(options?: Options<PutApiProductsReorderData, ThrowOnError>): RequestResult<PutApiProductsReorderResponses, PutApiProductsReorderErrors, ThrowOnError> => (options?.client ?? client).put<PutApiProductsReorderResponses, PutApiProductsReorderErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/products/reorder',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options?.headers
     }
 });
 
