@@ -1,0 +1,153 @@
+/* ============================================================
+   PROMO BARS ADMIN — builds on products (.pr-*) and catalog (.ct-*) styles
+   ============================================================ */
+
+.pb-list { display: flex; flex-direction: column; gap: 0.85rem; }
+
+.pb-card { overflow: hidden; }
+.pb-card.is-hidden .pb-card-preview { opacity: 0.45; filter: grayscale(0.4); }
+
+/* The real bar, scaled into the card */
+.pb-card-preview .promo-bar,
+.pb-preview .promo-bar { border-radius: 0; flex-wrap: wrap; }
+
+.pb-card-footer {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.7rem 1rem;
+  border-top: 1px solid var(--pr-border);
+}
+
+.pb-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Modal ---------- */
+.modal-container.pb-modal { max-width: 960px; }
+
+.pb-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.pb-preview .promo-bar {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--pr-border);
+}
+
+.pb-form { display: flex; flex-direction: column; }
+
+.pb-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1.75rem;
+  align-items: start;
+}
+
+.pb-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+
+.pb-warning { margin: 0; font-size: 0.78rem; color: var(--pr-amber); }
+
+.pb-link-btn {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.pb-link-btn:hover { text-decoration: underline; }
+
+/* Presets */
+.pb-presets { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+
+.pb-preset {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.65rem 0.3rem 0.35rem;
+  border-radius: 999px;
+  border: 1px solid var(--pr-border);
+  background: var(--pr-surface);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.pb-preset:hover { border-color: var(--accent); color: var(--text-primary); }
+
+.pb-preset-swatch {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+}
+
+.pb-preset-swatch span {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+/* Color fields */
+.pb-colors { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem 0.75rem; }
+
+.pb-color { display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; }
+.pb-color-label { font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); }
+
+.pb-color-input { display: flex; align-items: center; gap: 0.4rem; }
+.pb-color-input .form-input { min-width: 0; font-family: var(--font-mono); font-size: 0.8rem; text-transform: uppercase; }
+.pb-color-input.is-invalid .form-input { border-color: var(--pr-red); }
+
+.pb-swatch {
+  position: relative;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--pr-border);
+  cursor: pointer;
+  /* checkerboard behind transparent colors */
+  background-image: linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%);
+  background-size: 10px 10px;
+  background-position: 0 0, 0 5px, 5px -5px, -5px 0;
+}
+
+.pb-swatch input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+@media (max-width: 820px) {
+  .pb-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 520px) {
+  .pb-row-2, .pb-colors { grid-template-columns: 1fr; }
+}

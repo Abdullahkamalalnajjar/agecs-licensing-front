@@ -149,6 +149,20 @@
   align-items: start;
 }
 
+.hs-duration { display: flex; align-items: center; gap: 0.75rem; }
+.hs-duration .form-input { width: 90px; flex-shrink: 0; }
+
+.hs-duration-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.2rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
 .hs-image-picker { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
 
 /* Buttons editor */

@@ -5,7 +5,7 @@ import { ProductDto, PackageDto } from "@/client/types.gen";
 import { resolveMediaUrl } from "@/lib/mediaUrl";
 import { useCatalog } from "@/lib/catalog";
 import { HeroIcon } from "@/lib/heroIcons";
-import { useHeroSlides } from "@/lib/heroSlides";
+import { resolveButtonLink, useHeroSlides } from "@/lib/heroSlides";
 
 interface HomeLandingViewProps {
   products: ProductDto[];
@@ -708,11 +708,11 @@ export default function HomeLandingView({ products, packages }: HomeLandingViewP
                     {(slide.buttons ?? []).map((button, i) => {
                       const className = `hl-btn ${button.variant === "secondary" ? "btn-outline" : "btn-yellow"} hero-btn`;
                       const content = <><HeroIcon name={button.icon} size={17} /><span>{button.text}</span></>;
-                      const url = button.url || "#";
-                      // In-page anchors and external links stay plain <a>; app routes use client-side navigation.
-                      return url.startsWith("/") && !url.startsWith("//")
-                        ? <Link key={i} href={url} className={className}>{content}</Link>
-                        : <a key={i} href={url} className={className} {...(/^https?:/.test(url) ? { target: "_blank", rel: "noopener noreferrer" } : {})}>{content}</a>;
+                      const link = resolveButtonLink(button.url);
+                      // App routes use client-side navigation; other sites open in a new tab.
+                      return link.kind === "route"
+                        ? <Link key={i} href={link.href} className={className}>{content}</Link>
+                        : <a key={i} href={link.href} className={className} {...(link.kind === "external" ? { target: "_blank", rel: "noopener noreferrer" } : {})}>{content}</a>;
                     })}
                   </div>
                 )}

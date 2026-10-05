@@ -2,11 +2,11 @@
 import React from 'react';
 import Link from 'next/link';
 import { HeroIcon } from '@/lib/heroIcons';
-import { useHeroSlides } from '@/lib/heroSlides';
+import { resolveButtonLink, useHeroSlides } from '@/lib/heroSlides';
 import { resolveMediaUrl } from '@/lib/mediaUrl';
 
 export default function HeroSection() {
-  const { slides, current: currentSlide, setCurrent: setCurrentSlide } = useHeroSlides(5000);
+  const { slides, current: currentSlide, setCurrent: setCurrentSlide } = useHeroSlides();
   const activeSlide = slides[currentSlide] ?? slides[0];
 
   return (
@@ -24,11 +24,11 @@ export default function HeroSection() {
                   {(slide.buttons ?? []).map((button, i) => {
                     const className = `btn ${button.variant === 'secondary' ? 'btn-outline' : 'btn-yellow'}`;
                     const content = <><HeroIcon name={button.icon} size={17} /><span>{button.text}</span></>;
-                    const url = button.url || '#';
-                    return url.startsWith('/') && !url.startsWith('//')
-                      ? <Link key={i} href={url} className={className} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>{content}</Link>
-                      : <a key={i} href={url} className={className} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
-                          {...(/^https?:/.test(url) ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>{content}</a>;
+                    const link = resolveButtonLink(button.url);
+                    return link.kind === 'route'
+                      ? <Link key={i} href={link.href} className={className} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>{content}</Link>
+                      : <a key={i} href={link.href} className={className} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
+                          {...(link.kind === 'external' ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>{content}</a>;
                   })}
                 </div>
               )}

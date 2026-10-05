@@ -12,6 +12,8 @@ import Image from "next/image";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 import { useCurrency, CURRENCIES, SupportedCurrency } from "@/context/CurrencyContext";
 import { useCatalog } from "@/lib/catalog";
+import { usePromoBars } from "@/lib/promoBars";
+import PromoBarView from "./PromoBarView";
 
 const navItems = [
   { name: "Home", path: "/home" },
@@ -34,6 +36,8 @@ function TopNavbarInner() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [cartItemCount, setCartItemCount] = useState(0);
   const [showPromoBar, setShowPromoBar] = useState(true);
+  const { bars: promoBars, current: currentPromo, secondsLeft: promoSecondsLeft } = usePromoBars();
+  const activePromo = promoBars[currentPromo];
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isCurrencyMenuOpen, setIsCurrencyMenuOpen] = useState(false);
   const { currency, setCurrency, currentCurrencyMeta } = useCurrency();
@@ -122,11 +126,15 @@ function TopNavbarInner() {
 
   return (
     <>
-      {showPromoBar && (
-        <div className="promo-bar" style={{ position: 'relative', paddingRight: '3rem' }}>
-          <span className="discount">20% OFF</span>
-          Your First Year License for nanoCAD 26
-          <a href="#products" className="buy">Buy Now</a>
+      {showPromoBar && activePromo && (
+        <PromoBarView key={activePromo.id} bar={activePromo} style={{ position: 'relative', paddingRight: '3rem', animation: 'promoFade .5s ease both' }}>
+          {promoBars.length > 1 && (
+            <span className="promo-countdown" title={`Next offer in ${promoSecondsLeft} seconds`}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+              <span className="promo-countdown-secs">{promoSecondsLeft}s</span>
+              <span className="promo-countdown-pos">{currentPromo + 1}/{promoBars.length}</span>
+            </span>
+          )}
           <button
             onClick={() => setShowPromoBar(false)}
             aria-label="Dismiss"
@@ -161,7 +169,7 @@ function TopNavbarInner() {
           >
             ✕
           </button>
-        </div>
+        </PromoBarView>
       )}
       <header className="site-header">
         <div className="container nav">

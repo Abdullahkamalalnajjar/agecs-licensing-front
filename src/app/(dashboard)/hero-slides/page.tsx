@@ -231,6 +231,10 @@ export default function HeroSlidesPage() {
                 <div className="ct-main">
                   {slide.badge && <span className="hs-badge">{slide.badge}</span>}
                   <div className="ct-name hs-title">{slide.title}</div>
+                  <span className="hs-duration-tag" title="How long this slide stays on screen">
+                    <Svg size={11}><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></Svg>
+                    {slide.durationSeconds ?? 5}s
+                  </span>
                   <div className="hs-buttons">
                     {(slide.buttons ?? []).length === 0
                       ? <span className="ct-sub is-missing">No buttons</span>
@@ -302,6 +306,7 @@ function SlideModal({ slide, onClose, onSaved, onError }: {
   const [title, setTitle] = useState(slide?.title ?? "");
   const [description, setDescription] = useState(slide?.description ?? "");
   const [hidden, setHidden] = useState(slide?.hidden ?? false);
+  const [duration, setDuration] = useState(String(slide?.durationSeconds ?? 5));
   const [buttons, setButtons] = useState<ButtonForm[]>(
     (slide?.buttons ?? []).map((b) => ({
       text: b.text ?? "",
@@ -339,6 +344,7 @@ function SlideModal({ slide, onClose, onSaved, onError }: {
         badge: badge.trim() || null,
         description: description.trim() || null,
         hidden,
+        durationSeconds: Number(duration) || 5,
         buttons: buttons.map<HeroSlideButtonRequest>((b) => ({ text: b.text.trim(), url: b.url.trim(), icon: b.icon || null, variant: b.variant })),
       };
       const res = slide?.id
@@ -429,6 +435,14 @@ function SlideModal({ slide, onClose, onSaved, onError }: {
               </div>
 
               <div className="ct-fields">
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" htmlFor="slideDuration">Duration (seconds)</label>
+                  <div className="hs-duration">
+                    <input id="slideDuration" type="number" className="form-input" required min={2} max={60} step={1}
+                      value={duration} onChange={(e) => setDuration(e.target.value)} />
+                    <span className="ct-hint" style={{ margin: 0 }}>How long this slide stays (2–60).</span>
+                  </div>
+                </div>
                 <span className="form-label">Image</span>
                 <div className="hs-image-picker">
                   <label className="btn-ghost" style={{ cursor: "pointer" }}>
@@ -465,7 +479,7 @@ function SlideModal({ slide, onClose, onSaved, onError }: {
                   </div>
                   <input className="form-input" required maxLength={60} placeholder="Text, e.g. Browse Products" aria-label={`Button ${i + 1} text`}
                     value={b.text} onChange={(e) => setButton(i, { text: e.target.value })} />
-                  <input className="form-input" required maxLength={500} placeholder="Link, e.g. /products or #contact" aria-label={`Button ${i + 1} link`}
+                  <input className="form-input" required maxLength={500} placeholder="/products, #contact or www.site.com" aria-label={`Button ${i + 1} link`}
                     value={b.url} onChange={(e) => setButton(i, { url: e.target.value })} />
                   <select className="form-input" aria-label={`Button ${i + 1} icon`} value={b.icon} onChange={(e) => setButton(i, { icon: e.target.value })} style={{ appearance: "auto" }}>
                     <option value="">No icon</option>

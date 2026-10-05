@@ -429,6 +429,7 @@ export type HeroSlideDto = {
     description?: string | null;
     buttons?: Array<HeroSlideButtonDto> | null;
     imageUrl?: string | null;
+    durationSeconds?: number;
     order?: number;
     hidden?: boolean;
 };
@@ -450,12 +451,14 @@ export type HeroSlideDtoResult = {
 /**
  * A slide's content. Buttons (0-4) are shown in list order; each needs a text and a URL. Icon is a key the site
  * maps to an icon (e.g. "cart", "key", "arrow"); variant is "primary" (filled, default) or "secondary" (outlined).
+ * DurationSeconds (2-60) is how long the slide stays before the slider moves on; omit it to keep the current value (5 by default).
  */
 export type HeroSlideRequest = {
     title?: string | null;
     badge?: string | null;
     description?: string | null;
     buttons?: Array<HeroSlideButtonRequest> | null;
+    durationSeconds?: number | null;
     hidden?: boolean;
 };
 
@@ -819,6 +822,57 @@ export type ProductVersionDtoResult = {
     readonly errors?: Array<Error> | null;
 };
 
+export type PromoBarDto = {
+    id?: string;
+    badgeText?: string | null;
+    message?: string | null;
+    buttonText?: string | null;
+    buttonUrl?: string | null;
+    durationSeconds?: number;
+    backgroundColor?: string | null;
+    textColor?: string | null;
+    badgeBackgroundColor?: string | null;
+    badgeTextColor?: string | null;
+    buttonBackgroundColor?: string | null;
+    buttonTextColor?: string | null;
+    order?: number;
+    hidden?: boolean;
+};
+
+export type PromoBarDtoListResult = {
+    readonly isSuccess?: boolean;
+    readonly isError?: boolean;
+    readonly value?: Array<PromoBarDto> | null;
+    readonly errors?: Array<Error> | null;
+};
+
+export type PromoBarDtoResult = {
+    readonly isSuccess?: boolean;
+    readonly isError?: boolean;
+    value?: PromoBarDto;
+    readonly errors?: Array<Error> | null;
+};
+
+/**
+ * A promo bar. The button needs both text and URL (or neither). DurationSeconds (2-60) is how long it shows before the
+ * next bar; omit it to keep the current value (6 by default). Colors are hex codes like #22C55E (#RRGGBBAA for
+ * transparency); leave a color empty to use the site's default.
+ */
+export type PromoBarRequest = {
+    message?: string | null;
+    badgeText?: string | null;
+    buttonText?: string | null;
+    buttonUrl?: string | null;
+    durationSeconds?: number | null;
+    backgroundColor?: string | null;
+    textColor?: string | null;
+    badgeBackgroundColor?: string | null;
+    badgeTextColor?: string | null;
+    buttonBackgroundColor?: string | null;
+    buttonTextColor?: string | null;
+    hidden?: boolean;
+};
+
 export type PromocodeDto = {
     id?: string;
     code?: string | null;
@@ -889,6 +943,10 @@ export type ReorderProductsCommand = {
     productIds?: Array<string> | null;
 };
 
+export type ReorderPromoBarsCommand = {
+    promoBarIds?: Array<string> | null;
+};
+
 export type RequestStudentUpgradeRequest = {
     email?: string | null;
 };
@@ -930,6 +988,10 @@ export type SetPackageHiddenRequest = {
 };
 
 export type SetProductHiddenRequest = {
+    hidden?: boolean;
+};
+
+export type SetPromoBarHiddenRequest = {
     hidden?: boolean;
 };
 
@@ -1245,6 +1307,14 @@ export type ProductVersionDtoListResultWritable = {
 
 export type ProductVersionDtoResultWritable = {
     value?: ProductVersionDto;
+};
+
+export type PromoBarDtoListResultWritable = {
+    [key: string]: never;
+};
+
+export type PromoBarDtoResultWritable = {
+    value?: PromoBarDto;
 };
 
 export type PromocodeDtoListResultWritable = {
@@ -4190,6 +4260,159 @@ export type PutApiProductsOffersByOfferIdResponses = {
 };
 
 export type PutApiProductsOffersByOfferIdResponse = PutApiProductsOffersByOfferIdResponses[keyof PutApiProductsOffersByOfferIdResponses];
+
+export type GetApiPromoBarsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        includeHidden?: boolean;
+    };
+    url: '/api/promo-bars';
+};
+
+export type GetApiPromoBarsResponses = {
+    /**
+     * OK
+     */
+    200: PromoBarDtoListResult;
+};
+
+export type GetApiPromoBarsResponse = GetApiPromoBarsResponses[keyof GetApiPromoBarsResponses];
+
+export type PostApiPromoBarsData = {
+    body?: PromoBarRequest;
+    path?: never;
+    query?: never;
+    url: '/api/promo-bars';
+};
+
+export type PostApiPromoBarsErrors = {
+    /**
+     * Bad Request
+     */
+    400: ObjectResult;
+};
+
+export type PostApiPromoBarsError = PostApiPromoBarsErrors[keyof PostApiPromoBarsErrors];
+
+export type PostApiPromoBarsResponses = {
+    /**
+     * Created
+     */
+    201: PromoBarDtoResult;
+};
+
+export type PostApiPromoBarsResponse = PostApiPromoBarsResponses[keyof PostApiPromoBarsResponses];
+
+export type PutApiPromoBarsReorderData = {
+    body?: ReorderPromoBarsCommand;
+    path?: never;
+    query?: never;
+    url: '/api/promo-bars/reorder';
+};
+
+export type PutApiPromoBarsReorderErrors = {
+    /**
+     * Bad Request
+     */
+    400: ObjectResult;
+};
+
+export type PutApiPromoBarsReorderError = PutApiPromoBarsReorderErrors[keyof PutApiPromoBarsReorderErrors];
+
+export type PutApiPromoBarsReorderResponses = {
+    /**
+     * OK
+     */
+    200: UpdatedResult;
+};
+
+export type PutApiPromoBarsReorderResponse = PutApiPromoBarsReorderResponses[keyof PutApiPromoBarsReorderResponses];
+
+export type DeleteApiPromoBarsByIdData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/promo-bars/{id}';
+};
+
+export type DeleteApiPromoBarsByIdErrors = {
+    /**
+     * Not Found
+     */
+    404: ObjectResult;
+};
+
+export type DeleteApiPromoBarsByIdError = DeleteApiPromoBarsByIdErrors[keyof DeleteApiPromoBarsByIdErrors];
+
+export type DeleteApiPromoBarsByIdResponses = {
+    /**
+     * OK
+     */
+    200: DeletedResult;
+};
+
+export type DeleteApiPromoBarsByIdResponse = DeleteApiPromoBarsByIdResponses[keyof DeleteApiPromoBarsByIdResponses];
+
+export type PutApiPromoBarsByIdData = {
+    body?: PromoBarRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/promo-bars/{id}';
+};
+
+export type PutApiPromoBarsByIdErrors = {
+    /**
+     * Bad Request
+     */
+    400: ObjectResult;
+    /**
+     * Not Found
+     */
+    404: ObjectResult;
+};
+
+export type PutApiPromoBarsByIdError = PutApiPromoBarsByIdErrors[keyof PutApiPromoBarsByIdErrors];
+
+export type PutApiPromoBarsByIdResponses = {
+    /**
+     * OK
+     */
+    200: PromoBarDtoResult;
+};
+
+export type PutApiPromoBarsByIdResponse = PutApiPromoBarsByIdResponses[keyof PutApiPromoBarsByIdResponses];
+
+export type PatchApiPromoBarsByIdHiddenData = {
+    body?: SetPromoBarHiddenRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/promo-bars/{id}/hidden';
+};
+
+export type PatchApiPromoBarsByIdHiddenErrors = {
+    /**
+     * Not Found
+     */
+    404: ObjectResult;
+};
+
+export type PatchApiPromoBarsByIdHiddenError = PatchApiPromoBarsByIdHiddenErrors[keyof PatchApiPromoBarsByIdHiddenErrors];
+
+export type PatchApiPromoBarsByIdHiddenResponses = {
+    /**
+     * OK
+     */
+    200: UpdatedResult;
+};
+
+export type PatchApiPromoBarsByIdHiddenResponse = PatchApiPromoBarsByIdHiddenResponses[keyof PatchApiPromoBarsByIdHiddenResponses];
 
 export type GetApiPromocodesData = {
     body?: never;
