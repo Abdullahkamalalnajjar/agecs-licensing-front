@@ -32,6 +32,7 @@ export type AppUserDto = {
     claims?: Array<Claim> | null;
     city?: string | null;
     phoneNumber?: string | null;
+    userName?: string | null;
 };
 
 export type AppUserDtoPaginatedList = {
@@ -113,6 +114,29 @@ export type ClaimsIdentity = {
     readonly roleClaimType?: string | null;
 };
 
+export type ClientDto = {
+    userId?: string | null;
+    email?: string | null;
+    userName?: string | null;
+    phoneNumber?: string | null;
+    city?: string | null;
+    roles?: Array<string> | null;
+};
+
+export type ClientDtoListResult = {
+    readonly isSuccess?: boolean;
+    readonly isError?: boolean;
+    readonly value?: Array<ClientDto> | null;
+    readonly errors?: Array<Error> | null;
+};
+
+export type ClientDtoResult = {
+    readonly isSuccess?: boolean;
+    readonly isError?: boolean;
+    value?: ClientDto;
+    readonly errors?: Array<Error> | null;
+};
+
 export type CompanyDto = {
     id?: string;
     name?: string | null;
@@ -151,6 +175,12 @@ export type CreateChildProductRequest = {
     version?: string | null;
     janDrozdId?: string | null;
     prices?: Array<ProductPriceRequest> | null;
+};
+
+export type CreateClientRequest = {
+    email: string;
+    userName: string;
+    password: string;
 };
 
 export type CreateCompanyCommand = {
@@ -378,6 +408,57 @@ export type GuidResult = {
     readonly errors?: Array<Error> | null;
 };
 
+export type HeroSlideButtonDto = {
+    text?: string | null;
+    url?: string | null;
+    icon?: string | null;
+    variant?: string | null;
+};
+
+export type HeroSlideButtonRequest = {
+    text?: string | null;
+    url?: string | null;
+    icon?: string | null;
+    variant?: string | null;
+};
+
+export type HeroSlideDto = {
+    id?: string;
+    badge?: string | null;
+    title?: string | null;
+    description?: string | null;
+    buttons?: Array<HeroSlideButtonDto> | null;
+    imageUrl?: string | null;
+    order?: number;
+    hidden?: boolean;
+};
+
+export type HeroSlideDtoListResult = {
+    readonly isSuccess?: boolean;
+    readonly isError?: boolean;
+    readonly value?: Array<HeroSlideDto> | null;
+    readonly errors?: Array<Error> | null;
+};
+
+export type HeroSlideDtoResult = {
+    readonly isSuccess?: boolean;
+    readonly isError?: boolean;
+    value?: HeroSlideDto;
+    readonly errors?: Array<Error> | null;
+};
+
+/**
+ * A slide's content. Buttons (0-4) are shown in list order; each needs a text and a URL. Icon is a key the site
+ * maps to an icon (e.g. "cart", "key", "arrow"); variant is "primary" (filled, default) or "secondary" (outlined).
+ */
+export type HeroSlideRequest = {
+    title?: string | null;
+    badge?: string | null;
+    description?: string | null;
+    buttons?: Array<HeroSlideButtonRequest> | null;
+    hidden?: boolean;
+};
+
 export type LicenseClientDto = {
     id?: string;
     userId?: string;
@@ -415,6 +496,7 @@ export type LicenseDto = {
     source?: string | null;
     provider?: string | null;
     createdAtUtc?: string;
+    order?: number;
     isExpired?: boolean;
     clients?: Array<LicenseClientDto> | null;
 };
@@ -790,6 +872,14 @@ export type ReorderFamiliesCommand = {
     familyIds?: Array<string> | null;
 };
 
+export type ReorderHeroSlidesCommand = {
+    slideIds?: Array<string> | null;
+};
+
+export type ReorderLicensesCommand = {
+    licenseIds?: Array<string> | null;
+};
+
 export type ReorderPackagesCommand = {
     packageIds?: Array<string> | null;
 };
@@ -831,7 +921,15 @@ export type RoleDtoResult = {
     readonly errors?: Array<Error> | null;
 };
 
+export type SetHeroSlideHiddenRequest = {
+    hidden?: boolean;
+};
+
 export type SetPackageHiddenRequest = {
+    hidden?: boolean;
+};
+
+export type SetProductHiddenRequest = {
     hidden?: boolean;
 };
 
@@ -989,6 +1087,7 @@ export type AppUserDtoWritable = {
     claims?: Array<ClaimWritable> | null;
     city?: string | null;
     phoneNumber?: string | null;
+    userName?: string | null;
 };
 
 export type AppUserDtoPaginatedListWritable = {
@@ -1018,6 +1117,14 @@ export type ClaimsIdentityWritable = {
     actor?: ClaimsIdentityWritable;
     bootstrapContext?: unknown;
     label?: string | null;
+};
+
+export type ClientDtoListResultWritable = {
+    [key: string]: never;
+};
+
+export type ClientDtoResultWritable = {
+    value?: ClientDto;
 };
 
 export type CompanyDtoListResultWritable = {
@@ -1062,6 +1169,14 @@ export type GetLicenseHwidsResponseResultWritable = {
 
 export type GuidResultWritable = {
     [key: string]: never;
+};
+
+export type HeroSlideDtoListResultWritable = {
+    [key: string]: never;
+};
+
+export type HeroSlideDtoResultWritable = {
+    value?: HeroSlideDto;
 };
 
 export type LicenseDtoListResultWritable = {
@@ -1595,6 +1710,63 @@ export type GetIdentityCurrentUserResponses = {
 };
 
 export type GetIdentityCurrentUserResponse = GetIdentityCurrentUserResponses[keyof GetIdentityCurrentUserResponses];
+
+export type GetIdentityClientsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Part of an email, user name or phone number. Empty returns the first accounts by email.
+         */
+        search?: string;
+        /**
+         * Maximum results (1-50).
+         */
+        take?: number;
+    };
+    url: '/identity/clients';
+};
+
+export type GetIdentityClientsResponses = {
+    /**
+     * OK
+     */
+    200: ClientDtoListResult;
+};
+
+export type GetIdentityClientsResponse = GetIdentityClientsResponses[keyof GetIdentityClientsResponses];
+
+export type PostIdentityClientsData = {
+    /**
+     * The client's email, user name and password.
+     */
+    body?: CreateClientRequest;
+    path?: never;
+    query?: never;
+    url: '/identity/clients';
+};
+
+export type PostIdentityClientsErrors = {
+    /**
+     * Bad Request
+     */
+    400: ObjectResult;
+    /**
+     * Conflict
+     */
+    409: ObjectResult;
+};
+
+export type PostIdentityClientsError = PostIdentityClientsErrors[keyof PostIdentityClientsErrors];
+
+export type PostIdentityClientsResponses = {
+    /**
+     * Created
+     */
+    201: ClientDtoResult;
+};
+
+export type PostIdentityClientsResponse = PostIdentityClientsResponses[keyof PostIdentityClientsResponses];
 
 export type GetIdentityUsersData = {
     body?: never;
@@ -2339,6 +2511,219 @@ export type PutApiFamiliesByIdResponses = {
 
 export type PutApiFamiliesByIdResponse = PutApiFamiliesByIdResponses[keyof PutApiFamiliesByIdResponses];
 
+export type GetApiHeroSlidesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        includeHidden?: boolean;
+    };
+    url: '/api/hero-slides';
+};
+
+export type GetApiHeroSlidesResponses = {
+    /**
+     * OK
+     */
+    200: HeroSlideDtoListResult;
+};
+
+export type GetApiHeroSlidesResponse = GetApiHeroSlidesResponses[keyof GetApiHeroSlidesResponses];
+
+export type PostApiHeroSlidesData = {
+    body?: HeroSlideRequest;
+    path?: never;
+    query?: never;
+    url: '/api/hero-slides';
+};
+
+export type PostApiHeroSlidesErrors = {
+    /**
+     * Bad Request
+     */
+    400: ObjectResult;
+};
+
+export type PostApiHeroSlidesError = PostApiHeroSlidesErrors[keyof PostApiHeroSlidesErrors];
+
+export type PostApiHeroSlidesResponses = {
+    /**
+     * Created
+     */
+    201: HeroSlideDtoResult;
+};
+
+export type PostApiHeroSlidesResponse = PostApiHeroSlidesResponses[keyof PostApiHeroSlidesResponses];
+
+export type PutApiHeroSlidesReorderData = {
+    body?: ReorderHeroSlidesCommand;
+    path?: never;
+    query?: never;
+    url: '/api/hero-slides/reorder';
+};
+
+export type PutApiHeroSlidesReorderErrors = {
+    /**
+     * Bad Request
+     */
+    400: ObjectResult;
+};
+
+export type PutApiHeroSlidesReorderError = PutApiHeroSlidesReorderErrors[keyof PutApiHeroSlidesReorderErrors];
+
+export type PutApiHeroSlidesReorderResponses = {
+    /**
+     * OK
+     */
+    200: UpdatedResult;
+};
+
+export type PutApiHeroSlidesReorderResponse = PutApiHeroSlidesReorderResponses[keyof PutApiHeroSlidesReorderResponses];
+
+export type DeleteApiHeroSlidesByIdData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/hero-slides/{id}';
+};
+
+export type DeleteApiHeroSlidesByIdErrors = {
+    /**
+     * Not Found
+     */
+    404: ObjectResult;
+};
+
+export type DeleteApiHeroSlidesByIdError = DeleteApiHeroSlidesByIdErrors[keyof DeleteApiHeroSlidesByIdErrors];
+
+export type DeleteApiHeroSlidesByIdResponses = {
+    /**
+     * OK
+     */
+    200: DeletedResult;
+};
+
+export type DeleteApiHeroSlidesByIdResponse = DeleteApiHeroSlidesByIdResponses[keyof DeleteApiHeroSlidesByIdResponses];
+
+export type PutApiHeroSlidesByIdData = {
+    body?: HeroSlideRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/hero-slides/{id}';
+};
+
+export type PutApiHeroSlidesByIdErrors = {
+    /**
+     * Bad Request
+     */
+    400: ObjectResult;
+    /**
+     * Not Found
+     */
+    404: ObjectResult;
+};
+
+export type PutApiHeroSlidesByIdError = PutApiHeroSlidesByIdErrors[keyof PutApiHeroSlidesByIdErrors];
+
+export type PutApiHeroSlidesByIdResponses = {
+    /**
+     * OK
+     */
+    200: HeroSlideDtoResult;
+};
+
+export type PutApiHeroSlidesByIdResponse = PutApiHeroSlidesByIdResponses[keyof PutApiHeroSlidesByIdResponses];
+
+export type PatchApiHeroSlidesByIdHiddenData = {
+    body?: SetHeroSlideHiddenRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/hero-slides/{id}/hidden';
+};
+
+export type PatchApiHeroSlidesByIdHiddenErrors = {
+    /**
+     * Not Found
+     */
+    404: ObjectResult;
+};
+
+export type PatchApiHeroSlidesByIdHiddenError = PatchApiHeroSlidesByIdHiddenErrors[keyof PatchApiHeroSlidesByIdHiddenErrors];
+
+export type PatchApiHeroSlidesByIdHiddenResponses = {
+    /**
+     * OK
+     */
+    200: UpdatedResult;
+};
+
+export type PatchApiHeroSlidesByIdHiddenResponse = PatchApiHeroSlidesByIdHiddenResponses[keyof PatchApiHeroSlidesByIdHiddenResponses];
+
+export type DeleteApiHeroSlidesByIdImageData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/hero-slides/{id}/image';
+};
+
+export type DeleteApiHeroSlidesByIdImageErrors = {
+    /**
+     * Not Found
+     */
+    404: ObjectResult;
+};
+
+export type DeleteApiHeroSlidesByIdImageError = DeleteApiHeroSlidesByIdImageErrors[keyof DeleteApiHeroSlidesByIdImageErrors];
+
+export type DeleteApiHeroSlidesByIdImageResponses = {
+    /**
+     * OK
+     */
+    200: DeletedResult;
+};
+
+export type DeleteApiHeroSlidesByIdImageResponse = DeleteApiHeroSlidesByIdImageResponses[keyof DeleteApiHeroSlidesByIdImageResponses];
+
+export type PutApiHeroSlidesByIdImageData = {
+    body?: {
+        File?: Blob | File;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/hero-slides/{id}/image';
+};
+
+export type PutApiHeroSlidesByIdImageErrors = {
+    /**
+     * Bad Request
+     */
+    400: ObjectResult;
+    /**
+     * Not Found
+     */
+    404: ObjectResult;
+};
+
+export type PutApiHeroSlidesByIdImageError = PutApiHeroSlidesByIdImageErrors[keyof PutApiHeroSlidesByIdImageErrors];
+
+export type PutApiHeroSlidesByIdImageResponses = {
+    /**
+     * OK
+     */
+    200: StringResult;
+};
+
+export type PutApiHeroSlidesByIdImageResponse = PutApiHeroSlidesByIdImageResponses[keyof PutApiHeroSlidesByIdImageResponses];
+
 export type GetApiLicensesData = {
     body?: never;
     path?: never;
@@ -2425,6 +2810,31 @@ export type PutApiLicensesByIdResponses = {
      */
     200: unknown;
 };
+
+export type PutApiLicensesReorderData = {
+    body?: ReorderLicensesCommand;
+    path?: never;
+    query?: never;
+    url: '/api/licenses/reorder';
+};
+
+export type PutApiLicensesReorderErrors = {
+    /**
+     * Bad Request
+     */
+    400: ObjectResult;
+};
+
+export type PutApiLicensesReorderError = PutApiLicensesReorderErrors[keyof PutApiLicensesReorderErrors];
+
+export type PutApiLicensesReorderResponses = {
+    /**
+     * OK
+     */
+    200: UpdatedResult;
+};
+
+export type PutApiLicensesReorderResponse = PutApiLicensesReorderResponses[keyof PutApiLicensesReorderResponses];
 
 export type PostApiLicensesClientsByClientIdResetData = {
     body?: ResetLicenseHwidRequest;
@@ -3193,6 +3603,33 @@ export type PostApiProductsByParentIdChildrenResponses = {
 };
 
 export type PostApiProductsByParentIdChildrenResponse = PostApiProductsByParentIdChildrenResponses[keyof PostApiProductsByParentIdChildrenResponses];
+
+export type PatchApiProductsByIdHiddenData = {
+    body?: SetProductHiddenRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/products/{id}/hidden';
+};
+
+export type PatchApiProductsByIdHiddenErrors = {
+    /**
+     * Not Found
+     */
+    404: ObjectResult;
+};
+
+export type PatchApiProductsByIdHiddenError = PatchApiProductsByIdHiddenErrors[keyof PatchApiProductsByIdHiddenErrors];
+
+export type PatchApiProductsByIdHiddenResponses = {
+    /**
+     * OK
+     */
+    200: UpdatedResult;
+};
+
+export type PatchApiProductsByIdHiddenResponse = PatchApiProductsByIdHiddenResponses[keyof PatchApiProductsByIdHiddenResponses];
 
 export type PutApiProductsReorderData = {
     body?: ReorderProductsCommand;

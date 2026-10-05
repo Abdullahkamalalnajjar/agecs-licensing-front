@@ -1,55 +1,47 @@
 "use client";
 import React from 'react';
-import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { HeroIcon } from '@/lib/heroIcons';
+import { useHeroSlides } from '@/lib/heroSlides';
+import { resolveMediaUrl } from '@/lib/mediaUrl';
 
 export default function HeroSection() {
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const slideCount = 3;
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slideCount);
-    }, 5000);
-    return () => clearInterval(timer);
-  }, []);
+  const { slides, current: currentSlide, setCurrent: setCurrentSlide } = useHeroSlides(5000);
+  const activeSlide = slides[currentSlide] ?? slides[0];
 
   return (
     <>
       <section className="hero">
       <div className="container hero-inner">
         <div>
-          <div className={`slide ${currentSlide === 0 ? 'active' : ''}`}>
-            <div className="kicker">AGECS Solutions</div>
-            <h1>Engineering Software Built for Real Structural Workflows</h1>
-            <p>AGECS Solutions develops practical engineering software that helps structural engineers reduce repetitive
-              drafting, improve detailing accuracy, and maintain full control over their workflow.</p>
-            <div className="cta">
-              <a href="#products" className="btn btn-yellow">Explore Our Solutions</a>
-              <a href="#contact" className="btn btn-outline">Free 30-Day Trial</a>
+          {slides.map((slide, index) => (
+            <div key={slide.id || index} className={`slide ${currentSlide === index ? 'active' : ''}`}>
+              {slide.badge && <div className="kicker">{slide.badge}</div>}
+              <h1>{slide.title}</h1>
+              {slide.description && <p>{slide.description}</p>}
+              {(slide.buttons ?? []).length > 0 && (
+                <div className="cta">
+                  {(slide.buttons ?? []).map((button, i) => {
+                    const className = `btn ${button.variant === 'secondary' ? 'btn-outline' : 'btn-yellow'}`;
+                    const content = <><HeroIcon name={button.icon} size={17} /><span>{button.text}</span></>;
+                    const url = button.url || '#';
+                    return url.startsWith('/') && !url.startsWith('//')
+                      ? <Link key={i} href={url} className={className} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>{content}</Link>
+                      : <a key={i} href={url} className={className} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
+                          {...(/^https?:/.test(url) ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>{content}</a>;
+                  })}
+                </div>
+              )}
             </div>
-          </div>
-          <div className={`slide ${currentSlide === 1 ? 'active' : ''}`}>
-            <div className="kicker">Official nanoCAD Provider</div>
-            <h1>nanoCAD. More for Less.</h1>
-            <p>Your official and sole provider of nanoCAD in Egypt and the Middle East. Work seamlessly with powerful
-              DWG-compatible CAD, 2D and 3D drafting tools, and tailored modules to fit your needs.</p>
-            <div className="cta">
-              <a href="#nanocad" className="btn btn-yellow">Explore nanoCAD</a>
-              <a href="#contact" className="btn btn-outline">Request Support</a>
-            </div>
-          </div>
-          <div className={`slide ${currentSlide === 2 ? 'active' : ''}`}>
-            <div className="kicker">AGECS Ecosystem</div>
-            <h1>One Ecosystem for Smarter Engineering Workflows</h1>
-            <p>AGECS Solutions brings together specialized tools for drafting, detailing, documentation, and workflow
-              automation — built to support real structural project delivery.</p>
-            <div className="cta">
-              <a href="#products" className="btn btn-yellow">Explore Products</a>
-              <a href="#contact" className="btn btn-outline">Start Free Trial</a>
-            </div>
-          </div>
+          ))}
         </div>
 
+        {activeSlide?.imageUrl ? (
+        <div className="hero-visual" key={activeSlide.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={resolveMediaUrl(activeSlide.imageUrl)} alt={activeSlide.title || ''} style={{ maxWidth: '100%', maxHeight: 420, objectFit: 'contain' }} />
+        </div>
+        ) : (
         <div className="hero-visual">
           <div className="visual-title"><span className="visual-title-dot"></span>AGECS Solutions 26</div>
           <div className="release-badges">
@@ -75,16 +67,19 @@ export default function HeroSection() {
             </div>
           </div>
         </div>
+        )}
       </div>
-      <div className="dots">
-        {[0, 1, 2].map((idx) => (
-          <span 
-            key={idx} 
-            className={`dot ${currentSlide === idx ? 'active' : ''}`} 
-            onClick={() => setCurrentSlide(idx)}
-          />
-        ))}
-      </div>
+      {slides.length > 1 && (
+        <div className="dots">
+          {slides.map((slide, idx) => (
+            <span
+              key={slide.id || idx}
+              className={`dot ${currentSlide === idx ? 'active' : ''}`}
+              onClick={() => setCurrentSlide(idx)}
+            />
+          ))}
+        </div>
+      )}
     </section>
     </>
   );

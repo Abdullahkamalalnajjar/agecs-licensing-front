@@ -6,6 +6,7 @@ import {
   getIdentityUsers,
   deleteApiLicensesById,
   postApiLicensesAdminByIdRevoke,
+  putApiLicensesReorder,
 } from "@/client";
 import { client } from "@/client/client.gen";
 import { useRouter } from "next/navigation";
@@ -27,6 +28,24 @@ import "./licenses.css";
 type License = LicenseDto & { usedCount?: number; migrationCount?: number };
 type StatusFilter = "all" | "active" | "inactive" | "expiring" | "expired";
 type TypeFilter = "all" | "paid" | "trial";
+type SortKey = "manual" | "newest" | "oldest" | "expiry" | "client" | "product";
+
+const SORT_OPTIONS: [SortKey, string][] = [
+  ["manual", "Manual order"],
+  ["newest", "Newest first"],
+  ["oldest", "Oldest first"],
+  ["expiry", "Expiring soonest"],
+  ["client", "Client A–Z"],
+  ["product", "Product A–Z"],
+];
+const SORT_STORAGE_KEY = "licenses_sort";
+
+const readSort = (): SortKey => {
+  try {
+    const saved = localStorage.getItem(SORT_STORAGE_KEY);
+    return SORT_OPTIONS.some(([key]) => key === saved) ? (saved as SortKey) : "manual";
+  } catch { return "manual"; }
+};
 
 const DAY = 86_400_000;
 const EXPIRING_DAYS = 30;
@@ -170,6 +189,17 @@ export default function LicensesPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<StatusFilter>("all");
   const [type, setType] = useState<TypeFilter>("all");
+  const [sort, setSort] = useState<SortKey>("manual");
+  const [reordering, setReordering] = useState(false);
+
+  // Read after mount so server and client render the same markup first
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { setSort(readSort()); }, []);
+
+  const changeSort = (value: SortKey) => {
+    setSort(value);
+    try { localStorage.setItem(SORT_STORAGE_KEY, value); } catch { /* storage unavailable */ }
+  };
 
   const isStaff = user != null && user.role !== "Student" && user.role !== "NormalUser";
 
@@ -262,11 +292,56 @@ export default function LicensesPage() {
         if (!q) return true;
         return [l.serial, l.name, l.email, productName(l), l.type].some((s) => s?.toLowerCase().includes(q));
       })
-      .sort((a, b) => new Date(b.createdAtUtc || 0).getTime() - new Date(a.createdAtUtc || 0).getTime());
-  }, [licenses, search, status, type, now, productName]);
+      .sort((a, b) => {
+        const created = (l: License) => new Date(l.createdAtUtc || 0).getTime();
+        switch (sort) {
+          case "oldest": return created(a) - created(b);
+          case "expiry": {
+            // Lifetime licenses (no expiry date) go last; ties fall back to newest first.
+            const expiry = (l: License) => (l.expiryDate && l.willExpire !== false ? new Date(l.expiryDate).getTime() : Infinity);
+            return expiry(a) - expiry(b) || created(b) - created(a);
+          }
+          case "client": return (a.name || a.email || "").localeCompare(b.name || b.email || "") || created(b) - created(a);
+          case "product": return productName(a).localeCompare(productName(b)) || created(b) - created(a);
+          case "newest": return created(b) - created(a);
+          default: return (a.order ?? 0) - (b.order ?? 0) || created(b) - created(a);
+        }
+      });
+  }, [licenses, search, status, type, sort, now, productName]);
 
   const hasFilters = !!search || status !== "all" || type !== "all";
   const clearFilters = () => { setSearch(""); setStatus("all"); setType("all"); };
+
+  // ▲▼ need the full list in manual order, since the API reorders every license at once.
+  const canReorder = isStaff && sort === "manual" && !hasFilters;
+  const reorderHint = "Clear filters and sort by Manual order to reorder";
+
+  // Moves a license one step, saving the whole new order; rolls back if the save fails.
+  const handleMove = async (index: number, direction: -1 | 1) => {
+    const target = index + direction;
+    if (!canReorder || target < 0 || target >= filtered.length) return;
+
+    const next = [...filtered];
+    [next[index], next[target]] = [next[target], next[index]];
+    const newOrder = new Map(next.map((l, i) => [l.id, i]));
+
+    const previous = licenses;
+    setLicenses((prev) => prev.map((l) => (newOrder.has(l.id) ? { ...l, order: newOrder.get(l.id) } : l)));
+
+    try {
+      setReordering(true);
+      const res = await putApiLicensesReorder({ body: { licenseIds: next.map((l) => l.id!).filter(Boolean) }, throwOnError: false });
+      if (res.error || res.data?.isError) {
+        setLicenses(previous);
+        toastError(errorText(res.data, "Failed to save the new order."));
+      }
+    } catch (err) {
+      setLicenses(previous);
+      toastError((err instanceof Error && err.message) || "Error saving the new order.");
+    } finally {
+      setReordering(false);
+    }
+  };
 
   const renderStaffActions = (l: License) => (
     <div className="pr-actions">
@@ -364,6 +439,12 @@ export default function LicensesPage() {
               <option value="expired">Expired</option>
             </select>
           )}
+          <select className="form-input pr-select" value={sort} onChange={(e) => changeSort(e.target.value as SortKey)} aria-label="Sort by">
+            {SORT_OPTIONS
+              // Customers only see their own licenses, so sorting by client isn't useful to them.
+              .filter(([key]) => isStaff || key !== "client")
+              .map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+          </select>
           {(isStaff || stats.trial > 0) && (
             <div className="pr-segment" role="group" aria-label="Type">
               {(["all", "paid", "trial"] as const).map((t) => (
@@ -384,7 +465,7 @@ export default function LicensesPage() {
               <tbody>
                 {Array.from({ length: 6 }).map((_, i) => (
                   <tr key={i}>
-                    {[130, 180, 120, 90, 80, 60, 220].map((w, j) => (
+                    {[50, 130, 180, 120, 90, 80, 60, 220].map((w, j) => (
                       <td key={j}><div className="skeleton" style={{ height: 16, width: w }} /></td>
                     ))}
                   </tr>
@@ -422,6 +503,7 @@ export default function LicensesPage() {
           <table className="data-table pr-table lc-table">
             <thead>
               <tr>
+                <th style={{ width: "90px" }} title={canReorder ? undefined : reorderHint}>Order</th>
                 <th>Client</th>
                 <th>Product</th>
                 <th>Serial</th>
@@ -432,8 +514,23 @@ export default function LicensesPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((l) => (
+              {filtered.map((l, index) => (
                 <tr key={l.id} className={!l.isActive || isExpired(l, now) ? "is-dim" : ""}>
+                  <td>
+                    <div className="lc-order" title={canReorder ? undefined : reorderHint}>
+                      <span className="lc-order-num">{index + 1}</span>
+                      <div className="lc-order-btns">
+                        <button type="button" className="pr-icon-btn" onClick={() => handleMove(index, -1)}
+                          disabled={!canReorder || reordering || index === 0} aria-label={`Move ${l.name || l.serial} up`}>
+                          <Svg size={12}><polyline points="18 15 12 9 6 15" /></Svg>
+                        </button>
+                        <button type="button" className="pr-icon-btn" onClick={() => handleMove(index, 1)}
+                          disabled={!canReorder || reordering || index === filtered.length - 1} aria-label={`Move ${l.name || l.serial} down`}>
+                          <Svg size={12}><polyline points="6 9 12 15 18 9" /></Svg>
+                        </button>
+                      </div>
+                    </div>
+                  </td>
                   <td>
                     <div className="lc-client">
                       <span className="lc-avatar" aria-hidden="true">{(l.name || l.email || "?").charAt(0).toUpperCase()}</span>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { getStats, getApiProducts, getApiPackages } from "@/client";
 import { client } from "@/client/client.gen";
 import { DashboardStatsDto, ProductDto, PackageDto } from "@/client/types.gen";
@@ -17,7 +18,14 @@ export default function DashboardPage() {
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
 
-  const isAdmin = user?.role === "Admin" || user?.role === "SuperAdmin";
+  // Admins can preview the public site (hero slides, sections…) with /home?view=site.
+  const [siteView, setSiteView] = useState(false);
+  // Read after mount: the query string isn't available during the server render.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { setSiteView(new URLSearchParams(window.location.search).get("view") === "site"); }, []);
+
+  const isAdminUser = user?.role === "Admin" || user?.role === "SuperAdmin";
+  const isAdmin = isAdminUser && !siteView;
 
   useEffect(() => {
     async function loadData() {
@@ -92,9 +100,20 @@ export default function DashboardPage() {
     );
   }
 
-  // NormalUser or Student landing page view
+  // NormalUser or Student landing page view (or an admin previewing the site)
   return (
     <div className="landing-content">
+      {isAdminUser && siteView && (
+        <div style={{
+          position: "sticky", top: 0, zIndex: 50, display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap",
+          padding: "0.6rem 1rem", fontSize: "0.85rem", fontWeight: 600, color: "var(--text-primary)",
+          background: "var(--accent-dim)", borderBottom: "1px solid var(--accent-border)",
+        }}>
+          <span style={{ flex: 1, minWidth: 200 }}>You&apos;re viewing the site as visitors see it.</span>
+          <Link href="/hero-slides" className="btn-ghost">Edit hero slides</Link>
+          <Link href="/home" className="btn-primary" onClick={() => setSiteView(false)}>Back to dashboard</Link>
+        </div>
+      )}
       <HomeLandingView products={products} packages={packages} />
     </div>
   );

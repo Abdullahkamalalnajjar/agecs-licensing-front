@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { getApiProducts, deleteApiProductsById, putApiProductsReorder } from "@/client";
+import { getApiProducts, deleteApiProductsById, putApiProductsReorder, patchApiProductsByIdHidden } from "@/client";
 import { client } from "@/client/client.gen";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -14,6 +14,7 @@ import ProductVersionsModal from "@/components/ProductVersionsModal";
 import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/components/ToastProvider";
 import { useCurrency, type SupportedCurrency } from "@/context/CurrencyContext";
+import "@/components/product-form.css";
 import "./products.css";
 
 type SortKey = "order" | "name" | "price" | "newest";
@@ -110,6 +111,7 @@ export default function ProductsPage() {
   const [sort, setSort] = useState<SortKey>("order");
   const [view, setView] = useState<ViewMode>("table");
   const [reordering, setReordering] = useState(false);
+  const [hiddenBusyId, setHiddenBusyId] = useState<string | null>(null);
 
   // Read after mount so server and client render the same markup first
   // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -216,6 +218,28 @@ export default function ProductsPage() {
   const canReorder = !hasFilters && sort === "order";
 
   // Moves a product one step, saving the whole new order; rolls back if the save fails.
+  // Flips a product's visibility right away, rolling back if the save fails.
+  const handleToggleHidden = async (product: ProductDto) => {
+    if (!product.id) return;
+    const hidden = !product.hidden;
+    setProducts((prev) => prev.map((p) => (p.id === product.id ? { ...p, hidden } : p)));
+    try {
+      setHiddenBusyId(product.id);
+      const res = await patchApiProductsByIdHidden({ path: { id: product.id }, body: { hidden }, throwOnError: false });
+      if (res.error || res.data?.isError) {
+        setProducts((prev) => prev.map((p) => (p.id === product.id ? { ...p, hidden: !hidden } : p)));
+        toastError(res.data?.errors?.map((e) => e.description).join(", ") || "Failed to update visibility.");
+        return;
+      }
+      success(hidden ? `${product.name} is now hidden.` : `${product.name} is now visible.`);
+    } catch (err) {
+      setProducts((prev) => prev.map((p) => (p.id === product.id ? { ...p, hidden: !hidden } : p)));
+      toastError((err instanceof Error && err.message) || "Error updating visibility.");
+    } finally {
+      setHiddenBusyId(null);
+    }
+  };
+
   const handleMove = async (index: number, direction: -1 | 1) => {
     const target = index + direction;
     if (!canReorder || target < 0 || target >= filtered.length) return;
@@ -531,9 +555,23 @@ export default function ProductsPage() {
                   <td>{renderPrice(product, true)}</td>
                   <td>
                     <div className="pr-badges">
-                      <span className={`pr-badge ${product.hidden ? "pr-badge-hidden" : "pr-badge-visible"}`}>
-                        <span className="pr-dot" />{product.hidden ? "Hidden" : "Visible"}
-                      </span>
+                      <label
+                        className="pr-visibility"
+                        title={product.hidden ? "Hidden from customers — click to show" : "Visible to customers — click to hide"}
+                        style={{ cursor: hiddenBusyId === product.id ? "wait" : "pointer", opacity: hiddenBusyId === product.id ? 0.6 : 1 }}
+                      >
+                        <span className="pf-toggle-switch">
+                          <input
+                            type="checkbox"
+                            checked={!product.hidden}
+                            disabled={hiddenBusyId === product.id}
+                            onChange={() => handleToggleHidden(product)}
+                            aria-label={`${product.name} visible`}
+                          />
+                          <span className="pf-toggle-track" />
+                        </span>
+                        <span className={product.hidden ? "pr-muted" : ""}>{product.hidden ? "Hidden" : "Visible"}</span>
+                      </label>
                       {product.comingSoon && <span className="pr-badge pr-badge-soon">Soon</span>}
                       {saleBadge(product)}
                     </div>

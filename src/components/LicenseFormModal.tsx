@@ -1,8 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { postApiLicenses, putApiLicensesById } from "@/client";
-import { ProductDto } from "@/client/types.gen";
+import { postApiLicenses, putApiLicensesById, postIdentityClients } from "@/client";
+import { ClientDto, ProductDto } from "@/client/types.gen";
+import ClientPicker from "./ClientPicker";
+import "./client-picker.css";
+
+const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:5003";
+
+type ClientMode = "existing" | "new";
+const emptyNewClient = { email: "", userName: "", password: "" };
 
 type LicenseFormModalProps = {
   isOpen: boolean;
@@ -34,6 +41,14 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
   const [generatedLicense, setGeneratedLicense] = useState<any>(null);
   const [copied, setCopied] = useState(false);
 
+  // Create mode: issue to an existing account, or create a NormalUser account first.
+  const [clientMode, setClientMode] = useState<ClientMode>("existing");
+  const [selectedClient, setSelectedClient] = useState<ClientDto | null>(null);
+  const [newClient, setNewClient] = useState(emptyNewClient);
+  // Set once the account exists, so a retry after a failed license doesn't try to create it again.
+  const [createdClient, setCreatedClient] = useState<ClientDto | null>(null);
+  const [passwordCopied, setPasswordCopied] = useState(false);
+
   const topLevelProducts = products.filter(p => !p.parentProductId);
 
   const getVariants = (parentId: string) => {
@@ -50,6 +65,11 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
       setGeneratedLicense(null);
       setError("");
       setCopied(false);
+      setClientMode("existing");
+      setSelectedClient(null);
+      setNewClient(emptyNewClient);
+      setCreatedClient(null);
+      setPasswordCopied(false);
 
       if (initialData) {
         setLicenseData({
@@ -131,10 +151,51 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
     setError("");
 
     try {
+      let userId = licenseData.userId;
+      let email = licenseData.email;
+
+      if (!isEditing) {
+        if (clientMode === "existing") {
+          if (!selectedClient?.userId) {
+            setError("Choose the client account this license belongs to.");
+            return;
+          }
+          userId = selectedClient.userId;
+          email = licenseData.email || selectedClient.email || "";
+        } else {
+          let created = createdClient;
+          if (!created) {
+            const clientRes = await postIdentityClients({
+              baseUrl,
+              body: {
+                email: newClient.email.trim(),
+                userName: newClient.userName.trim(),
+                password: newClient.password,
+              },
+              throwOnError: false,
+            });
+            created = clientRes.data?.value ?? null;
+            if (!created || clientRes.data?.isError) {
+              const err = clientRes.error as any;
+              setError(
+                clientRes.data?.errors?.map((e) => e.description).filter(Boolean).join(", ")
+                  || err?.errors?.map?.((e: any) => e.description).filter(Boolean).join(", ")
+                  || err?.title || err?.detail
+                  || "Failed to create the client account."
+              );
+              return;
+            }
+            setCreatedClient(created);
+          }
+          userId = created.userId || "";
+          email = created.email || newClient.email.trim();
+        }
+      }
+
       const payload = {
-        userId: licenseData.userId || undefined,
-        name: licenseData.name || undefined,
-        email: licenseData.email || undefined,
+        userId: userId || undefined,
+        name: (!isEditing && clientMode === "new" ? newClient.userName.trim() : licenseData.name) || undefined,
+        email: email || undefined,
         productId: licenseData.productId || undefined,
         licenseCount: Number(licenseData.licenseCount) || 1,
         migrationLimit: Number(licenseData.migrationLimit) || 1,
@@ -168,7 +229,9 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
           setGeneratedLicense(licenseObj);
         } else if (response.error || response.data?.isError) {
           const errorMsg = response.error?.title || response.error?.detail || response.data?.errors?.map((err: any) => err.description).filter(Boolean).join(", ") || "Failed to create license.";
-          setError(errorMsg);
+          setError(clientMode === "new"
+            ? `The client account was created, but the license failed: ${errorMsg} Fix it and submit again; the account won't be created twice.`
+            : errorMsg);
         }
       }
     } catch (err: any) {
@@ -187,6 +250,8 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
   };
 
   if (!isOpen) return null;
+
+  const showLicenseEmail = isEditing || clientMode === "existing";
 
   const getProductName = (prodId?: string) => {
     if (!prodId) return "";
@@ -286,6 +351,36 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                 {generatedLicense.isTrial && <span className="badge badge-warning">Trial</span>}
               </div>
             </div>
+
+            {/* New client account credentials (shown once) */}
+            {createdClient && (
+              <div className="lf-credentials">
+                <p className="lf-credentials-title">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><line x1="20" y1="8" x2="20" y2="14" /><line x1="23" y1="11" x2="17" y2="11" /></svg>
+                  New client account created
+                </p>
+                <dl style={{ margin: 0 }}>
+                  <div className="lf-credential-row"><dt>Email</dt><dd>{createdClient.email}</dd></div>
+                  <div className="lf-credential-row"><dt>User name</dt><dd>{createdClient.userName}</dd></div>
+                  <div className="lf-credential-row">
+                    <dt>Password</dt>
+                    <dd>{newClient.password}</dd>
+                    <button
+                      type="button"
+                      className="btn-ghost"
+                      style={{ padding: "0.3rem 0.75rem", fontSize: "0.78rem" }}
+                      onClick={() => {
+                        navigator.clipboard.writeText(`Email: ${createdClient.email}\nPassword: ${newClient.password}`);
+                        setPasswordCopied(true);
+                        setTimeout(() => setPasswordCopied(false), 2000);
+                      }}
+                    >
+                      {passwordCopied ? "Copied!" : "Copy login"}
+                    </button>
+                  </div>
+                </dl>
+              </div>
+            )}
 
             {/* Serial Number Display Box */}
             <div style={{
@@ -417,7 +512,68 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
               <form id="licenseForm" onSubmit={handleSubmit}>
                 <div style={{ display: "flex", flexDirection: "column", gap: "1.1rem" }}>
                   
-                  {/* User Selection */}
+                  {/* Client: existing account or a new one (create mode) */}
+                  {!isEditing && (
+                    <div className="lf-client">
+                      <div className="lf-client-head">
+                        <p className="lf-client-title">Client account</p>
+                        <div className="lf-toggle" role="tablist" aria-label="Client account">
+                          <button type="button" role="tab" aria-selected={clientMode === "existing"} className={clientMode === "existing" ? "is-active" : ""}
+                            disabled={!!createdClient} onClick={() => setClientMode("existing")}>
+                            Existing client
+                          </button>
+                          <button type="button" role="tab" aria-selected={clientMode === "new"} className={clientMode === "new" ? "is-active" : ""}
+                            onClick={() => setClientMode("new")}>
+                            New client
+                          </button>
+                        </div>
+                      </div>
+
+                      {clientMode === "existing" ? (
+                        <ClientPicker
+                          value={selectedClient}
+                          onChange={(client) => {
+                            setSelectedClient(client);
+                            setLicenseData(prev => ({
+                              ...prev,
+                              userId: client?.userId || "",
+                              email: client?.email || "",
+                              name: prev.name || (client?.userName && client.userName !== client.email ? client.userName : ""),
+                            }));
+                          }}
+                        />
+                      ) : createdClient ? (
+                        <p className="lf-note is-success">
+                          Account <strong>{createdClient.email}</strong> was created. Submit again to issue the license.
+                        </p>
+                      ) : (
+                        <>
+                          <div className="lf-grid-2">
+                            <div className="form-group" style={{ marginBottom: 0 }}>
+                              <label htmlFor="newClientEmail" className="form-label">Email *</label>
+                              <input id="newClientEmail" type="email" className="form-input" required placeholder="client@company.com" autoComplete="off"
+                                value={newClient.email} onChange={(e) => setNewClient(c => ({ ...c, email: e.target.value }))} />
+                            </div>
+                            <div className="form-group" style={{ marginBottom: 0 }}>
+                              <label htmlFor="newClientUserName" className="form-label">User name *</label>
+                              <input id="newClientUserName" type="text" className="form-input" required maxLength={256} placeholder="e.g. Ahmed Ali" autoComplete="off"
+                                value={newClient.userName} onChange={(e) => setNewClient(c => ({ ...c, userName: e.target.value }))} />
+                            </div>
+                          </div>
+                          <div className="form-group" style={{ marginBottom: 0 }}>
+                            <label htmlFor="newClientPassword" className="form-label">Password *</label>
+                            <input id="newClientPassword" type="text" className="form-input" required minLength={6} autoComplete="new-password"
+                              placeholder="At least 6 characters"
+                              value={newClient.password} onChange={(e) => setNewClient(c => ({ ...c, password: e.target.value }))} />
+                          </div>
+                          <p className="lf-note">A member account (NormalUser) is created first, then the license is issued to it. The client signs in with the email.</p>
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {/* User Selection (edit mode) */}
+                  {isEditing && (
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label htmlFor="userId" className="form-label">Select User Account</label>
                     <select
@@ -435,8 +591,10 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                       ))}
                     </select>
                   </div>
+                  )}
 
-                  {/* Name & Email */}
+                  {/* Name & Email. A new client's license uses the account's user name and email instead. */}
+                  {showLicenseEmail && (
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
                     <div className="form-group" style={{ marginBottom: 0 }}>
                       <label htmlFor="name" className="form-label">Client Name *</label>
@@ -451,7 +609,7 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                       />
                     </div>
                     <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label htmlFor="email" className="form-label">Client Email</label>
+                      <label htmlFor="email" className="form-label">License Email</label>
                       <input
                         id="email"
                         type="email"
@@ -462,6 +620,7 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                       />
                     </div>
                   </div>
+                  )}
 
                   {/* Product & Variant */}
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>

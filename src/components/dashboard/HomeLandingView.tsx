@@ -4,6 +4,8 @@ import Link from "next/link";
 import { ProductDto, PackageDto } from "@/client/types.gen";
 import { resolveMediaUrl } from "@/lib/mediaUrl";
 import { useCatalog } from "@/lib/catalog";
+import { HeroIcon } from "@/lib/heroIcons";
+import { useHeroSlides } from "@/lib/heroSlides";
 
 interface HomeLandingViewProps {
   products: ProductDto[];
@@ -43,8 +45,9 @@ function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: str
 }
 
 export default function HomeLandingView({ products, packages }: HomeLandingViewProps) {
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const totalSlides = 3;
+  const { slides: heroSlides, current: currentSlide, setCurrent: setCurrentSlide } = useHeroSlides();
+  const totalSlides = heroSlides.length;
+  const activeSlide = heroSlides[currentSlide] ?? heroSlides[0];
   const { companies } = useCatalog();
   // One home page section per company, in the admin-defined order; sections alternate between two layouts.
   const companySections = companies.map((company, index) => ({
@@ -54,14 +57,6 @@ export default function HomeLandingView({ products, packages }: HomeLandingViewP
     anchor: index === 0 ? "products" : (company.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
     dark: index % 2 === 1,
   }));
-
-  useEffect(() => {
-    // Slider interval
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % totalSlides);
-    }, 5200);
-    return () => clearInterval(interval);
-  }, []);
 
   useEffect(() => {
     // Scroll reveal observer. Re-runs when companies/products/packages load, since their sections render later.
@@ -269,6 +264,34 @@ export default function HomeLandingView({ products, packages }: HomeLandingViewP
         }
 
         .slide { display: none; animation: fadeSlide .7s cubic-bezier(.4,0,.2,1) both; }
+        .hero-btn { display: inline-flex; align-items: center; gap: 8px; }
+
+        /* ─── Slide image as background ─── */
+        .hero-bg {
+            position: absolute; inset: 0; z-index: 0;
+            background-size: cover; background-position: center right; background-repeat: no-repeat;
+            opacity: 0; transform: scale(1.04);
+            transition: opacity .9s ease, transform 6s ease;
+        }
+        .hero-bg.is-active { opacity: 1; transform: scale(1); }
+        .hero-bg-overlay {
+            position: absolute; inset: 0; z-index: 0; pointer-events: none;
+            background: linear-gradient(90deg, rgba(8,15,35,.94) 0%, rgba(8,15,35,.8) 38%, rgba(8,15,35,.25) 72%, rgba(8,15,35,.05) 100%);
+        }
+        .hero.has-bg:after { display: none; }
+        .hero.has-bg h1 { color: #fff; }
+        .hero.has-bg p { color: rgba(255,255,255,.82); }
+        .hero.has-bg .kicker { color: #fec010; }
+        .hero.has-bg .kicker::before { background: #fec010; }
+        .hero.has-bg .btn-outline { border-color: rgba(255,255,255,.45); color: #fff; }
+        .hero.has-bg .btn-outline:hover { border-color: #fec010; color: #fec010; }
+        .hero.has-bg .stats-bar { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.16); backdrop-filter: blur(16px); }
+        .hero.has-bg .stat-value { color: #fec010; }
+        .hero.has-bg .stat-label { color: rgba(255,255,255,.7); }
+        .hero.has-bg .stat-divider { background: rgba(255,255,255,.2); }
+        .hero.has-bg .dots .dot { background: rgba(255,255,255,.3); }
+        .hero.has-bg .dots .dot.active { background: #fec010; }
+        @media (prefers-reduced-motion: reduce) { .hero-bg { transition: none; transform: none; } }
         .slide.active { display: block; }
 
         @keyframes fadeSlide {
@@ -635,6 +658,7 @@ export default function HomeLandingView({ products, packages }: HomeLandingViewP
             .hero h1 { font-size: 32px; }
             .hero p { font-size: 16px; }
             .hero-visual { display: none; }
+            .hero-bg-overlay { background: rgba(8,15,35,.82); }
             .overview-grid, .product-grid.product-showcase, .packages-grid, .partner-strip { grid-template-columns: 1fr; }
             .contact-card, .workflow-panel, .end-cta { padding: 28px; }
             .product-media, .hl-product.featured .product-media { min-height: 255px; }
@@ -652,7 +676,18 @@ export default function HomeLandingView({ products, packages }: HomeLandingViewP
       `}} />
 
       {/* ═══ HERO ═══ */}
-      <section className="hero">
+      <section className={`hero ${activeSlide?.imageUrl ? "has-bg" : ""}`}>
+        {/* Slide images as the hero background, cross-faded; only slides with an image get a layer */}
+        {heroSlides.map((slide, index) => slide.imageUrl && (
+          <div
+            key={`bg-${slide.id || index}`}
+            className={`hero-bg ${currentSlide === index ? "is-active" : ""}`}
+            style={{ backgroundImage: `url("${resolveMediaUrl(slide.imageUrl)}")` }}
+            aria-hidden="true"
+          />
+        ))}
+        {activeSlide?.imageUrl && <div className="hero-bg-overlay" aria-hidden="true" />}
+
         {/* Floating particles */}
         <div className="floating-particle" />
         <div className="floating-particle" />
@@ -663,33 +698,26 @@ export default function HomeLandingView({ products, packages }: HomeLandingViewP
 
         <div className="hl-container hero-inner">
           <div>
-            <div className={`slide ${currentSlide === 0 ? "active" : ""}`}>
-              <div className="kicker">AGECS Solutions</div>
-              <h1>Engineering Software Built for Real Structural Workflows</h1>
-              <p>AGECS Solutions develops practical engineering software that helps structural engineers reduce repetitive drafting, improve detailing accuracy, and maintain full control over their workflow.</p>
-              <div className="cta">
-                <a href="#products" className="hl-btn btn-yellow">Explore Our Solutions</a>
-                <a href="#contact" className="hl-btn btn-outline">Free 30-Day Trial</a>
+            {heroSlides.map((slide, index) => (
+              <div key={slide.id || index} className={`slide ${currentSlide === index ? "active" : ""}`}>
+                {slide.badge && <div className="kicker">{slide.badge}</div>}
+                <h1>{slide.title}</h1>
+                {slide.description && <p>{slide.description}</p>}
+                {(slide.buttons ?? []).length > 0 && (
+                  <div className="cta">
+                    {(slide.buttons ?? []).map((button, i) => {
+                      const className = `hl-btn ${button.variant === "secondary" ? "btn-outline" : "btn-yellow"} hero-btn`;
+                      const content = <><HeroIcon name={button.icon} size={17} /><span>{button.text}</span></>;
+                      const url = button.url || "#";
+                      // In-page anchors and external links stay plain <a>; app routes use client-side navigation.
+                      return url.startsWith("/") && !url.startsWith("//")
+                        ? <Link key={i} href={url} className={className}>{content}</Link>
+                        : <a key={i} href={url} className={className} {...(/^https?:/.test(url) ? { target: "_blank", rel: "noopener noreferrer" } : {})}>{content}</a>;
+                    })}
+                  </div>
+                )}
               </div>
-            </div>
-            <div className={`slide ${currentSlide === 1 ? "active" : ""}`}>
-              <div className="kicker">Official nanoCAD Provider</div>
-              <h1>nanoCAD. More for Less.</h1>
-              <p>Your official and sole provider of nanoCAD in Egypt and the Middle East. Work seamlessly with powerful DWG-compatible CAD, 2D and 3D drafting tools, and tailored modules to fit your needs.</p>
-              <div className="cta">
-                <a href="#nanocad" className="hl-btn btn-yellow">Explore nanoCAD</a>
-                <a href="#contact" className="hl-btn btn-outline">Request Support</a>
-              </div>
-            </div>
-            <div className={`slide ${currentSlide === 2 ? "active" : ""}`}>
-              <div className="kicker">AGECS Ecosystem</div>
-              <h1>One Ecosystem for Smarter Engineering Workflows</h1>
-              <p>AGECS Solutions brings together specialized tools for drafting, detailing, documentation, and workflow automation — built to support real structural project delivery.</p>
-              <div className="cta">
-                <a href="#products" className="hl-btn btn-yellow">Explore Products</a>
-                <a href="#contact" className="hl-btn btn-outline">Start Free Trial</a>
-              </div>
-            </div>
+            ))}
 
             {/* Stats Bar */}
             <div className="stats-bar">
@@ -715,6 +743,9 @@ export default function HomeLandingView({ products, packages }: HomeLandingViewP
             </div>
           </div>
 
+          {activeSlide?.imageUrl ? (
+          <div aria-hidden="true" />
+          ) : (
           <div className="hero-visual">
             <div className="visual-title"><span className="visual-title-dot"></span>AGECS Solutions 26</div>
             <div className="workflow-cards compact">
@@ -732,12 +763,21 @@ export default function HomeLandingView({ products, packages }: HomeLandingViewP
               </div>
             </div>
           </div>
+          )}
         </div>
-        <div className="dots">
-          <span className={`dot ${currentSlide === 0 ? "active" : ""}`} onClick={() => setCurrentSlide(0)}></span>
-          <span className={`dot ${currentSlide === 1 ? "active" : ""}`} onClick={() => setCurrentSlide(1)}></span>
-          <span className={`dot ${currentSlide === 2 ? "active" : ""}`} onClick={() => setCurrentSlide(2)}></span>
-        </div>
+        {totalSlides > 1 && (
+          <div className="dots">
+            {heroSlides.map((slide, index) => (
+              <span
+                key={slide.id || index}
+                className={`dot ${currentSlide === index ? "active" : ""}`}
+                onClick={() => setCurrentSlide(index)}
+                role="button"
+                aria-label={`Show slide ${index + 1}`}
+              ></span>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* ═══ OVERVIEW ═══ */}

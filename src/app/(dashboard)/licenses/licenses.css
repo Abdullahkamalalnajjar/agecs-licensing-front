@@ -180,3 +180,18 @@
   .lc-card { padding: 1rem; }
   .lc-card-head { flex-direction: column; }
 }
+
+/* ---------- Manual order (▲▼) ---------- */
+.lc-order { display: flex; align-items: center; gap: 0.4rem; }
+
+.lc-order-num {
+  min-width: 1.4rem;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.lc-order-btns { display: flex; flex-direction: column; gap: 2px; }
+.lc-order-btns .pr-icon-btn { width: 24px; height: 18px; border-radius: 5px; }
