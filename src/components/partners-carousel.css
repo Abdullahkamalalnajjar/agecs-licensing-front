@@ -1,0 +1,74 @@
+/* ============================================================
+   PARTNERS CAROUSEL — "Trusted Partners" logo strip
+   ============================================================ */
+.pc {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 46px;
+}
+
+.pc-track {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  padding: 8px 2px;
+}
+
+.pc-track::-webkit-scrollbar { display: none; }
+
+.pc-item {
+  flex: 0 0 calc((100% - 16px * 5) / 6); /* 6 logos per row on desktop */
+  scroll-snap-align: start;
+  display: flex;
+}
+
+.pc-item > a,
+.pc-item > span {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 130px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  transition: transform 0.25s ease, background 0.25s ease;
+}
+
+.pc-item > a:hover { background: var(--surface-card, rgba(0, 0, 0, 0.03)); transform: translateY(-3px); }
+
+.pc-item img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  user-select: none;
+}
+
+.pc-arrow {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink, #111827);
+  cursor: pointer;
+  transition: background 0.2s ease, opacity 0.2s ease;
+}
+
+.pc-arrow:hover:not(:disabled) { background: var(--surface-card, rgba(0, 0, 0, 0.05)); }
+.pc-arrow:disabled { opacity: 0.25; cursor: default; }
+.pc-arrow:focus-visible { outline: 2px solid var(--accent, #2563eb); outline-offset: 2px; }
+
+@media (max-width: 1024px) { .pc-item { flex-basis: calc((100% - 16px * 3) / 4); } }
+@media (max-width: 760px)  { .pc-item { flex-basis: calc((100% - 16px * 1) / 2); } .pc-item > a, .pc-item > span { height: 100px; } }
+@media (prefers-reduced-motion: reduce) { .pc-track { scroll-behavior: auto; } .pc-item > a:hover { transform: none; } }

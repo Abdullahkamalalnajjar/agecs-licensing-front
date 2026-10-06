@@ -1,0 +1,71 @@
+/* ============================================================
+   PARTNERS ADMIN — builds on products (.pr-*) and catalog (.ct-*) styles
+   ============================================================ */
+
+.pt-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem 1rem 0;
+  margin-bottom: 1rem;
+  background: #f1f3f6;
+}
+
+[data-theme="dark"] .pt-preview { background: rgba(255, 255, 255, 0.04); }
+
+.pt-preview .pc { margin-bottom: 0.5rem; }
+
+.pt-row.is-off .pt-logo,
+.pt-row.is-off .ct-name { opacity: 0.55; }
+
+/* Logos sit on white so dark/transparent logos stay visible in dark mode too */
+.pt-logo {
+  width: 130px;
+  height: 64px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid var(--pr-border);
+  background: #fff;
+}
+
+.pt-logo img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+.pt-logo-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.7rem;
+  color: #94a3b8;
+}
+
+.pt-logo-lg { width: 200px; height: 110px; }
+
+.pt-logo-picker { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+
+.pt-site {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.15rem;
+  font-size: 0.78rem;
+  color: var(--accent);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.pt-site:hover { text-decoration: underline; }
+
+.pt-warning { margin-top: 0.2rem; font-size: 0.72rem; font-weight: 600; color: var(--pr-amber); }
+
+.pr-icon-btn.is-disabled { opacity: 0.5; pointer-events: none; }
+
+@media (max-width: 640px) {
+  .pt-logo { width: 96px; height: 52px; }
+}

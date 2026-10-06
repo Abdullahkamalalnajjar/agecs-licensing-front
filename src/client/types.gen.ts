@@ -596,6 +596,38 @@ export type PackageItemDto = {
     migrationLimit?: number;
 };
 
+export type PartnerDto = {
+    id?: string;
+    name?: string | null;
+    logoUrl?: string | null;
+    websiteUrl?: string | null;
+    order?: number;
+    hidden?: boolean;
+};
+
+export type PartnerDtoListResult = {
+    readonly isSuccess?: boolean;
+    readonly isError?: boolean;
+    readonly value?: Array<PartnerDto> | null;
+    readonly errors?: Array<Error> | null;
+};
+
+export type PartnerDtoResult = {
+    readonly isSuccess?: boolean;
+    readonly isError?: boolean;
+    value?: PartnerDto;
+    readonly errors?: Array<Error> | null;
+};
+
+/**
+ * A partner's name and optional website link (opened when the logo is clicked).
+ */
+export type PartnerRequest = {
+    name?: string | null;
+    websiteUrl?: string | null;
+    hidden?: boolean;
+};
+
 export type PayablePriceDto = {
     id?: string;
     country?: string | null;
@@ -938,6 +970,10 @@ export type ReorderPackagesCommand = {
     packageIds?: Array<string> | null;
 };
 
+export type ReorderPartnersCommand = {
+    partnerIds?: Array<string> | null;
+};
+
 export type ReorderProductsCommand = {
     parentProductId?: string | null;
     productIds?: Array<string> | null;
@@ -984,6 +1020,10 @@ export type SetHeroSlideHiddenRequest = {
 };
 
 export type SetPackageHiddenRequest = {
+    hidden?: boolean;
+};
+
+export type SetPartnerHiddenRequest = {
     hidden?: boolean;
 };
 
@@ -1267,6 +1307,14 @@ export type PackageDtoListResultWritable = {
 
 export type PackageDtoResultWritable = {
     value?: PackageDto;
+};
+
+export type PartnerDtoListResultWritable = {
+    [key: string]: never;
+};
+
+export type PartnerDtoResultWritable = {
+    value?: PartnerDto;
 };
 
 export type PaymentCheckoutStartResponseResultWritable = {
@@ -3298,6 +3346,219 @@ export type PutApiPackagesByIdImageResponses = {
 };
 
 export type PutApiPackagesByIdImageResponse = PutApiPackagesByIdImageResponses[keyof PutApiPackagesByIdImageResponses];
+
+export type GetApiPartnersData = {
+    body?: never;
+    path?: never;
+    query?: {
+        includeHidden?: boolean;
+    };
+    url: '/api/partners';
+};
+
+export type GetApiPartnersResponses = {
+    /**
+     * OK
+     */
+    200: PartnerDtoListResult;
+};
+
+export type GetApiPartnersResponse = GetApiPartnersResponses[keyof GetApiPartnersResponses];
+
+export type PostApiPartnersData = {
+    body?: PartnerRequest;
+    path?: never;
+    query?: never;
+    url: '/api/partners';
+};
+
+export type PostApiPartnersErrors = {
+    /**
+     * Bad Request
+     */
+    400: ObjectResult;
+};
+
+export type PostApiPartnersError = PostApiPartnersErrors[keyof PostApiPartnersErrors];
+
+export type PostApiPartnersResponses = {
+    /**
+     * Created
+     */
+    201: PartnerDtoResult;
+};
+
+export type PostApiPartnersResponse = PostApiPartnersResponses[keyof PostApiPartnersResponses];
+
+export type PutApiPartnersReorderData = {
+    body?: ReorderPartnersCommand;
+    path?: never;
+    query?: never;
+    url: '/api/partners/reorder';
+};
+
+export type PutApiPartnersReorderErrors = {
+    /**
+     * Bad Request
+     */
+    400: ObjectResult;
+};
+
+export type PutApiPartnersReorderError = PutApiPartnersReorderErrors[keyof PutApiPartnersReorderErrors];
+
+export type PutApiPartnersReorderResponses = {
+    /**
+     * OK
+     */
+    200: UpdatedResult;
+};
+
+export type PutApiPartnersReorderResponse = PutApiPartnersReorderResponses[keyof PutApiPartnersReorderResponses];
+
+export type DeleteApiPartnersByIdData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/partners/{id}';
+};
+
+export type DeleteApiPartnersByIdErrors = {
+    /**
+     * Not Found
+     */
+    404: ObjectResult;
+};
+
+export type DeleteApiPartnersByIdError = DeleteApiPartnersByIdErrors[keyof DeleteApiPartnersByIdErrors];
+
+export type DeleteApiPartnersByIdResponses = {
+    /**
+     * OK
+     */
+    200: DeletedResult;
+};
+
+export type DeleteApiPartnersByIdResponse = DeleteApiPartnersByIdResponses[keyof DeleteApiPartnersByIdResponses];
+
+export type PutApiPartnersByIdData = {
+    body?: PartnerRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/partners/{id}';
+};
+
+export type PutApiPartnersByIdErrors = {
+    /**
+     * Bad Request
+     */
+    400: ObjectResult;
+    /**
+     * Not Found
+     */
+    404: ObjectResult;
+};
+
+export type PutApiPartnersByIdError = PutApiPartnersByIdErrors[keyof PutApiPartnersByIdErrors];
+
+export type PutApiPartnersByIdResponses = {
+    /**
+     * OK
+     */
+    200: PartnerDtoResult;
+};
+
+export type PutApiPartnersByIdResponse = PutApiPartnersByIdResponses[keyof PutApiPartnersByIdResponses];
+
+export type PatchApiPartnersByIdHiddenData = {
+    body?: SetPartnerHiddenRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/partners/{id}/hidden';
+};
+
+export type PatchApiPartnersByIdHiddenErrors = {
+    /**
+     * Not Found
+     */
+    404: ObjectResult;
+};
+
+export type PatchApiPartnersByIdHiddenError = PatchApiPartnersByIdHiddenErrors[keyof PatchApiPartnersByIdHiddenErrors];
+
+export type PatchApiPartnersByIdHiddenResponses = {
+    /**
+     * OK
+     */
+    200: UpdatedResult;
+};
+
+export type PatchApiPartnersByIdHiddenResponse = PatchApiPartnersByIdHiddenResponses[keyof PatchApiPartnersByIdHiddenResponses];
+
+export type DeleteApiPartnersByIdLogoData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/partners/{id}/logo';
+};
+
+export type DeleteApiPartnersByIdLogoErrors = {
+    /**
+     * Not Found
+     */
+    404: ObjectResult;
+};
+
+export type DeleteApiPartnersByIdLogoError = DeleteApiPartnersByIdLogoErrors[keyof DeleteApiPartnersByIdLogoErrors];
+
+export type DeleteApiPartnersByIdLogoResponses = {
+    /**
+     * OK
+     */
+    200: DeletedResult;
+};
+
+export type DeleteApiPartnersByIdLogoResponse = DeleteApiPartnersByIdLogoResponses[keyof DeleteApiPartnersByIdLogoResponses];
+
+export type PutApiPartnersByIdLogoData = {
+    body?: {
+        File?: Blob | File;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/partners/{id}/logo';
+};
+
+export type PutApiPartnersByIdLogoErrors = {
+    /**
+     * Bad Request
+     */
+    400: ObjectResult;
+    /**
+     * Not Found
+     */
+    404: ObjectResult;
+};
+
+export type PutApiPartnersByIdLogoError = PutApiPartnersByIdLogoErrors[keyof PutApiPartnersByIdLogoErrors];
+
+export type PutApiPartnersByIdLogoResponses = {
+    /**
+     * OK
+     */
+    200: StringResult;
+};
+
+export type PutApiPartnersByIdLogoResponse = PutApiPartnersByIdLogoResponses[keyof PutApiPartnersByIdLogoResponses];
 
 export type PostApiPaymentsCheckoutData = {
     /**

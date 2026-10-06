@@ -6,6 +6,8 @@ import { resolveMediaUrl } from "@/lib/mediaUrl";
 import { useCatalog } from "@/lib/catalog";
 import { HeroIcon } from "@/lib/heroIcons";
 import { resolveButtonLink, useHeroSlides } from "@/lib/heroSlides";
+import { usePartners } from "@/lib/partners";
+import PartnersCarousel from "@/components/PartnersCarousel";
 
 interface HomeLandingViewProps {
   products: ProductDto[];
@@ -45,6 +47,7 @@ function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: str
 }
 
 export default function HomeLandingView({ products, packages }: HomeLandingViewProps) {
+  const { partners } = usePartners();
   const { slides: heroSlides, current: currentSlide, setCurrent: setCurrentSlide } = useHeroSlides();
   const totalSlides = heroSlides.length;
   const activeSlide = heroSlides[currentSlide] ?? heroSlides[0];
@@ -548,14 +551,6 @@ export default function HomeLandingView({ products, packages }: HomeLandingViewP
 
         /* ─── Partners & Workflow ─── */
         .workflow-section { background: transparent; }
-        .partner-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 46px; }
-        .partner-logo {
-            min-height: 90px; border: 1px solid var(--hairline); border-radius: 18px;
-            background: var(--surface-card); display: grid; place-items: center;
-            color: var(--muted); font-weight: 900; box-shadow: var(--shadow-card);
-            transition: all .3s ease;
-        }
-        .partner-logo:hover { border-color: var(--accent); transform: translateY(-3px); }
         .workflow-panel {
             background: linear-gradient(135deg, #061b41, #0d3a84);
             border-radius: 26px; padding: 42px; color: #fff;
@@ -642,7 +637,7 @@ export default function HomeLandingView({ products, packages }: HomeLandingViewP
             .hero-inner, ., .contact-card { grid-template-columns: 1fr; }
             .hero-inner { padding: 70px 0 105px; }
             .hero h1 { font-size: 42px; }
-            .overview-grid, .product-grid.product-showcase, .packages-grid, .partner-strip { grid-template-columns: repeat(2, 1fr); }
+            .overview-grid, .product-grid.product-showcase, .packages-grid { grid-template-columns: repeat(2, 1fr); }
             .hl-product.featured { grid-column: span 1; }
             .flow { grid-template-columns: 1fr; }
             .flow-arrow { display: none; }
@@ -659,7 +654,7 @@ export default function HomeLandingView({ products, packages }: HomeLandingViewP
             .hero p { font-size: 16px; }
             .hero-visual { display: none; }
             .hero-bg-overlay { background: rgba(8,15,35,.82); }
-            .overview-grid, .product-grid.product-showcase, .packages-grid, .partner-strip { grid-template-columns: 1fr; }
+            .overview-grid, .product-grid.product-showcase, .packages-grid { grid-template-columns: 1fr; }
             .contact-card, .workflow-panel, .end-cta { padding: 28px; }
             .product-media, .hl-product.featured .product-media { min-height: 255px; }
             .product-media img, .hl-product.featured .product-media img { max-height: 290px; }
@@ -952,12 +947,8 @@ export default function HomeLandingView({ products, packages }: HomeLandingViewP
             <h2 className="section-title">Our Trusted Partner & Connected Workflow</h2>
             <p className="lead">Showcase partner logos and connect the AGECS workflow from CAD to documentation and project delivery.</p>
           </div>
-          <div className="partner-strip reveal">
-            <div className="partner-logo">Partner Logo</div>
-            <div className="partner-logo">Partner Logo</div>
-            <div className="partner-logo">Partner Logo</div>
-            <div className="partner-logo">Partner Logo</div>
-          </div>
+          {/* Logos are managed from the admin "Partners" page; nothing is shown until one has a logo */}
+          <PartnersCarousel partners={partners} />
           <div className="workflow-panel reveal">
             <h3>Connected Workflow for Better Project Delivery</h3>
             <p>AGECS Solutions connects CAD-based workflows with drafting, detailing, documentation, and delivery tools to help engineers reduce friction and work with better control.</p>
