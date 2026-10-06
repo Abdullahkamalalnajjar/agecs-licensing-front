@@ -11894,7 +11894,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "A partner's name and optional website link (opened when the logo is clicked)."
+        "description": "A partner's optional name (the logo's alt text) and optional website link (opened when the logo is clicked)."
       },
       "PayablePriceDto": {
         "type": "object",

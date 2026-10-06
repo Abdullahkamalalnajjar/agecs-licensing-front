@@ -43,9 +43,42 @@
   color: #94a3b8;
 }
 
-.pt-logo-lg { width: 200px; height: 110px; }
+.pt-logo-lg { width: 240px; height: 140px; border-radius: 12px; }
 
-.pt-logo-picker { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.pt-logo-picker { display: flex; flex-direction: column; align-items: flex-start; gap: 1rem; margin-bottom: 0.5rem; }
+
+.pt-form-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+  display: block;
+}
+
+.pt-visibility-box {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 0.5rem;
+}
+
+.pt-visibility-box:has(input:checked) {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+}
+
+[data-theme="dark"] .pt-visibility-box:has(input:checked) {
+  border-color: var(--accent);
+  background: rgba(59, 130, 246, 0.1);
+}
 
 .pt-site {
   display: inline-flex;

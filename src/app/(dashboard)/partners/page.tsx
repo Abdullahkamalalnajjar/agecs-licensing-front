@@ -28,6 +28,9 @@ const checkLogo = (file: File): string | null => {
   return null;
 };
 
+/** Name is optional, so admin messages and labels fall back to a generic label. */
+const partnerLabel = (p: Pick<PartnerDto, "name"> | null | undefined) => p?.name || "Unnamed partner";
+
 const errorText = (data: unknown, fallback: string) =>
   (data as { errors?: { description?: string | null }[] | null } | undefined)?.errors
     ?.map((e) => e.description)
@@ -165,7 +168,7 @@ export default function PartnersPage() {
       const res = await deleteApiPartnersById({ baseUrl, path: { id: partner.id! }, throwOnError: false });
       if (res.error || res.data?.isError) { toastError(errorText(res.data, "Failed to delete partner.")); return; }
       setPartners((prev) => prev.filter((p) => p.id !== partner.id));
-      success(`${partner.name} deleted.`);
+      success(`${partnerLabel(partner)} deleted.`);
     } finally {
       setBusyId(null);
       setConfirmDeleteId(null);
@@ -226,8 +229,8 @@ export default function PartnersPage() {
                 <div className="ct-order">
                   <span className="ct-order-num">{index + 1}</span>
                   <div className="ct-order-btns">
-                    <button type="button" className="pr-icon-btn" onClick={() => move(index, -1)} disabled={reordering || index === 0} aria-label={`Move ${partner.name} up`} title="Move up"><Svg size={12}>{Icon.up}</Svg></button>
-                    <button type="button" className="pr-icon-btn" onClick={() => move(index, 1)} disabled={reordering || index === partners.length - 1} aria-label={`Move ${partner.name} down`} title="Move down"><Svg size={12}>{Icon.down}</Svg></button>
+                    <button type="button" className="pr-icon-btn" onClick={() => move(index, -1)} disabled={reordering || index === 0} aria-label={`Move ${partnerLabel(partner)} up`} title="Move up"><Svg size={12}>{Icon.up}</Svg></button>
+                    <button type="button" className="pr-icon-btn" onClick={() => move(index, 1)} disabled={reordering || index === partners.length - 1} aria-label={`Move ${partnerLabel(partner)} down`} title="Move down"><Svg size={12}>{Icon.down}</Svg></button>
                   </div>
                 </div>
 
@@ -239,7 +242,7 @@ export default function PartnersPage() {
                 </div>
 
                 <div className="ct-main">
-                  <div className="ct-name">{partner.name}</div>
+                  <div className="ct-name">{partner.name || <span className="ct-sub is-missing">Unnamed partner</span>}</div>
                   {link
                     ? <a className="pt-site" href={link.href} target="_blank" rel="noopener noreferrer"><Svg size={11}>{Icon.link}</Svg>{partner.websiteUrl}</a>
                     : <div className="ct-sub is-missing">No website link</div>}
@@ -248,7 +251,7 @@ export default function PartnersPage() {
 
                 <label className="pr-visibility" title={partner.hidden ? "Hidden — click to show" : "Shown — click to hide"} style={{ opacity: busy ? 0.6 : 1 }}>
                   <span className="pf-toggle-switch">
-                    <input type="checkbox" checked={!partner.hidden} disabled={busy} onChange={() => toggleHidden(partner)} aria-label={`${partner.name} shown`} />
+                    <input type="checkbox" checked={!partner.hidden} disabled={busy} onChange={() => toggleHidden(partner)} aria-label={`${partnerLabel(partner)} shown`} />
                     <span className="pf-toggle-track" />
                   </span>
                   <span className={partner.hidden ? "pr-muted" : ""}>{partner.hidden ? "Hidden" : "Shown"}</span>
@@ -260,14 +263,14 @@ export default function PartnersPage() {
                     <input type="file" accept={LOGO_ACCEPT} hidden disabled={busy} onChange={(e) => { uploadLogo(partner, e.target.files?.[0]); e.target.value = ""; }} />
                   </label>
                   {partner.logoUrl && <IconButton title="Remove logo" onClick={() => removeLogo(partner)} disabled={busy}>{Icon.x}</IconButton>}
-                  <IconButton title={`Edit ${partner.name}`} onClick={() => setEditing(partner)}>{Icon.edit}</IconButton>
+                  <IconButton title={`Edit ${partnerLabel(partner)}`} onClick={() => setEditing(partner)}>{Icon.edit}</IconButton>
                   {confirmDeleteId === partner.id ? (
                     <span className="pr-confirm">
                       <IconButton title="Confirm delete" tone="danger" onClick={() => remove(partner)} disabled={busy}>{Icon.check}</IconButton>
                       <IconButton title="Cancel" onClick={() => setConfirmDeleteId(null)}>{Icon.x}</IconButton>
                     </span>
                   ) : (
-                    <IconButton title={`Delete ${partner.name}`} tone="danger" onClick={() => setConfirmDeleteId(partner.id!)}>{Icon.trash}</IconButton>
+                    <IconButton title={`Delete ${partnerLabel(partner)}`} tone="danger" onClick={() => setConfirmDeleteId(partner.id!)}>{Icon.trash}</IconButton>
                   )}
                 </div>
               </div>
@@ -282,7 +285,7 @@ export default function PartnersPage() {
           onClose={() => { setEditing(null); setCreating(false); }}
           onSaved={(saved, isNew) => {
             setPartners((prev) => (isNew ? [...prev, saved] : prev.map((p) => (p.id === saved.id ? { ...saved, hidden: p.hidden } : p))));
-            success(isNew ? `${saved.name} added.` : `${saved.name} saved.`);
+            success(isNew ? `${partnerLabel(saved)} added.` : `${partnerLabel(saved)} saved.`);
           }}
           onError={(msg) => toastError(msg)}
         />
@@ -320,7 +323,7 @@ function PartnerModal({ partner, onClose, onSaved, onError }: {
     e.preventDefault();
     setSaving(true);
     try {
-      const body = { name: name.trim(), websiteUrl: websiteUrl.trim() || null, hidden };
+      const body = { name: name.trim() || null, websiteUrl: websiteUrl.trim() || null, hidden };
       const res = partner?.id
         ? await putApiPartnersById({ baseUrl, path: { id: partner.id }, body, throwOnError: false })
         : await postApiPartners({ baseUrl, body, throwOnError: false });
@@ -347,7 +350,7 @@ function PartnerModal({ partner, onClose, onSaved, onError }: {
     <div className="modal-overlay">
       <div className="modal-container medium">
         <div className="modal-header">
-          <h2 className="modal-title">{partner ? `Edit ${partner.name}` : "New partner"}</h2>
+          <h2 className="modal-title">{partner ? `Edit ${partnerLabel(partner)}` : "New partner"}</h2>
           <button type="button" className="modal-close" onClick={onClose} aria-label="Close">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           </button>
@@ -360,10 +363,10 @@ function PartnerModal({ partner, onClose, onSaved, onError }: {
                 {logoPreview
                   // eslint-disable-next-line @next/next/no-img-element
                   ? <img src={logoPreview} alt="Logo preview" />
-                  : <span className="pt-logo-empty"><Svg size={22}>{Icon.image}</Svg>No logo</span>}
+                  : <span className="pt-logo-empty" style={{ gap: "0.5rem" }}><Svg size={28}>{Icon.image}</Svg>No logo</span>}
               </div>
-              <div className="ct-fields" style={{ gap: "0.4rem" }}>
-                <label className="btn-ghost" style={{ cursor: "pointer", alignSelf: "flex-start" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", alignItems: "flex-start" }}>
+                <label className="btn-ghost" style={{ cursor: "pointer" }}>
                   {logoPreview ? "Change logo" : "Choose logo"}
                   <input type="file" accept={LOGO_ACCEPT} hidden onChange={(e) => { pickLogo(e.target.files?.[0]); e.target.value = ""; }} />
                 </label>
@@ -373,22 +376,22 @@ function PartnerModal({ partner, onClose, onSaved, onError }: {
               </div>
             </div>
 
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label" htmlFor="partnerName">Name *</label>
-              <input id="partnerName" className="form-input" required autoFocus maxLength={150} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. EDGES Consulting" />
+            <div className="form-group" style={{ marginBottom: "0.5rem" }}>
+              <label className="pt-form-label" htmlFor="partnerName">NAME</label>
+              <input id="partnerName" className="form-input" autoFocus maxLength={150} value={name} onChange={(e) => setName(e.target.value)} placeholder="Optional, e.g. EDGES Consulting" />
             </div>
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label" htmlFor="partnerSite">Website</label>
+            <div className="form-group" style={{ marginBottom: "0.5rem" }}>
+              <label className="pt-form-label" htmlFor="partnerSite">WEBSITE</label>
               <input id="partnerSite" className="form-input" maxLength={500} value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} placeholder="Optional, e.g. www.edges.com" />
             </div>
 
             {!partner && (
-              <label className="pf-toggle">
+              <label className="pt-visibility-box">
                 <span className="pf-toggle-switch">
                   <input type="checkbox" checked={!hidden} onChange={(e) => setHidden(!e.target.checked)} />
                   <span className="pf-toggle-track" />
                 </span>
-                <span className="pf-toggle-label">Show on the site</span>
+                <span className="pf-toggle-label" style={{ fontSize: "1rem" }}>Show on the site</span>
               </label>
             )}
           </form>
@@ -396,7 +399,7 @@ function PartnerModal({ partner, onClose, onSaved, onError }: {
 
         <div className="modal-footer">
           <button type="button" className="btn-ghost" onClick={onClose} disabled={saving}>Cancel</button>
-          <button type="submit" form="partnerForm" className="btn-primary" disabled={saving || !name.trim()}>
+          <button type="submit" form="partnerForm" className="btn-primary" disabled={saving}>
             {saving ? "Saving…" : partner ? "Save changes" : "Add partner"}
           </button>
         </div>

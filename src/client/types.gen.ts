@@ -620,7 +620,7 @@ export type PartnerDtoResult = {
 };
 
 /**
- * A partner's name and optional website link (opened when the logo is clicked).
+ * A partner's optional name (the logo's alt text) and optional website link (opened when the logo is clicked).
  */
 export type PartnerRequest = {
     name?: string | null;
