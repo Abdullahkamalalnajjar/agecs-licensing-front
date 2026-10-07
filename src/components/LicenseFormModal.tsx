@@ -32,9 +32,13 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
     expiryDate: "",
     serial: "",
     janDrozdId: "",
+    hwidSalt: "",
     isTrial: false,
     type: "Basic",
+    isActive: true,
+    version: "",
   });
+  const [showAdvanced, setShowAdvanced] = useState(false);
   
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -82,9 +86,14 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
           expiryDate: initialData.expiryDate ? new Date(initialData.expiryDate).toISOString().split('T')[0] : "",
           serial: initialData.serial || "",
           janDrozdId: initialData.janDrozdId || "",
+          hwidSalt: initialData.hwidSalt || "",
           isTrial: initialData.isTrial || false,
           type: initialData.type || "Basic",
+          isActive: initialData.isActive ?? true,
+          version: initialData.version || "",
         });
+        // A lifetime license shows an empty expiry date.
+        if (initialData.willExpire === false) setLicenseData(prev => ({ ...prev, expiryDate: "" }));
 
         // Determine parent vs child
         const directMatch = products.find(p => p.id === initialData.productId);
@@ -111,8 +120,11 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
           expiryDate: "",
           serial: "",
           janDrozdId: "",
+          hwidSalt: "",
           isTrial: false,
           type: "Basic",
+          isActive: true,
+          version: "",
         });
         setSelectedParentId("");
       }
@@ -202,16 +214,38 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
         expiryDate: licenseData.expiryDate ? new Date(licenseData.expiryDate).toISOString() : undefined,
         serial: licenseData.serial || undefined,
         janDrozdId: licenseData.janDrozdId || undefined,
+        // The HWID salt is the client's username; for a new client it's the user name typed for the account.
+        hwidSalt: (!isEditing && clientMode === "new" ? newClient.userName : licenseData.hwidSalt).trim(),
         isTrial: licenseData.isTrial,
         type: licenseData.type,
       };
 
       let response: any;
       if (isEditing) {
-        response = await putApiLicensesById({ 
-          path: { id: initialData.id }, 
-          body: { id: initialData.id, ...payload } as any, 
-          throwOnError: false 
+        const editBody = {
+          id: initialData.id,
+          userId: licenseData.userId || undefined,
+          productId: licenseData.productId || undefined,
+          name: licenseData.name.trim(),
+          email: licenseData.email.trim(),
+          hwidSalt: licenseData.hwidSalt.trim(),
+          licenseCount: Number(licenseData.licenseCount) || 1,
+          migrationLimit: Math.max(0, Number(licenseData.migrationLimit) || 0),
+          // Blank expiry = lifetime.
+          willExpire: !!licenseData.expiryDate,
+          expiryDate: licenseData.expiryDate ? new Date(licenseData.expiryDate).toISOString() : undefined,
+          isTrial: licenseData.isTrial,
+          type: licenseData.type || "basic",
+          isActive: licenseData.isActive,
+          // Empty strings clear these on the server.
+          serial: licenseData.serial.trim(),
+          janDrozdId: licenseData.janDrozdId.trim(),
+          version: licenseData.version.trim(),
+        };
+        response = await putApiLicensesById({
+          path: { id: initialData.id },
+          body: editBody,
+          throwOnError: false
         });
 
         if (response.data !== undefined && response.error === undefined) {
@@ -539,6 +573,7 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                               userId: client?.userId || "",
                               email: client?.email || "",
                               name: prev.name || (client?.userName && client.userName !== client.email ? client.userName : ""),
+                              hwidSalt: client?.userName || "",
                             }));
                           }}
                         />
@@ -555,7 +590,7 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                                 value={newClient.email} onChange={(e) => setNewClient(c => ({ ...c, email: e.target.value }))} />
                             </div>
                             <div className="form-group" style={{ marginBottom: 0 }}>
-                              <label htmlFor="newClientUserName" className="form-label">User name *</label>
+                              <label htmlFor="newClientUserName" className="form-label" title="Also used as the license's HWID salt">User name * <span style={{ textTransform: "none", fontWeight: 500, opacity: 0.7 }}>(HWID salt)</span></label>
                               <input id="newClientUserName" type="text" className="form-input" required maxLength={256} placeholder="e.g. Ahmed Ali" autoComplete="off"
                                 value={newClient.userName} onChange={(e) => setNewClient(c => ({ ...c, userName: e.target.value }))} />
                             </div>
@@ -620,6 +655,27 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                       />
                     </div>
                   </div>
+                  )}
+
+                  {/* HWID salt = the client's username: required, no default; fixed once the license exists.
+                      For a new client the account's User name is used, so the field is only shown for existing clients. */}
+                  {(isEditing || clientMode === "existing") && (
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label htmlFor="hwidSalt" className="form-label">Username (HWID salt) *</label>
+                      <input
+                        id="hwidSalt"
+                        type="text"
+                        className="form-input"
+                        required
+                        maxLength={500}
+                        autoComplete="off"
+                        spellCheck={false}
+                        placeholder="Filled from the selected client's username"
+                        value={licenseData.hwidSalt}
+                        onChange={(e) => setLicenseData(prev => ({ ...prev, hwidSalt: e.target.value }))}
+                        style={{ fontFamily: "var(--font-mono)" }}
+                      />
+                    </div>
                   )}
 
                   {/* Product & Variant */}
@@ -767,6 +823,44 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                       Mark as Trial License (Evaluation / Demo)
                     </label>
                   </div>
+
+                  {isEditing && (
+                    <>
+                      {/* Active toggle: off = revoked */}
+                      <div style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.75rem",
+                        padding: "0.75rem 1rem",
+                        background: "var(--bg-elevated)",
+                        borderRadius: "var(--radius-md)",
+                        border: `1px solid ${licenseData.isActive ? "var(--border)" : "rgba(220,38,38,0.35)"}`,
+                      }}>
+                        <input
+                          id="isActiveCheckbox"
+                          type="checkbox"
+                          checked={licenseData.isActive}
+                          onChange={(e) => setLicenseData(prev => ({ ...prev, isActive: e.target.checked }))}
+                          style={{ width: "18px", height: "18px", accentColor: "var(--accent)", cursor: "pointer" }}
+                        />
+                        <label htmlFor="isActiveCheckbox" style={{ fontSize: "0.875rem", cursor: "pointer", color: "var(--text-primary)", fontWeight: 500 }}>
+                          License is active {licenseData.isActive ? "" : "(revoked — the client can't use it)"}
+                        </label>
+                      </div>
+
+                      <button type="button" className="btn-ghost" onClick={() => setShowAdvanced(v => !v)} style={{ alignSelf: "flex-start", fontSize: "0.8rem" }}>
+                        {showAdvanced ? "Hide version" : "Show version"}
+                      </button>
+
+                      {showAdvanced && (
+                        <div className="form-group" style={{ marginBottom: 0, maxWidth: 220 }}>
+                          <label htmlFor="version" className="form-label">Version</label>
+                          <input id="version" type="text" className="form-input" maxLength={100} placeholder="e.g. 26"
+                            value={licenseData.version} onChange={(e) => setLicenseData(prev => ({ ...prev, version: e.target.value }))} />
+                        </div>
+                      )}
+                    </>
+                  )}
 
                 </div>
               </form>

@@ -13,7 +13,7 @@ import ChildProductsModal from "@/components/ChildProductsModal";
 import ProductVersionsModal from "@/components/ProductVersionsModal";
 import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/components/ToastProvider";
-import { useCurrency, type SupportedCurrency } from "@/context/CurrencyContext";
+import { CURRENCIES, useCurrency, type SupportedCurrency } from "@/context/CurrencyContext";
 import "@/components/product-form.css";
 import "./products.css";
 
@@ -154,7 +154,9 @@ export default function ProductsPage() {
     try {
       const response = await deleteApiProductsById({ path: { id }, throwOnError: false });
       if (response.data?.isSuccess) {
-        setProducts((prev) => prev.filter((p) => p.id !== id));
+        setProducts((prev) => prev
+          .filter((p) => p.id !== id)
+          .map((p) => (p.children?.some((c) => c.id === id) ? { ...p, children: p.children.filter((c) => c.id !== id) } : p)));
         success("Product deleted.");
       } else {
         toastError(response.data?.errors?.map((e) => e.description).join(", ") || "Failed to delete product.");
@@ -213,6 +215,16 @@ export default function ProductsPage() {
     });
   }, [rootProducts, search, company, family, status, sort, currency]);
 
+  // Table rows: each variation gets its own row; products without variations keep theirs.
+  const tableRows = useMemo(
+    () => filtered.flatMap((parent, parentIndex) => {
+      const children = [...(parent.children || [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+      if (children.length === 0) return [{ row: parent, parent: null as ProductDto | null, parentIndex, first: true }];
+      return children.map((child, i) => ({ row: child, parent: parent as ProductDto | null, parentIndex, first: i === 0 }));
+    }),
+    [filtered]
+  );
+
   const hasFilters = !!search || company !== "all" || family !== "all" || status !== "all";
   // Reordering needs the full, unfiltered list in display order, since the API reorders all top-level products at once.
   const canReorder = !hasFilters && sort === "order";
@@ -222,18 +234,20 @@ export default function ProductsPage() {
   const handleToggleHidden = async (product: ProductDto) => {
     if (!product.id) return;
     const hidden = !product.hidden;
-    setProducts((prev) => prev.map((p) => (p.id === product.id ? { ...p, hidden } : p)));
+    const setHidden = (value: boolean) => (p: ProductDto): ProductDto =>
+      p.id === product.id ? { ...p, hidden: value } : { ...p, children: p.children?.map(setHidden(value)) };
+    setProducts((prev) => prev.map(setHidden(hidden)));
     try {
       setHiddenBusyId(product.id);
       const res = await patchApiProductsByIdHidden({ path: { id: product.id }, body: { hidden }, throwOnError: false });
       if (res.error || res.data?.isError) {
-        setProducts((prev) => prev.map((p) => (p.id === product.id ? { ...p, hidden: !hidden } : p)));
+        setProducts((prev) => prev.map(setHidden(!hidden)));
         toastError(res.data?.errors?.map((e) => e.description).join(", ") || "Failed to update visibility.");
         return;
       }
       success(hidden ? `${product.name} is now hidden.` : `${product.name} is now visible.`);
     } catch (err) {
-      setProducts((prev) => prev.map((p) => (p.id === product.id ? { ...p, hidden: !hidden } : p)));
+      setProducts((prev) => prev.map(setHidden(!hidden)));
       toastError((err instanceof Error && err.message) || "Error updating visibility.");
     } finally {
       setHiddenBusyId(null);
@@ -271,8 +285,11 @@ export default function ProductsPage() {
 
   const clearFilters = () => { setSearch(""); setCompany("all"); setFamily("all"); setStatus("all"); };
 
-  const formatMoney = (n: number) =>
-    currentCurrencyMeta.symbol === "$" ? `$${priceFmt.format(n)}` : `${priceFmt.format(n)} ${currentCurrencyMeta.symbol}`;
+  // Format in the price's own currency — the starting price may fall back to another country's price.
+  const formatMoney = (n: number, country?: string | null) => {
+    const symbol = CURRENCIES.find((c) => c.code === country)?.symbol ?? currentCurrencyMeta.symbol;
+    return symbol === "$" ? `$${priceFmt.format(n)}` : `${priceFmt.format(n)} ${symbol}`;
+  };
 
   const renderPrice = (product: ProductDto, compact = false) => {
     const p = startingPrice(product, currency);
@@ -288,8 +305,8 @@ export default function ProductsPage() {
     const onSale = p.originalPrice != null && p.originalPrice > (p.price ?? 0);
     return (
       <span className={`pr-price ${compact ? "is-compact" : ""}`}>
-        {onSale && <s>{formatMoney(p.originalPrice!)}</s>}
-        <strong>{formatMoney(p.price ?? 0)}</strong>
+        {onSale && <s>{formatMoney(p.originalPrice!, p.country)}</s>}
+        <strong>{formatMoney(p.price ?? 0, p.country)}</strong>
         <small>{periodLabel(p.period, p.periodType)}</small>
       </span>
     );
@@ -302,10 +319,17 @@ export default function ProductsPage() {
     return <span className="pr-badge pr-badge-sale">−{pct}%</span>;
   };
 
-  const renderAdminActions = (product: ProductDto) => (
+  // On a variation's row, "Variations" manages its parent's variations (add a new one, etc.).
+  const renderAdminActions = (product: ProductDto, parent?: ProductDto | null) => (
     <div className="pr-actions">
       <IconButton title="View details" onClick={() => router.push(`/products/${product.id}`)}>{Icon.view}</IconButton>
-      <IconButton title="Variations" tone="green" onClick={() => setVariationProduct(product)}>{Icon.variations}</IconButton>
+      <IconButton
+        title={parent ? `Variations of ${parent.name}` : "Variations"}
+        tone="green"
+        onClick={() => setVariationProduct(parent ?? product)}
+      >
+        {Icon.variations}
+      </IconButton>
       <IconButton title="Media" tone="purple" onClick={() => setMediaProduct(product)}>{Icon.media}</IconButton>
       <IconButton title="Versions" tone="amber" onClick={() => setVersionsProduct(product)}>{Icon.versions}</IconButton>
       <IconButton title="Edit product" onClick={() => setEditProduct(product)}>{Icon.edit}</IconButton>
@@ -502,38 +526,41 @@ export default function ProductsPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((product, index) => (
+              {tableRows.map(({ row: product, parent, parentIndex, first }, index) => (
                 <tr key={product.id} className={product.hidden ? "is-hidden" : ""}>
                   <td>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
                       <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8rem", color: "var(--text-muted)", minWidth: "1.25rem" }}>
                         {index + 1}
                       </span>
-                      <div
-                        style={{ display: "flex", flexDirection: "column", gap: "2px" }}
-                        title={canReorder ? undefined : "Clear filters and sort by Featured to reorder"}
-                      >
-                        <button
-                          type="button"
-                          className="btn-ghost"
-                          style={{ padding: "0 6px", minHeight: "20px", lineHeight: 1, fontSize: "0.7rem" }}
-                          onClick={() => handleMove(index, -1)}
-                          disabled={!canReorder || reordering || index === 0}
-                          aria-label={`Move ${product.name} up`}
+                      {/* Reordering moves the whole top-level product, so the arrows sit on its first row only. */}
+                      {first && (
+                        <div
+                          style={{ display: "flex", flexDirection: "column", gap: "2px" }}
+                          title={canReorder ? undefined : "Clear filters and sort by Featured to reorder"}
                         >
-                          ▲
-                        </button>
-                        <button
-                          type="button"
-                          className="btn-ghost"
-                          style={{ padding: "0 6px", minHeight: "20px", lineHeight: 1, fontSize: "0.7rem" }}
-                          onClick={() => handleMove(index, 1)}
-                          disabled={!canReorder || reordering || index === filtered.length - 1}
-                          aria-label={`Move ${product.name} down`}
-                        >
-                          ▼
-                        </button>
-                      </div>
+                          <button
+                            type="button"
+                            className="btn-ghost"
+                            style={{ padding: "0 6px", minHeight: "20px", lineHeight: 1, fontSize: "0.7rem" }}
+                            onClick={() => handleMove(parentIndex, -1)}
+                            disabled={!canReorder || reordering || parentIndex === 0}
+                            aria-label={`Move ${(parent ?? product).name} up`}
+                          >
+                            ▲
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-ghost"
+                            style={{ padding: "0 6px", minHeight: "20px", lineHeight: 1, fontSize: "0.7rem" }}
+                            onClick={() => handleMove(parentIndex, 1)}
+                            disabled={!canReorder || reordering || parentIndex === filtered.length - 1}
+                            aria-label={`Move ${(parent ?? product).name} down`}
+                          >
+                            ▼
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </td>
                   <td>
@@ -542,10 +569,7 @@ export default function ProductsPage() {
                       <span className="pr-row-text">
                         <span className="pr-row-name">{product.name || "—"}</span>
                         <span className="pr-row-sub">
-                          {companyName(product)}
-                          {product.children && product.children.length > 0 && (
-                            <> · {product.children.length} variation{product.children.length !== 1 ? "s" : ""}</>
-                          )}
+                          {parent ? `${parent.name || "—"} · ` : ""}{companyName(product)}
                         </span>
                       </span>
                     </Link>
@@ -579,7 +603,7 @@ export default function ProductsPage() {
                   <td className="pr-muted-cell pr-nowrap">
                     {product.createdAtUtc ? new Date(product.createdAtUtc).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "—"}
                   </td>
-                  <td>{renderAdminActions(product)}</td>
+                  <td>{renderAdminActions(product, parent)}</td>
                 </tr>
               ))}
             </tbody>

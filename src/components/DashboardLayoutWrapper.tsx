@@ -9,7 +9,7 @@ export function DashboardLayoutWrapper({ children }: { children: React.ReactNode
   const { user } = useAuth();
   const pathname = usePathname();
   const isHome = pathname === "/home" || pathname === "/";
-  const isAdminLayout = user?.role === "Admin" || user?.role === "SuperAdmin";
+  const isAdminLayout = user?.role === "Admin" || user?.role === "SuperAdmin" || user?.role === "Editor";
 
   return (
     <div className={`dashboard-container ${isAdminLayout ? 'dashboard-sidebar-layout' : ''}`}>

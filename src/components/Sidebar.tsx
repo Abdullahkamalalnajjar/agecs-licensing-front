@@ -136,6 +136,9 @@ const navItems = [
 import Image from "next/image";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 
+// Editors manage site content only (the backend gives them products.write and nothing admin-wide).
+const EDITOR_PATHS = new Set(["/home", "/products", "/catalog", "/hero-slides", "/promo-bars", "/partners", "/profile"]);
+
 export default function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
@@ -151,7 +154,7 @@ export default function Sidebar() {
 
       {/* Navigation */}
       <nav className="sidebar-nav">
-        {navItems.map((item) => {
+        {navItems.filter((item) => user?.role !== "Editor" || EDITOR_PATHS.has(item.path)).map((item) => {
           const isActive = pathname.startsWith(item.path);
           return (
             <Link

@@ -121,6 +121,9 @@ function TopNavbarInner() {
     if (user?.role === "Student" || user?.role === "NormalUser") {
       return item.name === "Home" || item.name === "Licenses" || item.name === "Tickets" || item.name === "Products" || item.name === "Profile";
     }
+    if (user?.role === "Editor") {
+      return item.name === "Home" || item.name === "Products" || item.name === "Profile";
+    }
     return true; // SuperAdmin/Admin sees all
   });
 

@@ -152,11 +152,13 @@ export default function PromocodesPage() {
                     </div>
                   </td>
                   <td style={{ fontFamily: "var(--font-mono)", fontSize: "0.875rem" }}>
-                    {promo.fixedDiscount
-                      ? `$${promo.fixedDiscount}`
-                      : promo.defaultPriceMultiplier
-                      ? `×${promo.defaultPriceMultiplier}`
-                      : "—"}
+                    {promo.discountValue == null
+                      ? "—"
+                      : promo.discountType === "Percentage"
+                      ? `${promo.discountValue}% off`
+                      : promo.discountType === "AmountOff"
+                      ? `−${promo.discountValue} off`
+                      : `Cart = ${promo.discountValue}`}
                   </td>
                   <td style={{ color: "var(--text-secondary)" }}>
                     {promo.useCount || 0} / {promo.maxUses || "∞"}

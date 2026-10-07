@@ -5,12 +5,102 @@
     "version": "v1"
   },
   "paths": {
+    "/identity/register": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Public self-registration. Always creates a NormalUser (the request has no role) and signs the new user in.",
+        "requestBody": {
+          "description": "Email, password, city and phone number.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicRegisterRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicRegisterRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicRegisterRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponseResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponseResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponseResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/identity/signup": {
       "post": {
         "tags": [
           "Auth"
         ],
-        "summary": "Registers a new user.",
+        "summary": "Registers a new user with any role. Admins only (SuperAdmin, SystemAdmin, Admin);\r\npublic sign-up is POST /identity/register.",
         "requestBody": {
           "description": "The registration details (email, password, etc.).",
           "content": {
@@ -54,6 +144,46 @@
           },
           "400": {
             "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
             "content": {
               "text/plain": {
                 "schema": {
@@ -3987,6 +4117,105 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/LicenseDtoResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/licenses/users/{userId}": {
+      "get": {
+        "tags": [
+          "Licenses"
+        ],
+        "summary": "Lists one user's licenses (newest order first, same as the main list). Admins can read any user;\r\nother users can only read their own (403 otherwise). Optional productId / isActive filters.",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "description": "The user whose licenses to return.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "productId",
+            "in": "query",
+            "description": "Only licenses for this product.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "isActive",
+            "in": "query",
+            "description": "Only active (true) or inactive (false) licenses.",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/LicenseDtoListResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LicenseDtoListResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LicenseDtoListResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectResult"
                 }
               }
             }
@@ -10391,6 +10620,10 @@
             "type": "string",
             "nullable": true
           },
+          "hwidSalt": {
+            "type": "string",
+            "nullable": true
+          },
           "licenseCount": {
             "type": "integer",
             "format": "int32"
@@ -10584,20 +10817,12 @@
             "type": "string",
             "nullable": true
           },
-          "defaultPriceMultiplier": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
+          "discountType": {
+            "$ref": "#/components/schemas/PromocodeDiscountType"
           },
-          "fixedDiscount": {
+          "discountValue": {
             "type": "number",
-            "format": "double",
-            "nullable": true
-          },
-          "constantDiscount": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
+            "format": "double"
           },
           "hidden": {
             "type": "boolean"
@@ -12888,6 +13113,14 @@
         "additionalProperties": false,
         "description": "A promo bar. The button needs both text and URL (or neither). DurationSeconds (2-60) is how long it shows before the\r\nnext bar; omit it to keep the current value (6 by default). Colors are hex codes like #22C55E (#RRGGBBAA for\r\ntransparency); leave a color empty to use the site's default."
       },
+      "PromocodeDiscountType": {
+        "enum": [
+          "Percentage",
+          "AmountOff",
+          "FinalPrice"
+        ],
+        "type": "string"
+      },
       "PromocodeDto": {
         "type": "object",
         "properties": {
@@ -12899,17 +13132,10 @@
             "type": "string",
             "nullable": true
           },
-          "defaultPriceMultiplier": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
+          "discountType": {
+            "$ref": "#/components/schemas/PromocodeDiscountType"
           },
-          "fixedDiscount": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          },
-          "constantDiscount": {
+          "discountValue": {
             "type": "number",
             "format": "double",
             "nullable": true
@@ -12991,6 +13217,35 @@
             },
             "nullable": true,
             "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PublicRegisterRequest": {
+        "required": [
+          "city",
+          "email",
+          "password",
+          "phoneNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "minLength": 1,
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "minLength": 6,
+            "type": "string"
+          },
+          "city": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "phoneNumber": {
+            "minLength": 1,
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -13523,13 +13778,41 @@
             "type": "string",
             "format": "uuid"
           },
+          "userId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "productId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "hwidSalt": {
+            "type": "string",
+            "nullable": true
+          },
           "licenseCount": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "nullable": true
           },
           "migrationLimit": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "nullable": true
+          },
+          "willExpire": {
+            "type": "boolean",
+            "nullable": true
           },
           "expiryDate": {
             "type": "string",
@@ -13537,10 +13820,20 @@
             "nullable": true
           },
           "isTrial": {
-            "type": "boolean"
+            "type": "boolean",
+            "nullable": true
+          },
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "version": {
+            "type": "string",
+            "nullable": true
           },
           "isActive": {
-            "type": "boolean"
+            "type": "boolean",
+            "nullable": true
           },
           "serial": {
             "type": "string",
@@ -13707,20 +14000,12 @@
             "type": "string",
             "format": "uuid"
           },
-          "defaultPriceMultiplier": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
+          "discountType": {
+            "$ref": "#/components/schemas/PromocodeDiscountType"
           },
-          "fixedDiscount": {
+          "discountValue": {
             "type": "number",
-            "format": "double",
-            "nullable": true
-          },
-          "constantDiscount": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
+            "format": "double"
           },
           "hidden": {
             "type": "boolean"

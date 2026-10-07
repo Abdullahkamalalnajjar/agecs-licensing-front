@@ -1,0 +1,94 @@
+/* ============================================================
+   USER LICENSES MODAL — admin Users page → "Licenses"
+   ============================================================ */
+.modal-container.ul-modal { max-width: 860px; }
+
+.ul-sub { margin: 0.15rem 0 0; font-size: 0.8rem; color: var(--text-muted); }
+
+.ul-summary { margin: 0 0 0.75rem; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); }
+
+.ul-list { display: flex; flex-direction: column; gap: 0.6rem; }
+
+.ul-row {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  transition: border-color 0.15s;
+}
+
+.ul-row:hover { border-color: var(--accent-border); }
+
+.ul-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+
+.ul-product { font-weight: 700; color: var(--text-primary); }
+.ul-main:hover .ul-product { color: var(--accent); }
+
+.ul-meta { display: flex; flex-wrap: wrap; gap: 0.25rem 0.9rem; font-size: 0.75rem; color: var(--text-muted); }
+.ul-meta span:first-child { text-transform: capitalize; }
+
+.ul-serial {
+  flex-shrink: 0;
+  max-width: 230px;
+  padding: 0.35rem 0.6rem;
+  border-radius: 8px;
+  border: 1px dashed var(--border-strong, var(--border));
+  background: var(--bg-surface);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: copy;
+}
+
+.ul-serial:hover:not(:disabled) { border-color: var(--accent); color: var(--text-primary); }
+.ul-serial:disabled { cursor: default; opacity: 0.6; }
+
+.ul-status {
+  flex-shrink: 0;
+  min-width: 68px;
+  text-align: center;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.ul-status.is-active  { color: #16a34a; background: rgba(22, 163, 74, 0.12); }
+.ul-status.is-trial   { color: #b45309; background: rgba(217, 119, 6, 0.12); }
+.ul-status.is-expired { color: #dc2626; background: rgba(220, 38, 38, 0.1); }
+.ul-status.is-revoked { color: var(--text-secondary); background: rgba(148, 163, 184, 0.16); }
+
+.ul-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2.5rem 1rem;
+  color: var(--text-muted);
+}
+
+.ul-empty p { margin: 0; font-size: 0.9rem; }
+
+@media (max-width: 640px) {
+  .ul-row { flex-wrap: wrap; }
+  .ul-serial { order: 3; max-width: 100%; flex: 1 1 100%; }
+}

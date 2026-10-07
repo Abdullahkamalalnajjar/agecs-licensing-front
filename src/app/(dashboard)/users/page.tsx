@@ -10,6 +10,8 @@ import {
 import { client } from "@/client/client.gen";
 import { useRouter } from "next/navigation";
 import { AppUserDto } from "@/client/types.gen";
+import UserLicensesModal from "@/components/UserLicensesModal";
+import CreateUserModal from "@/components/CreateUserModal";
 
 // ============================================================
 // CONSTANTS & ROLE DEFINITIONS
@@ -60,6 +62,15 @@ const ROLE_CONFIGS: Record<string, RoleConfig> = {
     badgeText: "#22d3ee",
     badgeBorder: "rgba(6, 182, 212, 0.3)",
     icon: "💼",
+  },
+  Editor: {
+    name: "Editor",
+    label: "Content Editor",
+    description: "Can manage products, hero slides, promo bars and partners",
+    badgeBg: "rgba(236, 72, 153, 0.12)",
+    badgeText: "#f472b6",
+    badgeBorder: "rgba(236, 72, 153, 0.3)",
+    icon: "✏️",
   },
   Support: {
     name: "Support",
@@ -151,6 +162,8 @@ export default function UsersPage() {
   // Modals state
   const [roleModalUser, setRoleModalUser] = useState<AppUserDto | null>(null);
   const [detailsModalUser, setDetailsModalUser] = useState<AppUserDto | null>(null);
+  const [licensesModalUser, setLicensesModalUser] = useState<AppUserDto | null>(null);
+  const [createUserOpen, setCreateUserOpen] = useState(false);
   const [confirmBanUser, setConfirmBanUser] = useState<AppUserDto | null>(null);
   const [confirmRestoreUser, setConfirmRestoreUser] = useState<AppUserDto | null>(null);
   const [selectedNewRole, setSelectedNewRole] = useState<string>("");
@@ -320,7 +333,7 @@ export default function UsersPage() {
   const totalActive = activeUsers.length;
   const totalDeleted = deletedUsers.length;
   const totalStaff = activeUsers.filter(u => 
-    u.roles?.some(r => ["SuperAdmin", "SystemAdmin", "Admin", "Sales", "Support"].includes(r))
+    u.roles?.some(r => ["SuperAdmin", "SystemAdmin", "Admin", "Sales", "Editor", "Support"].includes(r))
   ).length;
   const totalStudents = activeUsers.filter(u => u.roles?.includes("Student")).length;
 
@@ -398,6 +411,10 @@ export default function UsersPage() {
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+          <button type="button" className="btn-primary" onClick={() => setCreateUserOpen(true)} style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><line x1="20" y1="8" x2="20" y2="14" /><line x1="23" y1="11" x2="17" y2="11" /></svg>
+            New user
+          </button>
           <button
             onClick={() => fetchAllUsers(true)}
             disabled={refreshing || loading}
@@ -975,6 +992,31 @@ export default function UsersPage() {
                     <td style={{ padding: "1rem 1.5rem", textAlign: "right" }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "0.5rem" }}>
                         <button
+                          onClick={() => setLicensesModalUser(user)}
+                          title="View this user's licenses"
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "0.4rem",
+                            height: 34,
+                            padding: "0 0.8rem",
+                            borderRadius: "var(--radius-md)",
+                            border: "1px solid var(--border-strong)",
+                            background: "var(--bg-elevated)",
+                            color: "var(--text-secondary)",
+                            fontSize: "0.8rem",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            whiteSpace: "nowrap",
+                            transition: "all 0.18s ease"
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.color = "var(--text-primary)"; e.currentTarget.style.borderColor = "var(--accent)"; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.color = "var(--text-secondary)"; e.currentTarget.style.borderColor = "var(--border-strong)"; }}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+                          Licenses
+                        </button>
+                        <button
                           onClick={() => setDetailsModalUser(user)}
                           title="View Full Profile Details"
                           style={{
@@ -1226,6 +1268,12 @@ export default function UsersPage() {
           </div>
         </div>
       )}
+
+      {/* ── MODAL: CREATE USER (admin, any role) ── */}
+      {createUserOpen && <CreateUserModal onClose={() => setCreateUserOpen(false)} onCreated={() => fetchAllUsers(true)} />}
+
+      {/* ── MODAL: USER LICENSES ── */}
+      {licensesModalUser && <UserLicensesModal user={licensesModalUser} onClose={() => setLicensesModalUser(null)} />}
 
       {/* ── MODAL: USER DETAILS ── */}
       {detailsModalUser && (

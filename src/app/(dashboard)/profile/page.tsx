@@ -15,6 +15,7 @@ const roleConfig: Record<string, { label: string; tone: Tone; blurb: string }> =
   SuperAdmin: { label: "Super Admin", tone: "amber", blurb: "Full access to every area of the platform, including roles and permissions." },
   Admin: { label: "Administrator", tone: "purple", blurb: "Manage products, licenses, users and support across the platform." },
   Sales: { label: "Sales", tone: "green", blurb: "Issue and manage customer licenses, offers and promo codes." },
+  Editor: { label: "Content Editor", tone: "purple", blurb: "Manage products, hero slides, promo bars and partners on the site." },
   Student: { label: "Student", tone: "blue", blurb: "Verified student account with access to student pricing." },
   NormalUser: { label: "Customer", tone: "neutral", blurb: "Buy licenses, download software and contact support." },
 };

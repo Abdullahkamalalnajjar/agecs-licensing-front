@@ -2,43 +2,61 @@
 
 import { useState, useEffect } from "react";
 import { postApiPromocodes, putApiPromocodesById } from "@/client";
+import type { PromocodeDiscountType, PromocodeDto } from "@/client/types.gen";
 
 type PromocodeFormModalProps = {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  promocode: any; // null for Create mode, object for Edit mode
+  promocode: PromocodeDto | null; // null for Create mode
 };
+
+/** The three ways a code can discount the cart; a code uses exactly one. */
+const DISCOUNT_TYPES: { type: PromocodeDiscountType; label: string; symbol: string; hint: string; placeholder: string }[] = [
+  { type: "Percentage", label: "Percentage", symbol: "%", hint: "Percent off the cart total (1–100).", placeholder: "e.g. 20" },
+  { type: "AmountOff", label: "Amount off", symbol: "−", hint: "A fixed amount subtracted from the cart total.", placeholder: "e.g. 100" },
+  { type: "FinalPrice", label: "Final price", symbol: "=", hint: "The whole cart costs exactly this amount.", placeholder: "e.g. 500" },
+];
+
+const SAMPLE_TOTAL = 1000;
+
+const previewTotal = (type: PromocodeDiscountType, value: number) => {
+  if (type === "Percentage") return SAMPLE_TOTAL * (1 - value / 100);
+  if (type === "AmountOff") return Math.max(0, SAMPLE_TOTAL - value);
+  return value;
+};
+
+const errorText = (data: unknown, fallback: string) =>
+  (data as { errors?: { description?: string | null }[] | null } | undefined)?.errors
+    ?.map((e) => e.description)
+    .filter(Boolean)
+    .join(", ") || fallback;
 
 export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promocode }: PromocodeFormModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const [code, setCode] = useState("");
-  const [defaultPriceMultiplier, setDefaultPriceMultiplier] = useState("");
-  const [fixedDiscount, setFixedDiscount] = useState("");
-  const [constantDiscount, setConstantDiscount] = useState("");
+  const [discountType, setDiscountType] = useState<PromocodeDiscountType>("Percentage");
+  const [discountValue, setDiscountValue] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
   const [maxUses, setMaxUses] = useState("");
-  
   const [hidden, setHidden] = useState(false);
   const [withTaxes, setWithTaxes] = useState(true);
 
   useEffect(() => {
     if (promocode) {
       setCode(promocode.code || "");
-      setDefaultPriceMultiplier(promocode.defaultPriceMultiplier != null ? promocode.defaultPriceMultiplier.toString() : "");
-      setFixedDiscount(promocode.fixedDiscount != null ? promocode.fixedDiscount.toString() : "");
-      setConstantDiscount(promocode.constantDiscount != null ? promocode.constantDiscount.toString() : "");
+      setDiscountType(promocode.discountType ?? "Percentage");
+      setDiscountValue(promocode.discountValue != null ? promocode.discountValue.toString() : "");
       setExpiresAt(promocode.expiresAt ? new Date(promocode.expiresAt).toISOString().slice(0, 10) : "");
       setMaxUses(promocode.maxUses?.toString() || "");
       setHidden(promocode.hidden || false);
       setWithTaxes(promocode.withTaxes ?? true);
     } else {
       setCode("");
-      setDefaultPriceMultiplier("");
-      setFixedDiscount("");
-      setConstantDiscount("");
+      setDiscountType("Percentage");
+      setDiscountValue("");
       setExpiresAt("");
       setMaxUses("");
       setHidden(false);
@@ -49,61 +67,42 @@ export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promoco
 
   if (!isOpen) return null;
 
+  const active = DISCOUNT_TYPES.find((d) => d.type === discountType)!;
+  const value = Number(discountValue);
+  const hasValue = discountValue.trim() !== "" && !Number.isNaN(value);
+  const valueProblem = !hasValue ? null
+    : discountType === "Percentage" && (value <= 0 || value > 100) ? "Percentage must be more than 0 and at most 100."
+    : discountType === "AmountOff" && value <= 0 ? "Amount off must be more than 0."
+    : discountType === "FinalPrice" && value < 0 ? "Final price can't be negative."
+    : null;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!hasValue || valueProblem) return;
     setLoading(true);
     setError("");
 
+    // One request with every field, so nothing saved earlier gets wiped by a partial update.
+    const fields = {
+      discountType,
+      discountValue: value,
+      hidden,
+      withTaxes,
+      expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
+      maxUses: maxUses ? Number(maxUses) : null,
+    };
+
     try {
-      let currentId = promocode?.id;
+      const res = promocode?.id
+        ? await putApiPromocodesById({ path: { id: promocode.id }, body: { id: promocode.id, ...fields }, throwOnError: false })
+        : await postApiPromocodes({ body: { code: code.trim(), ...fields }, throwOnError: false });
 
-      if (!currentId) {
-        const createRes = await postApiPromocodes({
-          body: { code },
-          throwOnError: false
-        });
-
-        if (createRes.data?.isSuccess && createRes.data.value) {
-          currentId = createRes.data.value.id;
-        } else {
-          throw new Error(createRes.data?.errors?.map((err: any) => err.description).join(", ") || "Failed to create promocode.");
-        }
+      if (res.error || res.data?.isError) {
+        throw new Error(errorText(res.data ?? res.error, "Failed to save promocode."));
       }
-
-      const discountsRes = await putApiPromocodesById({
-        path: { id: currentId },
-        body: {
-          id: currentId,
-          defaultPriceMultiplier: defaultPriceMultiplier ? Number(defaultPriceMultiplier) : null,
-          fixedDiscount: fixedDiscount ? Number(fixedDiscount) : null,
-          constantDiscount: constantDiscount ? Number(constantDiscount) : null,
-          expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
-          maxUses: maxUses ? Number(maxUses) : null
-        },
-        throwOnError: false
-      });
-
-      if (discountsRes.error || discountsRes.data?.isError) {
-        throw new Error(discountsRes.data?.errors?.map((err: any) => err.description).join(", ") || "Failed to update discounts.");
-      }
-
-      const audienceRes = await putApiPromocodesById({
-        path: { id: currentId },
-        body: {
-          id: currentId,
-          hidden,
-          withTaxes
-        },
-        throwOnError: false
-      });
-
-      if (audienceRes.error || audienceRes.data?.isError) {
-        throw new Error(audienceRes.data?.errors?.map((err: any) => err.description).join(", ") || "Failed to update audience.");
-      }
-
       onSuccess();
-    } catch (err: any) {
-      setError(err.message || "An error occurred while saving the promocode.");
+    } catch (err) {
+      setError((err instanceof Error && err.message) || "An error occurred while saving the promocode.");
     } finally {
       setLoading(false);
     }
@@ -131,37 +130,86 @@ export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promoco
 
           <form id="promocodeForm" onSubmit={handleSubmit}>
             <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-              
+
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label">Code</label>
-                <input 
-                  type="text" 
-                  required 
-                  value={code} 
-                  onChange={(e) => setCode(e.target.value)} 
-                  disabled={!!promocode} 
+                <input
+                  type="text"
+                  required
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  disabled={!!promocode}
                   className="form-input"
                   style={{ fontFamily: "var(--font-mono)", letterSpacing: "0.05em", textTransform: "uppercase" }}
                   placeholder="e.g. SUMMER2026"
                 />
               </div>
 
-              <div style={{ padding: "1rem", borderRadius: "var(--radius-lg)", border: "1px solid var(--border)", background: "var(--bg-elevated)" }}>
-                <h3 style={{ fontSize: "0.85rem", fontWeight: "600", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "1rem", margin: 0 }}>Discount Settings</h3>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginTop: "1rem" }}>
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label">Price Multiplier</label>
-                    <input type="number" step="0.01" value={defaultPriceMultiplier} onChange={(e) => setDefaultPriceMultiplier(e.target.value)} className="form-input" />
-                  </div>
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label">Fixed Discount</label>
-                    <input type="number" step="0.01" value={fixedDiscount} onChange={(e) => setFixedDiscount(e.target.value)} className="form-input" />
-                  </div>
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label">Constant Discount</label>
-                    <input type="number" step="0.01" value={constantDiscount} onChange={(e) => setConstantDiscount(e.target.value)} className="form-input" />
-                  </div>
+              <div style={{ padding: "1rem", borderRadius: "var(--radius-lg)", border: "1px solid var(--border)", background: "var(--bg-elevated)", display: "flex", flexDirection: "column", gap: "0.85rem" }}>
+                <h3 style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>Discount</h3>
+
+                {/* Choose one discount type */}
+                <div role="radiogroup" aria-label="Discount type" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.5rem" }}>
+                  {DISCOUNT_TYPES.map((d) => {
+                    const selected = d.type === discountType;
+                    return (
+                      <button
+                        key={d.type}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        onClick={() => { setDiscountType(d.type); setDiscountValue(""); }}
+                        style={{
+                          display: "flex", alignItems: "center", justifyContent: "center", gap: "0.45rem",
+                          padding: "0.6rem 0.5rem", borderRadius: "var(--radius-md)", cursor: "pointer",
+                          font: "inherit", fontSize: "0.85rem", fontWeight: 600,
+                          border: `1px solid ${selected ? "var(--accent)" : "var(--border)"}`,
+                          background: selected ? "var(--accent-dim)" : "var(--bg-surface)",
+                          color: selected ? "var(--accent)" : "var(--text-secondary)",
+                        }}
+                      >
+                        <span style={{ fontFamily: "var(--font-mono)", fontWeight: 800 }}>{d.symbol}</span>
+                        {d.label}
+                      </button>
+                    );
+                  })}
                 </div>
+
+                {/* The single value for that type */}
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" htmlFor="discountValue">
+                    {discountType === "Percentage" ? "Percent off *" : discountType === "AmountOff" ? "Amount off *" : "Final cart price *"}
+                  </label>
+                  <div style={{ position: "relative" }}>
+                    <input
+                      id="discountValue"
+                      type="number"
+                      step="0.01"
+                      min={discountType === "FinalPrice" ? 0 : 0.01}
+                      max={discountType === "Percentage" ? 100 : undefined}
+                      required
+                      value={discountValue}
+                      onChange={(e) => setDiscountValue(e.target.value)}
+                      className="form-input"
+                      placeholder={active.placeholder}
+                      style={{ paddingRight: "2.5rem", borderColor: valueProblem ? "var(--danger)" : undefined }}
+                    />
+                    {discountType === "Percentage" && (
+                      <span style={{ position: "absolute", right: "0.9rem", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)", fontWeight: 700 }}>%</span>
+                    )}
+                  </div>
+                  <p style={{ margin: "0.4rem 0 0", fontSize: "0.78rem", color: valueProblem ? "var(--danger)" : "var(--text-muted)" }}>
+                    {valueProblem ?? active.hint}
+                  </p>
+                </div>
+
+                {hasValue && !valueProblem && (
+                  <div style={{ fontSize: "0.82rem", color: "var(--text-secondary)", padding: "0.55rem 0.75rem", borderRadius: "var(--radius-md)", background: "var(--bg-surface)", border: "1px dashed var(--border)" }}>
+                    Example: a cart of <strong>{SAMPLE_TOTAL}</strong> becomes{" "}
+                    <strong style={{ color: "var(--success)" }}>{previewTotal(discountType, value).toLocaleString(undefined, { maximumFractionDigits: 2 })}</strong>
+                    {previewTotal(discountType, value) === 0 && <span style={{ color: "var(--danger)", fontWeight: 600 }}> (free!)</span>}
+                  </div>
+                )}
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
@@ -171,7 +219,7 @@ export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promoco
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Max Uses</label>
-                  <input type="number" value={maxUses} onChange={(e) => setMaxUses(e.target.value)} className="form-input" placeholder="Leave empty for unlimited" />
+                  <input type="number" min={1} value={maxUses} onChange={(e) => setMaxUses(e.target.value)} className="form-input" placeholder="Leave empty for unlimited" />
                 </div>
               </div>
 
@@ -189,10 +237,10 @@ export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promoco
             </div>
           </form>
         </div>
-        
+
         <div className="modal-footer">
           <button type="button" className="btn-ghost" onClick={onClose} disabled={loading}>Cancel</button>
-          <button type="submit" form="promocodeForm" className="btn-primary" disabled={loading}>
+          <button type="submit" form="promocodeForm" className="btn-primary" disabled={loading || !hasValue || !!valueProblem}>
             {loading ? "Saving..." : "Save Promocode"}
           </button>
         </div>

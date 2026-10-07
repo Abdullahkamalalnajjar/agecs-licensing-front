@@ -283,6 +283,9 @@ export default function LoginPage() {
             </div>
           </div>
 
+          <p className="lp-legal">
+            Don&apos;t have an account? <Link href="/register" style={{ fontWeight: 700, color: "var(--accent)" }}>Create one</Link>
+          </p>
           <p className="lp-legal">Protected by secure authentication. Need help? Contact AGECS support.</p>
         </div>
       </section>

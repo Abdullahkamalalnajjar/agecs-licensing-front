@@ -200,6 +200,7 @@ export type CreateLicenseCommand = {
     productId?: string;
     name?: string | null;
     email?: string | null;
+    hwidSalt?: string | null;
     licenseCount?: number;
     migrationLimit?: number;
     expiryDate?: string | null;
@@ -255,9 +256,8 @@ export type CreateProductCommand = {
 
 export type CreatePromocodeCommand = {
     code?: string | null;
-    defaultPriceMultiplier?: number | null;
-    fixedDiscount?: number | null;
-    constantDiscount?: number | null;
+    discountType?: PromocodeDiscountType;
+    discountValue?: number;
     hidden?: boolean;
     withTaxes?: boolean;
     expiresAt?: string | null;
@@ -905,12 +905,13 @@ export type PromoBarRequest = {
     hidden?: boolean;
 };
 
+export type PromocodeDiscountType = 'Percentage' | 'AmountOff' | 'FinalPrice';
+
 export type PromocodeDto = {
     id?: string;
     code?: string | null;
-    defaultPriceMultiplier?: number | null;
-    fixedDiscount?: number | null;
-    constantDiscount?: number | null;
+    discountType?: PromocodeDiscountType;
+    discountValue?: number | null;
     hidden?: boolean;
     withTaxes?: boolean;
     expiresAt?: string | null;
@@ -931,6 +932,13 @@ export type PromocodeDtoResult = {
     readonly isError?: boolean;
     value?: PromocodeDto;
     readonly errors?: Array<Error> | null;
+};
+
+export type PublicRegisterRequest = {
+    email: string;
+    password: string;
+    city: string;
+    phoneNumber: string;
 };
 
 export type RefreshTokenRequest = {
@@ -1091,11 +1099,19 @@ export type UpdateFamilyRequest = {
 
 export type UpdateLicenseCommand = {
     id?: string;
-    licenseCount?: number;
-    migrationLimit?: number;
+    userId?: string | null;
+    productId?: string | null;
+    name?: string | null;
+    email?: string | null;
+    hwidSalt?: string | null;
+    licenseCount?: number | null;
+    migrationLimit?: number | null;
+    willExpire?: boolean | null;
     expiryDate?: string | null;
-    isTrial?: boolean;
-    isActive?: boolean;
+    isTrial?: boolean | null;
+    type?: string | null;
+    version?: string | null;
+    isActive?: boolean | null;
     serial?: string | null;
     janDrozdId?: string | null;
 };
@@ -1142,9 +1158,8 @@ export type UpdateProductCommand = {
 
 export type UpdatePromocodeCommand = {
     id?: string;
-    defaultPriceMultiplier?: number | null;
-    fixedDiscount?: number | null;
-    constantDiscount?: number | null;
+    discountType?: PromocodeDiscountType;
+    discountValue?: number;
     hidden?: boolean;
     withTaxes?: boolean;
     expiresAt?: string | null;
@@ -1401,6 +1416,38 @@ export type UpdatedResultWritable = {
     value?: Updated;
 };
 
+export type PostIdentityRegisterData = {
+    /**
+     * Email, password, city and phone number.
+     */
+    body?: PublicRegisterRequest;
+    path?: never;
+    query?: never;
+    url: '/identity/register';
+};
+
+export type PostIdentityRegisterErrors = {
+    /**
+     * Bad Request
+     */
+    400: ObjectResult;
+    /**
+     * Conflict
+     */
+    409: ObjectResult;
+};
+
+export type PostIdentityRegisterError = PostIdentityRegisterErrors[keyof PostIdentityRegisterErrors];
+
+export type PostIdentityRegisterResponses = {
+    /**
+     * Created
+     */
+    201: TokenResponseResult;
+};
+
+export type PostIdentityRegisterResponse = PostIdentityRegisterResponses[keyof PostIdentityRegisterResponses];
+
 export type PostIdentitySignupData = {
     /**
      * The registration details (email, password, etc.).
@@ -1416,6 +1463,14 @@ export type PostIdentitySignupErrors = {
      * Bad Request
      */
     400: ObjectResult;
+    /**
+     * Unauthorized
+     */
+    401: ObjectResult;
+    /**
+     * Forbidden
+     */
+    403: ObjectResult;
     /**
      * Conflict
      */
@@ -2876,6 +2931,49 @@ export type PostApiLicensesResponses = {
 };
 
 export type PostApiLicensesResponse = PostApiLicensesResponses[keyof PostApiLicensesResponses];
+
+export type GetApiLicensesUsersByUserIdData = {
+    body?: never;
+    path: {
+        /**
+         * The user whose licenses to return.
+         */
+        userId: string;
+    };
+    query?: {
+        /**
+         * Only licenses for this product.
+         */
+        productId?: string;
+        /**
+         * Only active (true) or inactive (false) licenses.
+         */
+        isActive?: boolean;
+    };
+    url: '/api/licenses/users/{userId}';
+};
+
+export type GetApiLicensesUsersByUserIdErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ObjectResult;
+    /**
+     * Forbidden
+     */
+    403: ObjectResult;
+};
+
+export type GetApiLicensesUsersByUserIdError = GetApiLicensesUsersByUserIdErrors[keyof GetApiLicensesUsersByUserIdErrors];
+
+export type GetApiLicensesUsersByUserIdResponses = {
+    /**
+     * OK
+     */
+    200: LicenseDtoListResult;
+};
+
+export type GetApiLicensesUsersByUserIdResponse = GetApiLicensesUsersByUserIdResponses[keyof GetApiLicensesUsersByUserIdResponses];
 
 export type DeleteApiLicensesByIdData = {
     body?: never;
