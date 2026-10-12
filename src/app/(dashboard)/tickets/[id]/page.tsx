@@ -11,6 +11,8 @@ export default function TicketDetailsPage() {
   const params = useParams();
   const ticketId = params.id as string;
   const { user } = useAuth();
+  // Customers reach their tickets from the profile page's Tickets tab.
+  const ticketsHref = user?.role === "Student" || user?.role === "NormalUser" ? "/profile?tab=tickets" : "/tickets";
   
   const [ticket, setTicket] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
@@ -114,7 +116,7 @@ export default function TicketDetailsPage() {
         <div style={{ padding: "1rem", backgroundColor: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.2)", borderRadius: "8px", color: "#ef4444", marginBottom: "1.5rem" }}>
           {error || "Ticket not found"}
         </div>
-        <Link href="/tickets" style={{ color: "var(--accent)", textDecoration: "none" }}>&larr; Back to Tickets</Link>
+        <Link href={ticketsHref} style={{ color: "var(--accent)", textDecoration: "none" }}>&larr; Back to Tickets</Link>
       </div>
     );
   }
@@ -122,7 +124,7 @@ export default function TicketDetailsPage() {
   return (
     <div style={{ maxWidth: "800px", margin: "0 auto" }}>
       <div style={{ marginBottom: "20px" }}>
-        <Link href="/tickets" style={{ color: "#6b7280", textDecoration: "none", fontSize: "0.9rem", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+        <Link href={ticketsHref} style={{ color: "#6b7280", textDecoration: "none", fontSize: "0.9rem", display: "inline-flex", alignItems: "center", gap: "4px" }}>
           &larr; Back to Tickets
         </Link>
       </div>

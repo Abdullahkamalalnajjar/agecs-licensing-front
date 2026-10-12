@@ -119,7 +119,8 @@ function TopNavbarInner() {
       return item.name === "Products";
     }
     if (user?.role === "Student" || user?.role === "NormalUser") {
-      return item.name === "Home" || item.name === "Licenses" || item.name === "Tickets" || item.name === "Products" || item.name === "Profile";
+      // Licenses and Tickets are tabs on the profile page for customers.
+      return item.name === "Home" || item.name === "Products" || item.name === "Profile";
     }
     if (user?.role === "Editor") {
       return item.name === "Home" || item.name === "Products" || item.name === "Profile";

@@ -195,7 +195,7 @@ export default function CheckoutSuccessPage() {
             ))}
           </div>
           <Link
-            href="/licenses"
+            href="/profile?tab=licenses"
             style={{
               marginTop: "0.5rem",
               padding: "0.75rem 1.5rem",
@@ -234,7 +234,7 @@ export default function CheckoutSuccessPage() {
             Your payment went through and your license is still being issued. Check your licenses page in a minute — it&apos;ll show up automatically.
           </p>
           <Link
-            href="/licenses"
+            href="/profile?tab=licenses"
             style={{
               marginTop: "0.5rem",
               padding: "0.75rem 1.5rem",
@@ -273,7 +273,7 @@ export default function CheckoutSuccessPage() {
             Thanks for your purchase. Your license is being issued and will appear in your account shortly.
           </p>
           <Link
-            href="/licenses"
+            href="/profile?tab=licenses"
             style={{
               marginTop: "0.5rem",
               padding: "0.75rem 1.5rem",

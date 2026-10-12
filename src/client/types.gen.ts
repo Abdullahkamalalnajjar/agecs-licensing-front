@@ -33,6 +33,10 @@ export type AppUserDto = {
     city?: string | null;
     phoneNumber?: string | null;
     userName?: string | null;
+    /**
+     * False for accounts created with Google that never set a password; changing the password then needs no current password.
+     */
+    hasPassword?: boolean;
 };
 
 export type AppUserDtoPaginatedList = {
@@ -2940,6 +2944,40 @@ export type GetApiLicensesResponses = {
 
 export type GetApiLicensesResponse = GetApiLicensesResponses[keyof GetApiLicensesResponses];
 
+export type GetApiLicensesMyData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Only licenses for this product.
+         */
+        productId?: string;
+        /**
+         * Only active (true) or inactive (false) licenses.
+         */
+        isActive?: boolean;
+    };
+    url: '/api/licenses/my';
+};
+
+export type GetApiLicensesMyErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ObjectResult;
+};
+
+export type GetApiLicensesMyError = GetApiLicensesMyErrors[keyof GetApiLicensesMyErrors];
+
+export type GetApiLicensesMyResponses = {
+    /**
+     * OK
+     */
+    200: LicenseDtoListResult;
+};
+
+export type GetApiLicensesMyResponse = GetApiLicensesMyResponses[keyof GetApiLicensesMyResponses];
+
 export type PostApiLicensesData = {
     body?: CreateLicenseCommand;
     path?: never;
@@ -5185,3 +5223,110 @@ export type PutApiTicketsByIdStatusResponses = {
      */
     200: unknown;
 };
+
+export type ChangePasswordRequest = {
+    /**
+     * Required, except for accounts that have no password yet (e.g. signed up with Google).
+     */
+    currentPassword?: string | null;
+    newPassword?: string | null;
+};
+
+export type ForgotPasswordRequest = {
+    email?: string | null;
+};
+
+export type ResetPasswordRequest = {
+    email?: string | null;
+    /**
+     * The token from the reset link in the email.
+     */
+    token?: string | null;
+    newPassword?: string | null;
+};
+
+export type SuccessResult = {
+    readonly isSuccess?: boolean;
+    readonly isError?: boolean;
+    value?: { [key: string]: unknown };
+    readonly errors?: Array<Error> | null;
+};
+
+export type PostIdentityChangePasswordData = {
+    body?: ChangePasswordRequest;
+    path?: never;
+    query?: never;
+    url: '/identity/change-password';
+};
+
+export type PostIdentityChangePasswordErrors = {
+    /**
+     * Bad Request
+     */
+    400: ObjectResult;
+    /**
+     * Unauthorized
+     */
+    401: ObjectResult;
+};
+
+export type PostIdentityChangePasswordError = PostIdentityChangePasswordErrors[keyof PostIdentityChangePasswordErrors];
+
+export type PostIdentityChangePasswordResponses = {
+    /**
+     * OK
+     */
+    200: UpdatedResult;
+};
+
+export type PostIdentityChangePasswordResponse = PostIdentityChangePasswordResponses[keyof PostIdentityChangePasswordResponses];
+
+export type PostIdentityForgotPasswordData = {
+    body?: ForgotPasswordRequest;
+    path?: never;
+    query?: never;
+    url: '/identity/forgot-password';
+};
+
+export type PostIdentityForgotPasswordErrors = {
+    /**
+     * Bad Request
+     */
+    400: ObjectResult;
+};
+
+export type PostIdentityForgotPasswordError = PostIdentityForgotPasswordErrors[keyof PostIdentityForgotPasswordErrors];
+
+export type PostIdentityForgotPasswordResponses = {
+    /**
+     * OK
+     */
+    200: SuccessResult;
+};
+
+export type PostIdentityForgotPasswordResponse = PostIdentityForgotPasswordResponses[keyof PostIdentityForgotPasswordResponses];
+
+export type PostIdentityResetPasswordData = {
+    body?: ResetPasswordRequest;
+    path?: never;
+    query?: never;
+    url: '/identity/reset-password';
+};
+
+export type PostIdentityResetPasswordErrors = {
+    /**
+     * Bad Request
+     */
+    400: ObjectResult;
+};
+
+export type PostIdentityResetPasswordError = PostIdentityResetPasswordErrors[keyof PostIdentityResetPasswordErrors];
+
+export type PostIdentityResetPasswordResponses = {
+    /**
+     * OK
+     */
+    200: UpdatedResult;
+};
+
+export type PostIdentityResetPasswordResponse = PostIdentityResetPasswordResponses[keyof PostIdentityResetPasswordResponses];
