@@ -1,10 +1,26 @@
 "use client";
 import { useEffect, useState } from "react";
-import { getApiPromocodes, deleteApiPromocodesById } from "@/client";
+import { getApiPromocodes, deleteApiPromocodesById, putApiPromocodesById, getApiProducts } from "@/client";
+import type { ProductDto } from "@/client/types.gen";
 import { client } from "@/client/client.gen";
 import { useRouter } from "next/navigation";
 import PromocodeFormModal from "@/components/PromocodeFormModal";
 import { useToast } from "@/components/ToastProvider";
+
+/** id → display name; a variation is shown with its parent product, e.g. "AutoCAD – 1 Year". */
+const toProductNames = (products: ProductDto[]) => {
+  const names: Record<string, string> = {};
+  const byId = new Map(products.map((p) => [p.id, p]));
+  for (const p of products) {
+    if (!p.id) continue;
+    const parent = p.parentProductId ? byId.get(p.parentProductId) : undefined;
+    names[p.id] = parent?.name ? `${parent.name} – ${p.name}` : p.name || "Unnamed product";
+    for (const c of p.children ?? []) {
+      if (c.id) names[c.id] = `${p.name} – ${c.name}`;
+    }
+  }
+  return names;
+};
 
 export default function PromocodesPage() {
   const [promocodes, setPromocodes] = useState<any[]>([]);
@@ -12,6 +28,7 @@ export default function PromocodesPage() {
   const [error, setError] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPromocode, setSelectedPromocode] = useState<any>(null);
+  const [productNames, setProductNames] = useState<Record<string, string>>({});
   const router = useRouter();
   const { success, error: toastError } = useToast();
 
@@ -26,7 +43,12 @@ export default function PromocodesPage() {
         auth: token,
       });
 
-      const response = await getApiPromocodes({ throwOnError: false });
+      // Admins see every code, disabled ones included, so they can be edited and re-enabled.
+      const [response, productsResponse] = await Promise.all([
+        getApiPromocodes({ query: { includeDisabled: true }, throwOnError: false }),
+        getApiProducts({ query: { includeHidden: true }, throwOnError: false }),
+      ]);
+      if (productsResponse.data?.value) setProductNames(toProductNames(productsResponse.data.value));
       if (response.data?.isSuccess) {
         setPromocodes(response.data.value || []);
       } else if (response.error || response.data?.isError) {
@@ -52,6 +74,36 @@ export default function PromocodesPage() {
       }
     } catch (err: any) {
       toastError(err.message || "Error deleting promocode.");
+    }
+  };
+
+  // A disabled code is rejected at the cart until re-enabled.
+  const handleToggleDisabled = async (promo: any) => {
+    const disabled = !promo.disabled;
+    try {
+      const response = await putApiPromocodesById({
+        path: { id: promo.id },
+        // PUT replaces every field, so send the code's current values with only "disabled" flipped.
+        body: {
+          id: promo.id,
+          discountType: promo.discountType,
+          discountValue: promo.discountValue,
+          disabled,
+          withTaxes: promo.withTaxes,
+          expiresAt: promo.expiresAt,
+          maxUses: promo.maxUses,
+          productIds: promo.productIds ?? [],
+        },
+        throwOnError: false,
+      });
+      if (response.data?.isSuccess) {
+        setPromocodes(promocodes.map((p) => (p.id === promo.id ? response.data!.value : p)));
+        success(disabled ? "Promocode disabled." : "Promocode enabled.");
+      } else {
+        toastError(response.data?.errors?.map((e) => e.description).join(", ") || "Failed to update.");
+      }
+    } catch (err: any) {
+      toastError(err.message || "Error updating promocode.");
     }
   };
 
@@ -159,19 +211,25 @@ export default function PromocodesPage() {
                       : promo.discountType === "AmountOff"
                       ? `−${promo.discountValue} off`
                       : `Cart = ${promo.discountValue}`}
+                    <div style={{ fontFamily: "inherit", fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>
+                      {promo.productIds?.length ? (() => {
+                        const names: string[] = promo.productIds.map((id: string) => productNames[id] ?? (Object.keys(productNames).length ? "Deleted product" : "Unknown product"));
+                        const shown = names.slice(0, 2).join(", ");
+                        return <span title={names.join("\n")}>Only: {shown}{names.length > 2 && ` +${names.length - 2} more`}</span>;
+                      })() : "Whole cart"}
+                    </div>
                   </td>
                   <td style={{ color: "var(--text-secondary)" }}>
                     {promo.useCount || 0} / {promo.maxUses || "∞"}
                   </td>
                   <td>
                     <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
-                      {promo.isActive ? (
+                      {promo.disabled ? (
+                        <span className="badge badge-neutral">Disabled</span>
+                      ) : promo.isActive ? (
                         <span className="badge badge-success">Active</span>
                       ) : (
                         <span className="badge badge-danger">Inactive</span>
-                      )}
-                      {promo.hidden && (
-                        <span className="badge badge-neutral">Hidden</span>
                       )}
                     </div>
                   </td>
@@ -180,6 +238,9 @@ export default function PromocodesPage() {
                       <button className="btn-ghost" style={{ color: "var(--accent-light)", borderColor: "var(--accent-border)" }}
                         onClick={() => { setSelectedPromocode(promo); setIsModalOpen(true); }}>
                         Edit
+                      </button>
+                      <button className="btn-ghost" onClick={() => handleToggleDisabled(promo)}>
+                        {promo.disabled ? "Enable" : "Disable"}
                       </button>
                       <button className="btn-danger-ghost" onClick={() => handleDelete(promo.id)}>
                         Delete

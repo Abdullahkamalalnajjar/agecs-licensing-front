@@ -258,10 +258,11 @@ export type CreatePromocodeCommand = {
     code?: string | null;
     discountType?: PromocodeDiscountType;
     discountValue?: number;
-    hidden?: boolean;
+    disabled?: boolean;
     withTaxes?: boolean;
     expiresAt?: string | null;
     maxUses?: number | null;
+    productIds?: Array<string> | null;
 };
 
 export type CreateRoleRequest = {
@@ -555,11 +556,31 @@ export type OfferDtoResult = {
     readonly errors?: Array<Error> | null;
 };
 
+export type PackageImageDto = {
+    id?: string;
+    url?: string | null;
+    order?: number;
+};
+
+export type PackageImageDtoListResult = {
+    readonly isSuccess?: boolean;
+    readonly isError?: boolean;
+    readonly value?: Array<PackageImageDto> | null;
+    readonly errors?: Array<Error> | null;
+};
+
+export type ReorderPackageImagesRequest = {
+    imageIds?: Array<string> | null;
+};
+
 export type PackageDto = {
     id?: string;
     name?: string | null;
     description?: string | null;
     miniDescription?: string | null;
+    /**
+     * The cover image (first in order), kept for clients that show a single image.
+     */
     imageUrl?: string | null;
     price?: number;
     hidden?: boolean;
@@ -570,6 +591,7 @@ export type PackageDto = {
     createdAtUtc?: string;
     lastModifiedUtc?: string;
     items?: Array<PackageItemDto> | null;
+    images?: Array<PackageImageDto> | null;
 };
 
 export type PackageDtoListResult = {
@@ -817,7 +839,6 @@ export type ProductMediaDtoResult = {
 
 export type ProductMediaRequest = {
     url?: string | null;
-    order?: number;
 };
 
 export type ProductPriceRequest = {
@@ -912,11 +933,12 @@ export type PromocodeDto = {
     code?: string | null;
     discountType?: PromocodeDiscountType;
     discountValue?: number | null;
-    hidden?: boolean;
+    disabled?: boolean;
     withTaxes?: boolean;
     expiresAt?: string | null;
     maxUses?: number | null;
     useCount?: number;
+    productIds?: Array<string> | null;
     isActive?: boolean;
 };
 
@@ -1158,12 +1180,14 @@ export type UpdateProductCommand = {
 
 export type UpdatePromocodeCommand = {
     id?: string;
+    code?: string | null;
     discountType?: PromocodeDiscountType;
     discountValue?: number;
-    hidden?: boolean;
+    disabled?: boolean;
     withTaxes?: boolean;
     expiresAt?: string | null;
     maxUses?: number | null;
+    productIds?: Array<string> | null;
 };
 
 export type UpdateRoleRequest = {
@@ -3385,45 +3409,46 @@ export type PatchApiPackagesByIdHiddenResponses = {
 
 export type PatchApiPackagesByIdHiddenResponse = PatchApiPackagesByIdHiddenResponses[keyof PatchApiPackagesByIdHiddenResponses];
 
-export type DeleteApiPackagesByIdImageData = {
+export type DeleteApiPackagesByIdImagesByImageIdData = {
     body?: never;
     path: {
         id: string;
+        imageId: string;
     };
     query?: never;
-    url: '/api/packages/{id}/image';
+    url: '/api/packages/{id}/images/{imageId}';
 };
 
-export type DeleteApiPackagesByIdImageErrors = {
+export type DeleteApiPackagesByIdImagesByImageIdErrors = {
     /**
      * Not Found
      */
     404: ObjectResult;
 };
 
-export type DeleteApiPackagesByIdImageError = DeleteApiPackagesByIdImageErrors[keyof DeleteApiPackagesByIdImageErrors];
+export type DeleteApiPackagesByIdImagesByImageIdError = DeleteApiPackagesByIdImagesByImageIdErrors[keyof DeleteApiPackagesByIdImagesByImageIdErrors];
 
-export type DeleteApiPackagesByIdImageResponses = {
+export type DeleteApiPackagesByIdImagesByImageIdResponses = {
     /**
      * OK
      */
     200: DeletedResult;
 };
 
-export type DeleteApiPackagesByIdImageResponse = DeleteApiPackagesByIdImageResponses[keyof DeleteApiPackagesByIdImageResponses];
+export type DeleteApiPackagesByIdImagesByImageIdResponse = DeleteApiPackagesByIdImagesByImageIdResponses[keyof DeleteApiPackagesByIdImagesByImageIdResponses];
 
-export type PutApiPackagesByIdImageData = {
+export type PostApiPackagesByIdImagesData = {
     body?: {
-        File?: Blob | File;
+        Files?: Array<Blob | File>;
     };
     path: {
         id: string;
     };
     query?: never;
-    url: '/api/packages/{id}/image';
+    url: '/api/packages/{id}/images';
 };
 
-export type PutApiPackagesByIdImageErrors = {
+export type PostApiPackagesByIdImagesErrors = {
     /**
      * Bad Request
      */
@@ -3434,16 +3459,47 @@ export type PutApiPackagesByIdImageErrors = {
     404: ObjectResult;
 };
 
-export type PutApiPackagesByIdImageError = PutApiPackagesByIdImageErrors[keyof PutApiPackagesByIdImageErrors];
+export type PostApiPackagesByIdImagesError = PostApiPackagesByIdImagesErrors[keyof PostApiPackagesByIdImagesErrors];
 
-export type PutApiPackagesByIdImageResponses = {
+export type PostApiPackagesByIdImagesResponses = {
     /**
      * OK
      */
-    200: StringResult;
+    200: PackageImageDtoListResult;
 };
 
-export type PutApiPackagesByIdImageResponse = PutApiPackagesByIdImageResponses[keyof PutApiPackagesByIdImageResponses];
+export type PostApiPackagesByIdImagesResponse = PostApiPackagesByIdImagesResponses[keyof PostApiPackagesByIdImagesResponses];
+
+export type PutApiPackagesByIdImagesReorderData = {
+    body?: ReorderPackageImagesRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/packages/{id}/images/reorder';
+};
+
+export type PutApiPackagesByIdImagesReorderErrors = {
+    /**
+     * Bad Request
+     */
+    400: ObjectResult;
+    /**
+     * Not Found
+     */
+    404: ObjectResult;
+};
+
+export type PutApiPackagesByIdImagesReorderError = PutApiPackagesByIdImagesReorderErrors[keyof PutApiPackagesByIdImagesReorderErrors];
+
+export type PutApiPackagesByIdImagesReorderResponses = {
+    /**
+     * OK
+     */
+    200: UpdatedResult;
+};
+
+export type PutApiPackagesByIdImagesReorderResponse = PutApiPackagesByIdImagesReorderResponses[keyof PutApiPackagesByIdImagesReorderResponses];
 
 export type GetApiPartnersData = {
     body?: never;
@@ -4118,7 +4174,6 @@ export type GetApiProductsByProductIdMediaResponse = GetApiProductsByProductIdMe
 export type PostApiProductsByProductIdMediaData = {
     body?: {
         File?: Blob | File;
-        Order?: number;
     };
     path: {
         /**
@@ -4251,7 +4306,6 @@ export type PutApiProductsByProductIdMediaByMediaIdData = {
     body?: {
         File?: Blob | File;
         Url?: string;
-        Order?: number;
     };
     path: {
         /**
@@ -4778,9 +4832,9 @@ export type GetApiPromocodesData = {
     path?: never;
     query?: {
         /**
-         * If true, includes hidden promocodes in the response. Default is false.
+         * If true, includes disabled promocodes in the response. Default is false.
          */
-        includeHidden?: boolean;
+        includeDisabled?: boolean;
     };
     url: '/api/promocodes';
 };

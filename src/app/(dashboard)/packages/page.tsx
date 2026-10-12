@@ -1,12 +1,13 @@
 "use client";
 import { useEffect, useState } from "react";
-import { getApiPackages, deleteApiPackagesById, patchApiPackagesByIdHidden, putApiPackagesByIdImage, putApiPackagesReorder, deleteApiPackagesByIdImage } from "@/client";
+import { getApiPackages, deleteApiPackagesById, patchApiPackagesByIdHidden, putApiPackagesReorder } from "@/client";
 import { client } from "@/client/client.gen";
 import { useRouter } from "next/navigation";
 import PackageFormModal from "@/components/PackageFormModal";
+import PackageImagesModal from "@/components/PackageImagesModal";
 import { useToast } from "@/components/ToastProvider";
 import { resolveMediaUrl } from "@/lib/mediaUrl";
-import type { PackageDto } from "@/client/types.gen";
+import type { PackageDto, PackageImageDto } from "@/client/types.gen";
 import "@/components/product-form.css";
 
 export default function PackagesPage() {
@@ -15,7 +16,7 @@ export default function PackagesPage() {
   const [error, setError] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<PackageDto | null>(null);
-  const [imageBusyId, setImageBusyId] = useState<string | null>(null);
+  const [imagesPackageId, setImagesPackageId] = useState<string | null>(null);
   const [hiddenBusyId, setHiddenBusyId] = useState<string | null>(null);
   const [reordering, setReordering] = useState(false);
   const router = useRouter();
@@ -108,47 +109,10 @@ export default function PackagesPage() {
     }
   };
 
-  const handleImageUpload = async (pkg: PackageDto, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!pkg.id || !file) return;
-    if (!file.type.startsWith("image/")) {
-      toastError("Please choose an image file.");
-      return;
-    }
-    try {
-      setImageBusyId(pkg.id);
-      const res = await putApiPackagesByIdImage({ path: { id: pkg.id }, body: { File: file }, throwOnError: false });
-      if (res.error || res.data?.isError) {
-        toastError(res.data?.errors?.map((e) => e.description).join(", ") || "Failed to upload image.");
-        return;
-      }
-      const imageUrl = res.data?.value ?? null;
-      setPackages((prev) => prev.map((p) => (p.id === pkg.id ? { ...p, imageUrl } : p)));
-      success("Image uploaded.");
-    } catch (err: any) {
-      toastError(err.message || "Error uploading image.");
-    } finally {
-      setImageBusyId(null);
-    }
-  };
-
-  const handleImageRemove = async (pkg: PackageDto) => {
-    if (!pkg.id) return;
-    try {
-      setImageBusyId(pkg.id);
-      const res = await deleteApiPackagesByIdImage({ path: { id: pkg.id }, throwOnError: false });
-      if (res.error || res.data?.isError) {
-        toastError(res.data?.errors?.map((e) => e.description).join(", ") || "Failed to remove image.");
-        return;
-      }
-      setPackages((prev) => prev.map((p) => (p.id === pkg.id ? { ...p, imageUrl: null } : p)));
-      success("Image removed.");
-    } catch (err: any) {
-      toastError(err.message || "Error removing image.");
-    } finally {
-      setImageBusyId(null);
-    }
+  // Keeps the table (cover thumbnail and count) in sync with changes made in the images dialog.
+  const handleImagesChange = (packageId: string, changed: PackageImageDto[]) => {
+    const images = changed.filter((img, i) => changed.findIndex((other) => other.id === img.id) === i);
+    setPackages((prev) => prev.map((p) => (p.id === packageId ? { ...p, images, imageUrl: images[0]?.url ?? null } : p)));
   };
 
   const handleModalSuccess = () => {
@@ -260,12 +224,19 @@ export default function PackagesPage() {
                   <td>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
                       {pkg.imageUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={resolveMediaUrl(pkg.imageUrl)}
-                          alt={pkg.name || ""}
-                          style={{ width: "44px", height: "44px", borderRadius: "8px", objectFit: "cover", border: "1px solid var(--border)", flexShrink: 0 }}
-                        />
+                        <div style={{ position: "relative", flexShrink: 0 }}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={resolveMediaUrl(pkg.imageUrl)}
+                            alt={pkg.name || ""}
+                            style={{ width: "44px", height: "44px", borderRadius: "8px", objectFit: "cover", border: "1px solid var(--border)", display: "block" }}
+                          />
+                          {(pkg.images?.length ?? 0) > 1 && (
+                            <span style={{ position: "absolute", right: "-6px", bottom: "-6px", fontSize: "0.65rem", fontWeight: 700, padding: "0 0.3rem", borderRadius: "999px", background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>
+                              +{(pkg.images?.length ?? 0) - 1}
+                            </span>
+                          )}
+                        </div>
                       ) : (
                         <div style={{ width: "44px", height: "44px", borderRadius: "8px", background: "var(--bg-elevated)", border: "1px solid var(--border)", flexShrink: 0 }} />
                       )}
@@ -313,30 +284,9 @@ export default function PackagesPage() {
                   </td>
                   <td>
                     <div className="table-actions">
-                      <label
-                        className="btn-ghost"
-                        style={{ cursor: imageBusyId === pkg.id ? "wait" : "pointer", opacity: imageBusyId === pkg.id ? 0.6 : 1 }}
-                        title={pkg.imageUrl ? "Replace the package image" : "Upload a package image"}
-                      >
-                        {imageBusyId === pkg.id ? "Uploading…" : pkg.imageUrl ? "Change image" : "Upload image"}
-                        <input
-                          type="file"
-                          accept="image/*"
-                          disabled={imageBusyId === pkg.id}
-                          onChange={(e) => handleImageUpload(pkg, e)}
-                          style={{ display: "none" }}
-                        />
-                      </label>
-                      {pkg.imageUrl && (
-                        <button
-                          className="btn-danger-ghost"
-                          onClick={() => handleImageRemove(pkg)}
-                          disabled={imageBusyId === pkg.id}
-                          title="Remove the package image"
-                        >
-                          Remove image
-                        </button>
-                      )}
+                      <button className="btn-ghost" onClick={() => setImagesPackageId(pkg.id ?? null)} title="Manage the package images">
+                        Images ({pkg.images?.length ?? 0})
+                      </button>
                       <button className="btn-ghost" style={{ color: "var(--accent-light)", borderColor: "var(--accent-border)" }}
                         onClick={() => { setSelectedPackage(pkg); setIsModalOpen(true); }}>
                         Edit
@@ -358,6 +308,12 @@ export default function PackagesPage() {
         onClose={() => setIsModalOpen(false)}
         onSuccess={handleModalSuccess}
         pkg={selectedPackage}
+      />
+
+      <PackageImagesModal
+        pkg={packages.find((p) => p.id === imagesPackageId) ?? null}
+        onClose={() => setImagesPackageId(null)}
+        onChange={handleImagesChange}
       />
     </div>
   );

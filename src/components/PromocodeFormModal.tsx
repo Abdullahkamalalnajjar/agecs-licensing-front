@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { postApiPromocodes, putApiPromocodesById } from "@/client";
-import type { PromocodeDiscountType, PromocodeDto } from "@/client/types.gen";
+import { postApiPromocodes, putApiPromocodesById, getApiProducts } from "@/client";
+import type { ProductDto, PromocodeDiscountType, PromocodeDto } from "@/client/types.gen";
 
 type PromocodeFormModalProps = {
   isOpen: boolean;
@@ -12,18 +12,39 @@ type PromocodeFormModalProps = {
 };
 
 /** The three ways a code can discount the cart; a code uses exactly one. */
-const DISCOUNT_TYPES: { type: PromocodeDiscountType; label: string; symbol: string; hint: string; placeholder: string }[] = [
-  { type: "Percentage", label: "Percentage", symbol: "%", hint: "Percent off the cart total (1–100).", placeholder: "e.g. 20" },
-  { type: "AmountOff", label: "Amount off", symbol: "−", hint: "A fixed amount subtracted from the cart total.", placeholder: "e.g. 100" },
-  { type: "FinalPrice", label: "Final price", symbol: "=", hint: "The whole cart costs exactly this amount.", placeholder: "e.g. 500" },
+const DISCOUNT_TYPES: { type: PromocodeDiscountType; label: string; symbol: string; hint: string; productsHint: string; placeholder: string }[] = [
+  { type: "Percentage", label: "Percentage", symbol: "%", hint: "Percent off the cart total (1–100).", productsHint: "Percent off the selected products (1–100).", placeholder: "e.g. 20" },
+  { type: "AmountOff", label: "Amount off", symbol: "−", hint: "A fixed amount subtracted from the cart total.", productsHint: "A fixed amount subtracted from the selected products' total.", placeholder: "e.g. 100" },
+  { type: "FinalPrice", label: "Final price", symbol: "=", hint: "The whole cart costs exactly this amount.", productsHint: "The selected products together cost exactly this amount.", placeholder: "e.g. 500" },
 ];
+
+/**
+ * Cart lines hold the item actually sold: a variation, or the product itself when it has none.
+ * So a code is limited to those sellable ids, grouped under their top-level product for the picker.
+ */
+type ProductGroup = { id: string; name: string; items: { id: string; name: string }[] };
+
+const toProductGroups = (products: ProductDto[]): ProductGroup[] =>
+  products
+    .filter((p) => p.id && !p.parentProductId)
+    .map((p) => {
+      const children = (p.children?.length ? p.children : products.filter((c) => c.parentProductId === p.id)).filter((c) => c.id);
+      return {
+        id: p.id!,
+        name: p.name || "Unnamed product",
+        items: children.length
+          ? children.map((c) => ({ id: c.id!, name: c.name || "Unnamed variation" }))
+          : [{ id: p.id!, name: p.name || "Unnamed product" }],
+      };
+    });
 
 const SAMPLE_TOTAL = 1000;
 
 const previewTotal = (type: PromocodeDiscountType, value: number) => {
   if (type === "Percentage") return SAMPLE_TOTAL * (1 - value / 100);
   if (type === "AmountOff") return Math.max(0, SAMPLE_TOTAL - value);
-  return value;
+  // A code never raises the price, so a final price above the total leaves it unchanged.
+  return Math.min(value, SAMPLE_TOTAL);
 };
 
 const errorText = (data: unknown, fallback: string) =>
@@ -41,8 +62,19 @@ export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promoco
   const [discountValue, setDiscountValue] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
   const [maxUses, setMaxUses] = useState("");
-  const [hidden, setHidden] = useState(false);
+  const [disabled, setDisabled] = useState(false);
   const [withTaxes, setWithTaxes] = useState(true);
+  const [specificProducts, setSpecificProducts] = useState(false);
+  const [productIds, setProductIds] = useState<string[]>([]);
+  const [productSearch, setProductSearch] = useState("");
+  const [products, setProducts] = useState<ProductDto[]>([]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    getApiProducts({ query: { includeHidden: true }, throwOnError: false }).then((res) => {
+      if (res.data?.value) setProducts(res.data.value);
+    });
+  }, [isOpen]);
 
   useEffect(() => {
     if (promocode) {
@@ -51,17 +83,22 @@ export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promoco
       setDiscountValue(promocode.discountValue != null ? promocode.discountValue.toString() : "");
       setExpiresAt(promocode.expiresAt ? new Date(promocode.expiresAt).toISOString().slice(0, 10) : "");
       setMaxUses(promocode.maxUses?.toString() || "");
-      setHidden(promocode.hidden || false);
+      setDisabled(promocode.disabled || false);
       setWithTaxes(promocode.withTaxes ?? true);
+      setProductIds(promocode.productIds ?? []);
+      setSpecificProducts((promocode.productIds?.length ?? 0) > 0);
     } else {
       setCode("");
       setDiscountType("Percentage");
       setDiscountValue("");
       setExpiresAt("");
       setMaxUses("");
-      setHidden(false);
+      setDisabled(false);
       setWithTaxes(true);
+      setProductIds([]);
+      setSpecificProducts(false);
     }
+    setProductSearch("");
     setError("");
   }, [promocode, isOpen]);
 
@@ -76,9 +113,19 @@ export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promoco
     : discountType === "FinalPrice" && value < 0 ? "Final price can't be negative."
     : null;
 
+  const productGroups = toProductGroups(products);
+  const search = productSearch.trim().toLowerCase();
+  const visibleGroups = !search ? productGroups : productGroups
+    .map((g) => g.name.toLowerCase().includes(search) ? g : { ...g, items: g.items.filter((i) => i.name.toLowerCase().includes(search)) })
+    .filter((g) => g.items.length > 0);
+  const productsProblem = specificProducts && productIds.length === 0 ? "Pick at least one product, or apply the code to the whole cart." : null;
+
+  const toggleProducts = (ids: string[], on: boolean) =>
+    setProductIds((prev) => on ? Array.from(new Set([...prev, ...ids])) : prev.filter((id) => !ids.includes(id)));
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!hasValue || valueProblem) return;
+    if (!hasValue || valueProblem || productsProblem) return;
     setLoading(true);
     setError("");
 
@@ -86,15 +133,17 @@ export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promoco
     const fields = {
       discountType,
       discountValue: value,
-      hidden,
+      disabled,
       withTaxes,
       expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
       maxUses: maxUses ? Number(maxUses) : null,
+      // Empty list = the code applies to the whole cart.
+      productIds: specificProducts ? productIds : [],
     };
 
     try {
       const res = promocode?.id
-        ? await putApiPromocodesById({ path: { id: promocode.id }, body: { id: promocode.id, ...fields }, throwOnError: false })
+        ? await putApiPromocodesById({ path: { id: promocode.id }, body: { id: promocode.id, code: code.trim(), ...fields }, throwOnError: false })
         : await postApiPromocodes({ body: { code: code.trim(), ...fields }, throwOnError: false });
 
       if (res.error || res.data?.isError) {
@@ -138,7 +187,6 @@ export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promoco
                   required
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
-                  disabled={!!promocode}
                   className="form-input"
                   style={{ fontFamily: "var(--font-mono)", letterSpacing: "0.05em", textTransform: "uppercase" }}
                   placeholder="e.g. SUMMER2026"
@@ -199,16 +247,93 @@ export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promoco
                     )}
                   </div>
                   <p style={{ margin: "0.4rem 0 0", fontSize: "0.78rem", color: valueProblem ? "var(--danger)" : "var(--text-muted)" }}>
-                    {valueProblem ?? active.hint}
+                    {valueProblem ?? (specificProducts ? active.productsHint : active.hint)}
                   </p>
                 </div>
 
                 {hasValue && !valueProblem && (
                   <div style={{ fontSize: "0.82rem", color: "var(--text-secondary)", padding: "0.55rem 0.75rem", borderRadius: "var(--radius-md)", background: "var(--bg-surface)", border: "1px dashed var(--border)" }}>
-                    Example: a cart of <strong>{SAMPLE_TOTAL}</strong> becomes{" "}
+                    Example: {specificProducts ? "selected products worth" : "a cart of"} <strong>{SAMPLE_TOTAL}</strong> become{specificProducts ? "" : "s"}{" "}
                     <strong style={{ color: "var(--success)" }}>{previewTotal(discountType, value).toLocaleString(undefined, { maximumFractionDigits: 2 })}</strong>
                     {previewTotal(discountType, value) === 0 && <span style={{ color: "var(--danger)", fontWeight: 600 }}> (free!)</span>}
                   </div>
+                )}
+              </div>
+
+              <div style={{ padding: "1rem", borderRadius: "var(--radius-lg)", border: "1px solid var(--border)", background: "var(--bg-elevated)", display: "flex", flexDirection: "column", gap: "0.85rem" }}>
+                <h3 style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>Applies to</h3>
+
+                <div role="radiogroup" aria-label="Applies to" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "0.5rem" }}>
+                  {[{ specific: false, label: "Whole cart" }, { specific: true, label: "Specific products" }].map((o) => {
+                    const selected = o.specific === specificProducts;
+                    return (
+                      <button
+                        key={o.label}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        onClick={() => setSpecificProducts(o.specific)}
+                        style={{
+                          padding: "0.6rem 0.5rem", borderRadius: "var(--radius-md)", cursor: "pointer",
+                          font: "inherit", fontSize: "0.85rem", fontWeight: 600,
+                          border: `1px solid ${selected ? "var(--accent)" : "var(--border)"}`,
+                          background: selected ? "var(--accent-dim)" : "var(--bg-surface)",
+                          color: selected ? "var(--accent)" : "var(--text-secondary)",
+                        }}
+                      >
+                        {o.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {!specificProducts ? (
+                  <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--text-muted)" }}>Works on any purchase — every product and package in the cart.</p>
+                ) : (
+                  <>
+                    <input
+                      type="search"
+                      value={productSearch}
+                      onChange={(e) => setProductSearch(e.target.value)}
+                      className="form-input"
+                      placeholder="Search products…"
+                    />
+                    <div style={{ maxHeight: "220px", overflowY: "auto", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", background: "var(--bg-surface)" }}>
+                      {visibleGroups.length === 0 ? (
+                        <p style={{ margin: 0, padding: "0.75rem", fontSize: "0.82rem", color: "var(--text-muted)" }}>
+                          {products.length === 0 ? "Loading products…" : "No products match."}
+                        </p>
+                      ) : visibleGroups.map((g) => {
+                        const ids = g.items.map((i) => i.id);
+                        const selectedCount = ids.filter((id) => productIds.includes(id)).length;
+                        const standalone = g.items.length === 1 && g.items[0].id === g.id;
+                        return (
+                          <div key={g.id} style={{ borderBottom: "1px solid var(--border)" }}>
+                            <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.5rem 0.75rem", fontSize: "0.85rem", fontWeight: 600, cursor: "pointer", color: "var(--text-primary)" }}>
+                              <input
+                                type="checkbox"
+                                checked={selectedCount === ids.length}
+                                ref={(el) => { if (el) el.indeterminate = selectedCount > 0 && selectedCount < ids.length; }}
+                                onChange={(e) => toggleProducts(ids, e.target.checked)}
+                                style={{ width: "16px", height: "16px" }}
+                              />
+                              {g.name}
+                              {!standalone && <span style={{ marginLeft: "auto", fontSize: "0.75rem", fontWeight: 500, color: "var(--text-muted)" }}>{selectedCount}/{ids.length}</span>}
+                            </label>
+                            {!standalone && g.items.map((i) => (
+                              <label key={i.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.35rem 0.75rem 0.35rem 2.1rem", fontSize: "0.82rem", cursor: "pointer", color: "var(--text-secondary)" }}>
+                                <input type="checkbox" checked={productIds.includes(i.id)} onChange={(e) => toggleProducts([i.id], e.target.checked)} style={{ width: "15px", height: "15px" }} />
+                                {i.name}
+                              </label>
+                            ))}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <p style={{ margin: 0, fontSize: "0.78rem", color: productsProblem ? "var(--danger)" : "var(--text-muted)" }}>
+                      {productsProblem ?? `${productIds.length} selected. Only these products get the discount; the rest of the cart (and packages) is charged in full.`}
+                    </p>
+                  </>
                 )}
               </div>
 
@@ -225,8 +350,8 @@ export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promoco
 
               <div style={{ display: "flex", gap: "1.5rem", marginTop: "0.5rem" }}>
                 <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.875rem", cursor: "pointer", color: "var(--text-primary)" }}>
-                  <input type="checkbox" checked={hidden} onChange={(e) => setHidden(e.target.checked)} style={{ width: "16px", height: "16px" }} />
-                  Hidden
+                  <input type="checkbox" checked={disabled} onChange={(e) => setDisabled(e.target.checked)} style={{ width: "16px", height: "16px" }} />
+                  <span title="A disabled code is rejected at the cart until you enable it again.">Disabled</span>
                 </label>
                 <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.875rem", cursor: "pointer", color: "var(--text-primary)" }}>
                   <input type="checkbox" checked={withTaxes} onChange={(e) => setWithTaxes(e.target.checked)} style={{ width: "16px", height: "16px" }} />
@@ -240,7 +365,7 @@ export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promoco
 
         <div className="modal-footer">
           <button type="button" className="btn-ghost" onClick={onClose} disabled={loading}>Cancel</button>
-          <button type="submit" form="promocodeForm" className="btn-primary" disabled={loading || !hasValue || !!valueProblem}>
+          <button type="submit" form="promocodeForm" className="btn-primary" disabled={loading || !hasValue || !!valueProblem || !!productsProblem}>
             {loading ? "Saving..." : "Save Promocode"}
           </button>
         </div>

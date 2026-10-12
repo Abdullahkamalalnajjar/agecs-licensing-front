@@ -18,14 +18,12 @@ type ProductMediaModalProps = {
 export default function ProductMediaModal({ product, onClose, onSuccess }: ProductMediaModalProps) {
   const [mediaList, setMediaList] = useState(product.media || []);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [order, setOrder] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   
   // Edit State
   const [editingMediaId, setEditingMediaId] = useState<string | null>(null);
   const [editFile, setEditFile] = useState<File | null>(null);
-  const [editOrder, setEditOrder] = useState<number>(0);
 
   const handleAddMedia = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,7 +34,8 @@ export default function ProductMediaModal({ product, onClose, onSuccess }: Produ
     try {
       const response = await postApiProductsByProductIdMedia({
         path: { productId: product.id! },
-        body: { File: selectedFile, Order: order },
+        // New media is added after the existing ones.
+        body: { File: selectedFile },
         throwOnError: false
       });
 
@@ -83,14 +82,12 @@ export default function ProductMediaModal({ product, onClose, onSuccess }: Produ
 
   const startEdit = (media: any) => {
     setEditingMediaId(media.id);
-    setEditOrder(media.order || 0);
     setEditFile(null);
   };
 
   const cancelEdit = () => {
     setEditingMediaId(null);
     setEditFile(null);
-    setEditOrder(0);
   };
 
   const handleUpdate = async (mediaId: string) => {
@@ -100,7 +97,7 @@ export default function ProductMediaModal({ product, onClose, onSuccess }: Produ
     try {
       const response = await putApiProductsByProductIdMediaByMediaId({
         path: { productId: product.id!, mediaId: mediaId },
-        body: { File: editFile ?? undefined, Order: editOrder },
+        body: { File: editFile ?? undefined },
         throwOnError: false
       });
 
@@ -108,7 +105,6 @@ export default function ProductMediaModal({ product, onClose, onSuccess }: Produ
         // تحديث العنصر في القائمة دون إعادة تحميل البيانات بالكامل لتجربة مستخدم أسرع
         setMediaList(mediaList.map(m => m.id === mediaId ? { 
           ...m, 
-          order: editOrder, 
           url: editFile && response.data?.value ? (response.data.value as any).url || m.url : m.url 
         } : m));
         cancelEdit();
@@ -158,15 +154,6 @@ export default function ProductMediaModal({ product, onClose, onSuccess }: Produ
                   style={{ padding: "0.5rem" }}
                 />
               </div>
-              <div className="form-group" style={{ marginBottom: 0, width: "100px" }}>
-                <label className="form-label">Order</label>
-                <input
-                  type="number"
-                  className="form-input"
-                  value={order}
-                  onChange={(e) => setOrder(Number(e.target.value))}
-                />
-              </div>
               <button 
                 type="submit" 
                 className="btn-primary"
@@ -186,7 +173,7 @@ export default function ProductMediaModal({ product, onClose, onSuccess }: Produ
               </div>
             ) : (
               <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                {mediaList.sort((a, b) => (a.order || 0) - (b.order || 0)).map((media) => {
+                {[...mediaList].sort((a, b) => (a.order || 0) - (b.order || 0)).map((media, index) => {
                   const fullUrl = resolveMediaUrl(media.url);
                   const isEditing = editingMediaId === media.id;
 
@@ -203,15 +190,6 @@ export default function ProductMediaModal({ product, onClose, onSuccess }: Produ
                               onChange={(e) => setEditFile(e.target.files?.[0] || null)} 
                               className="form-input"
                               style={{ padding: "0.5rem" }}
-                            />
-                          </div>
-                          <div className="form-group" style={{ marginBottom: 0, width: "100px" }}>
-                            <label className="form-label">Order</label>
-                            <input
-                              type="number"
-                              className="form-input"
-                              value={editOrder}
-                              onChange={(e) => setEditOrder(Number(e.target.value))}
                             />
                           </div>
                           <div style={{ display: "flex", gap: "0.5rem" }}>
@@ -244,7 +222,7 @@ export default function ProductMediaModal({ product, onClose, onSuccess }: Produ
                               </div>
                             </a>
                             <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: 500 }}>
-                              Order: {media.order || 0}
+                              Image {index + 1}
                             </span>
                           </div>
                           <div style={{ display: "flex", gap: "0.5rem" }}>
