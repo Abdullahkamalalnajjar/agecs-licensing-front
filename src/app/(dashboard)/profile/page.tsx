@@ -28,12 +28,13 @@ const roleConfig: Record<string, { label: string; tone: Tone; blurb: string }> =
 
 const EXPIRING_DAYS = 30;
 const LICENSES_SHOWN = 5;
+const DAY_MS = 86_400_000;
 
 /** Admin roles manage everyone's licenses, so their profile has no "My licenses" section. */
 const ADMIN_ROLES = ["SuperAdmin", "SystemAdmin", "Admin"];
 
 function summarize(licenses: LicenseDto[]) {
-  const soon = Date.now() + EXPIRING_DAYS * 86_400_000;
+  const soon = Date.now() + EXPIRING_DAYS * DAY_MS;
   const active = licenses.filter((l) => l.isActive !== false && !l.isExpired);
   return {
     total: licenses.length,
@@ -42,13 +43,37 @@ function summarize(licenses: LicenseDto[]) {
   };
 }
 
+const fmtDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+
+/** Status, caption and remaining-time bar (0–100, or null when the license never expires) for one license row. */
+function describeLicense(l: LicenseDto) {
+  if (l.isActive === false) return { status: "inactive" as const, caption: "Deactivated", pct: null };
+  if (!l.willExpire || !l.expiryDate) return { status: "active" as const, caption: "Lifetime license", pct: null };
+
+  const end = new Date(l.expiryDate).getTime();
+  const daysLeft = Math.ceil((end - Date.now()) / DAY_MS);
+  if (l.isExpired || daysLeft <= 0) return { status: "expired" as const, caption: `Expired ${fmtDate(l.expiryDate)}`, pct: 0 };
+
+  const start = l.createdAtUtc ? new Date(l.createdAtUtc).getTime() : NaN;
+  const pct = start < end ? Math.max(3, Math.min(100, ((end - Date.now()) / (end - start)) * 100)) : null;
+  return {
+    status: daysLeft <= EXPIRING_DAYS ? ("expiring" as const) : ("active" as const),
+    caption: `${daysLeft} day${daysLeft === 1 ? "" : "s"} left · ${fmtDate(l.expiryDate)}`,
+    pct,
+  };
+}
+
+const STATUS_LABEL = { active: "Active", expiring: "Expiring", expired: "Expired", inactive: "Inactive" };
+
 const Svg = ({ size = 16, children }: { size?: number; children: React.ReactNode }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{children}</svg>
 );
 
 const Icon = {
   mail: <><rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></>,
-  key: <><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></>,
+  key: <><circle cx="7.5" cy="15.5" r="5.5" /><path d="m21 2-9.6 9.6" /><path d="m15.5 7.5 3 3L22 7l-3-3" /></>,
+  lock: <><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></>,
+  hash: <><line x1="4" y1="9" x2="20" y2="9" /><line x1="4" y1="15" x2="20" y2="15" /><line x1="10" y1="3" x2="8" y2="21" /><line x1="16" y1="3" x2="14" y2="21" /></>,
   shield: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />,
   phone: <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />,
   pin: <><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></>,
@@ -59,6 +84,8 @@ const Icon = {
   license: <><rect x="2" y="5" width="20" height="14" rx="2" /><line x1="2" y1="10" x2="22" y2="10" /></>,
   arrow: <><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></>,
   user: <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></>,
+  send: <><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></>,
+  bag: <><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" /><path d="M3 6h18" /><path d="M16 10a4 4 0 0 1-8 0" /></>,
 };
 
 function CopyButton({ value, label }: { value: string; label: string }) {
@@ -156,243 +183,256 @@ function ProfileContent() {
   if (!user) {
     return (
       <div className="pf-page">
-        <div className="skeleton" style={{ height: 28, width: 180, marginBottom: "2rem" }} />
-        <div className="skeleton" style={{ height: 128, borderRadius: "var(--radius-lg)", marginBottom: "1.5rem" }} />
-        <div className="skeleton" style={{ height: 240, borderRadius: "var(--radius-lg)" }} />
+        <div className="skeleton" style={{ height: 260, borderRadius: "var(--radius-lg)", marginBottom: "1.5rem" }} />
+        <div className="skeleton" style={{ height: 280, borderRadius: "var(--radius-lg)" }} />
       </div>
     );
   }
 
   const rc = roleConfig[user.role] || roleConfig.NormalUser;
-  const handle = user.email.split("@")[0] || user.email;
+  const handle = details?.userName && !details.userName.includes("@") ? details.userName : user.email.split("@")[0] || user.email;
   const initials = handle.replace(/[^a-z0-9]/gi, "").slice(0, 2).toUpperCase() || "?";
+  const viewAllLicenses = isCustomer ? "/profile?tab=licenses" : "/licenses";
+
+  const stats = [
+    { label: "Active licenses", value: licenseStats?.active, tone: "green" },
+    { label: `Expiring in ${EXPIRING_DAYS} days`, value: licenseStats?.expiring, tone: licenseStats?.expiring ? "amber" : "" },
+    { label: "Total licenses", value: licenseStats?.total, tone: "" },
+  ];
 
   return (
     <div className="pf-page">
-      <div className="page-header">
-        <div className="page-header-left">
-          <h1 className="page-title">My profile</h1>
-          <p className="page-subtitle">Your account details and settings.</p>
-        </div>
-      </div>
-
-      {/* ---------- Identity ---------- */}
+      {/* ---------- Header: cover, identity, stats, tabs ---------- */}
       <section className="pf-hero">
-        <div className="pf-avatar" aria-hidden="true" title={`Account initials: ${initials}`}>{initials}</div>
-        <div className="pf-identity">
-          <h2 className="pf-name">{handle}</h2>
-          <p className="pf-email" title={`Email: ${user.email}`}>{user.email}</p>
-          <span className={`pf-role pf-tone-${rc.tone}`} title={rc.blurb}>
-            <Svg size={13}>{user.role === "Student" ? Icon.cap : isCustomer ? Icon.user : Icon.shield}</Svg>
-            {rc.label}
-          </span>
-        </div>
-        <button type="button" className="pf-signout" onClick={logout} title="Sign out of your account">
-          <Svg size={15}>{Icon.logout}</Svg>Sign out
-        </button>
-      </section>
+        <div className="pf-cover" aria-hidden="true" />
 
-      {isCustomer && (
-        <div role="tablist" aria-label="Profile sections" style={{ display: "flex", gap: "0.25rem", borderBottom: "1px solid var(--border)", margin: "0 0 1.5rem", overflowX: "auto" }}>
-          {TABS.map((t) => {
-            const selected = t.key === tab;
-            return (
+        <div className="pf-hero-main">
+          <div className="pf-avatar" aria-hidden="true">{initials}</div>
+
+          <div className="pf-identity">
+            <div className="pf-name-row">
+              <h1 className="pf-name">{handle}</h1>
+              <span className={`pf-role pf-tone-${rc.tone}`}>
+                <Svg size={12}>{user.role === "Student" ? Icon.cap : isCustomer ? Icon.user : Icon.shield}</Svg>
+                {rc.label}
+              </span>
+            </div>
+            <p className="pf-email">{user.email}</p>
+          </div>
+
+          <button type="button" className="pf-signout" onClick={logout}>
+            <Svg size={15}>{Icon.logout}</Svg>Sign out
+          </button>
+        </div>
+
+        {showLicenses && (
+          <dl className="pf-stats">
+            {stats.map((s) => (
+              <div key={s.label} className={`pf-stat ${s.tone ? `is-${s.tone}` : ""}`}>
+                <dd>{licenseStats ? s.value : <span className="skeleton pf-stat-skel" />}</dd>
+                <dt>{s.label}</dt>
+              </div>
+            ))}
+          </dl>
+        )}
+
+        {isCustomer && (
+          <div role="tablist" aria-label="Profile sections" className="pf-tabs">
+            {TABS.map((t) => (
               <button
                 key={t.key}
                 type="button"
                 role="tab"
-                aria-selected={selected}
+                aria-selected={t.key === tab}
+                className="pf-tab"
                 onClick={() => selectTab(t.key)}
-                style={{
-                  padding: "0.7rem 1rem", border: "none", background: "transparent", cursor: "pointer", whiteSpace: "nowrap",
-                  font: "inherit", fontSize: "0.9rem", fontWeight: 600, marginBottom: "-1px",
-                  color: selected ? "var(--accent)" : "var(--text-secondary)",
-                  borderBottom: `2px solid ${selected ? "var(--accent)" : "transparent"}`,
-                }}
               >
                 {t.label}
               </button>
-            );
-          })}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </section>
 
       {tab === "licenses" && <LicensesView embedded />}
       {tab === "tickets" && <TicketsView embedded />}
 
       {tab === "overview" && (
-      <div className="pf-grid">
-        {/* ---------- Account details ---------- */}
-        <section className="pf-card">
-          <div className="pf-card-head">
-            <h3 className="pf-card-title">Account details</h3>
-            <span className="pf-hint" style={{ margin: 0, fontSize: "0.78rem" }}>
-              <Svg size={12}>{Icon.shield}</Svg> Secure & verified
-            </span>
-          </div>
-          <dl className="pf-list">
-            <div className="pf-row">
-              <dt title="Your email address for account recovery and notifications"><Svg>{Icon.mail}</Svg>Email</dt>
-              <dd>
-                <span className="pf-value">{user.email}</span>
-                <CopyButton value={user.email} label="email" />
-              </dd>
-            </div>
-            <div className="pf-row">
-              <dt title="Unique identifier for your account"><Svg>{Icon.key}</Svg>Account ID</dt>
-              <dd>
-                <code className="pf-value pf-mono">{user.id}</code>
-                <CopyButton value={user.id} label="account ID" />
-              </dd>
-            </div>
-            <div className="pf-row">
-              <dt title="Phone number for contact"><Svg>{Icon.phone}</Svg>Phone</dt>
-              <dd>
-                <span className={`pf-value ${details?.phoneNumber ? "" : "is-empty"}`}>{details?.phoneNumber || "Not provided"}</span>
-              </dd>
-            </div>
-            <div className="pf-row">
-              <dt title="Your location"><Svg>{Icon.pin}</Svg>City</dt>
-              <dd>
-                <span className={`pf-value ${details?.city ? "" : "is-empty"}`}>{details?.city || "Not provided"}</span>
-              </dd>
-            </div>
-          </dl>
-        </section>
-
-        <div className="pf-side">
-          {/* ---------- My licenses (every role except admins) ---------- */}
-          {showLicenses && (
+        <div className="pf-grid">
+          <div className="pf-col">
+            {/* ---------- Personal information ---------- */}
             <section className="pf-card">
-              <div className="pf-card-head">
-                <h3 className="pf-card-title" style={{ display: "flex", alignItems: "center", gap: "0.35rem", margin: 0 }}>
-                  <Svg size={16}>{Icon.license}</Svg>
-                  My licenses
-                </h3>
-                {isCustomer ? (
-                  <button type="button" className="pf-link" onClick={() => selectTab("licenses")} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", font: "inherit" }} title="View all your licenses">View all <Svg size={14}>{Icon.arrow}</Svg></button>
-                ) : (
-                  <Link href="/licenses" className="pf-link" title="View all licenses">View all <Svg size={14}>{Icon.arrow}</Svg></Link>
-                )}
-              </div>
-              <div className="pf-stats">
-                {[
-                  { label: "Active", value: licenseStats?.active, cls: "is-green" },
-                  { label: `Expiring ≤ ${EXPIRING_DAYS}d`, value: licenseStats?.expiring, cls: licenseStats?.expiring ? "is-amber" : "" },
-                  { label: "Total", value: licenseStats?.total, cls: "" },
-                ].map((s) => (
-                  <div key={s.label} className={`pf-stat ${s.cls}`}>
-                    {licenseStats ? <span className="pf-stat-value">{s.value}</span> : <span className="skeleton pf-stat-skel" />}
-                    <span className="pf-stat-label">{s.label}</span>
-                  </div>
-                ))}
-              </div>
-              {licenses && licenses.length > 0 && (
-                <ul style={{ listStyle: "none", margin: "1rem 0 0", padding: 0, display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                  {licenses.slice(0, LICENSES_SHOWN).map((l) => {
-                    const expired = l.isExpired || l.isActive === false;
-                    return (
-                      <li key={l.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", padding: "0.6rem 0.75rem", borderRadius: "var(--radius-md)", border: "1px solid var(--border)", background: "var(--bg-elevated)" }}>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontWeight: 600, fontSize: "0.88rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                            <Svg size={13}>{Icon.license}</Svg> {l.productName || "License"}
-                          </div>
-                          <div style={{ fontSize: "0.76rem", color: "var(--text-muted)" }}>
-                            {!l.willExpire || !l.expiryDate ? "Never expires" : `${expired ? "Expired" : "Expires"} ${new Date(l.expiryDate).toLocaleDateString()}`}
-                          </div>
-                        </div>
-                        <span className={`badge ${expired ? "badge-danger" : "badge-success"}`}>{expired ? (l.isActive === false ? "Inactive" : "Expired") : "Active"}</span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-              {licenses && licenses.length > LICENSES_SHOWN && (
-                <p className="pf-hint" style={{ marginTop: "0.6rem" }}>
-                  +{licenses.length - LICENSES_SHOWN} more — <Link href={isCustomer ? "/profile?tab=licenses" : "/licenses"} className="pf-link-inline">see all</Link>
-                </p>
-              )}
-              {licenseStats?.total === 0 && (
-                <p className="pf-hint">
-                  No licenses yet. <Link href="/products" className="pf-link-inline">Browse the software catalog</Link>
-                </p>
-              )}
-            </section>
-          )}
-
-          {/* ---------- Access level (staff) ---------- */}
-          {!isCustomer && (
-            <section className="pf-card">
-              <h3 className="pf-card-title" style={{ display: "flex", alignItems: "center", gap: "0.35rem", margin: 0 }}>
-                <Svg size={16}>{Icon.shield}</Svg>
-                Access level
-              </h3>
-              <div className="pf-access" style={{ marginTop: "1rem" }}>
-                <span className={`pf-access-icon pf-tone-${rc.tone}`} title={`Role: ${rc.label}`}><Svg size={20}>{Icon.shield}</Svg></span>
+              <header className="pf-card-head">
+                <span className="pf-card-icon"><Svg size={17}>{Icon.user}</Svg></span>
                 <div>
-                  <p className="pf-access-role" style={{ margin: "0 0 0.2rem" }}>{rc.label}</p>
-                  <p className="pf-hint" style={{ margin: 0 }}>{rc.blurb}</p>
+                  <h2 className="pf-card-title">Personal information</h2>
+                  <p className="pf-card-sub">The details linked to your account.</p>
                 </div>
-              </div>
+              </header>
+              <dl className="pf-list">
+                <div className="pf-row">
+                  <dt><Svg size={15}>{Icon.mail}</Svg>Email</dt>
+                  <dd>
+                    <span className="pf-value">{user.email}</span>
+                    <CopyButton value={user.email} label="email" />
+                  </dd>
+                </div>
+                <div className="pf-row">
+                  <dt><Svg size={15}>{Icon.hash}</Svg>Account ID</dt>
+                  <dd>
+                    <code className="pf-value pf-mono">{user.id}</code>
+                    <CopyButton value={user.id} label="account ID" />
+                  </dd>
+                </div>
+                <div className="pf-row">
+                  <dt><Svg size={15}>{Icon.phone}</Svg>Phone</dt>
+                  <dd><span className={`pf-value ${details?.phoneNumber ? "" : "is-empty"}`}>{details?.phoneNumber || "Not provided"}</span></dd>
+                </div>
+                <div className="pf-row">
+                  <dt><Svg size={15}>{Icon.pin}</Svg>City</dt>
+                  <dd><span className={`pf-value ${details?.city ? "" : "is-empty"}`}>{details?.city || "Not provided"}</span></dd>
+                </div>
+              </dl>
             </section>
-          )}
 
-          {/* ---------- Password ---------- */}
-          <section className="pf-card">
-            <div className="pf-card-head">
-              <h3 className="pf-card-title" style={{ display: "flex", alignItems: "center", gap: "0.35rem", margin: 0 }}>
-                <Svg size={16}>{Icon.key}</Svg>
-                Password
-              </h3>
-              <button
-                type="button"
-                className="btn-ghost"
-                onClick={() => setShowPasswordModal(true)}
-                disabled={!details}
-                title={details?.hasPassword === false ? "Set a new password" : "Update your password"}
-              >
-                <Svg size={14}>{Icon.key}</Svg> {details?.hasPassword === false ? "Set password" : "Change password"}
-              </button>
-            </div>
-            <p className="pf-hint">
-              {details?.hasPassword === false
-                ? "You sign in with Google. Set a password to also sign in with your email and enable 2-factor authentication."
-                : "Use a password you don't use anywhere else. Keep it secure and unique."}
-            </p>
-            <p className="pf-hint" style={{ marginTop: "0.6rem" }}>
-              Forgot your password?{" "}
-              <button
-                type="button"
-                onClick={handleSendResetLink}
-                disabled={sendingReset}
-                title="Receive a password reset email"
-                style={{ background: "none", border: "none", padding: 0, font: "inherit", fontWeight: 600, color: "var(--accent)", cursor: sendingReset ? "wait" : "pointer" }}
-              >
-                {sendingReset ? "Sending…" : "Email me a reset link"}
-              </button>
-            </p>
-          </section>
+            {/* ---------- Security ---------- */}
+            <section className="pf-card">
+              <header className="pf-card-head">
+                <span className="pf-card-icon"><Svg size={17}>{Icon.lock}</Svg></span>
+                <div>
+                  <h2 className="pf-card-title">Sign-in &amp; security</h2>
+                  <p className="pf-card-sub">Manage how you sign in to your account.</p>
+                </div>
+              </header>
 
-          {/* ---------- Student upgrade ---------- */}
-          {user.role === "NormalUser" && (
-            <section className="pf-card pf-upgrade">
-              <span className="pf-upgrade-icon" title="Student status"><Svg size={20}>{Icon.cap}</Svg></span>
-              <div className="pf-upgrade-body">
-                <h3 className="pf-card-title" style={{ margin: "0.2rem 0 0" }}>Are you a student?</h3>
-                <p className="pf-hint">Verify your <strong>.edu</strong> email to unlock student discounts and enjoy special pricing on all licenses and products.</p>
-                <button
-                  type="button"
-                  className="btn-primary"
-                  onClick={() => setShowUpgradeModal(true)}
-                  title="Start student verification process"
-                >
-                  Verify student status
+              <div className="pf-setting">
+                <div className="pf-setting-text">
+                  <p className="pf-setting-title">
+                    Password
+                    {details && (
+                      <span className={`pf-chip ${details.hasPassword === false ? "is-muted" : "is-green"}`}>
+                        {details.hasPassword === false ? "Not set" : "Set"}
+                      </span>
+                    )}
+                  </p>
+                  <p className="pf-hint">
+                    {details?.hasPassword === false
+                      ? "You sign in with Google. Set a password to also sign in with your email."
+                      : "Use a strong password you don't use anywhere else."}
+                  </p>
+                </div>
+                <button type="button" className="btn-ghost" onClick={() => setShowPasswordModal(true)} disabled={!details}>
+                  <Svg size={14}>{Icon.key}</Svg> {details?.hasPassword === false ? "Set password" : "Change"}
+                </button>
+              </div>
+
+              <div className="pf-setting">
+                <div className="pf-setting-text">
+                  <p className="pf-setting-title">Forgot your password?</p>
+                  <p className="pf-hint">We&apos;ll email a reset link to {user.email}.</p>
+                </div>
+                <button type="button" className="btn-ghost" onClick={handleSendResetLink} disabled={sendingReset}>
+                  <Svg size={14}>{Icon.send}</Svg> {sendingReset ? "Sending…" : "Send link"}
                 </button>
               </div>
             </section>
-          )}
+          </div>
+
+          <div className="pf-col">
+            {/* ---------- My licenses (every role except admins) ---------- */}
+            {showLicenses && (
+              <section className="pf-card">
+                <header className="pf-card-head">
+                  <span className="pf-card-icon"><Svg size={17}>{Icon.license}</Svg></span>
+                  <div>
+                    <h2 className="pf-card-title">My licenses</h2>
+                    <p className="pf-card-sub">Your most recent software licenses.</p>
+                  </div>
+                  {licenses && licenses.length > 0 && (
+                    isCustomer ? (
+                      <button type="button" className="pf-link" onClick={() => selectTab("licenses")}>View all <Svg size={14}>{Icon.arrow}</Svg></button>
+                    ) : (
+                      <Link href="/licenses" className="pf-link">View all <Svg size={14}>{Icon.arrow}</Svg></Link>
+                    )
+                  )}
+                </header>
+
+                {!licenses && (
+                  <div className="pf-lic-list">
+                    {[0, 1].map((i) => <div key={i} className="skeleton" style={{ height: 64, borderRadius: "var(--radius-md)" }} />)}
+                  </div>
+                )}
+
+                {licenses && licenses.length > 0 && (
+                  <ul className="pf-lic-list">
+                    {licenses.slice(0, LICENSES_SHOWN).map((l) => {
+                      const d = describeLicense(l);
+                      return (
+                        <li key={l.id} className={`pf-lic is-${d.status}`}>
+                          <span className="pf-lic-icon" aria-hidden="true">{(l.productName || "L").charAt(0).toUpperCase()}</span>
+                          <div className="pf-lic-body">
+                            <div className="pf-lic-top">
+                              <span className="pf-lic-name">{l.productName || "License"}</span>
+                              <span className="pf-lic-status">{STATUS_LABEL[d.status]}</span>
+                            </div>
+                            <span className="pf-lic-caption">{d.caption}{l.isTrial ? " · Trial" : ""}</span>
+                            {d.pct !== null && (
+                              <span className="pf-lic-bar" aria-hidden="true"><span style={{ width: `${d.pct}%` }} /></span>
+                            )}
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+
+                {licenses && licenses.length > LICENSES_SHOWN && (
+                  <p className="pf-hint pf-more">
+                    +{licenses.length - LICENSES_SHOWN} more — <Link href={viewAllLicenses} className="pf-link-inline">see all</Link>
+                  </p>
+                )}
+
+                {licenses?.length === 0 && (
+                  <div className="pf-empty">
+                    <span className="pf-empty-icon"><Svg size={22}>{Icon.bag}</Svg></span>
+                    <p className="pf-setting-title">No licenses yet</p>
+                    <p className="pf-hint">Licenses you buy will show up here.</p>
+                    <Link href="/products" className="btn-primary">Browse software</Link>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* ---------- Access level (staff) ---------- */}
+            {!isCustomer && (
+              <section className="pf-card">
+                <header className="pf-card-head">
+                  <span className={`pf-card-icon pf-tone-${rc.tone}`}><Svg size={17}>{Icon.shield}</Svg></span>
+                  <div>
+                    <h2 className="pf-card-title">Access level</h2>
+                    <p className="pf-card-sub">What your role can do on the platform.</p>
+                  </div>
+                </header>
+                <div className={`pf-access pf-tone-${rc.tone}`}>
+                  <p className="pf-access-role">{rc.label}</p>
+                  <p className="pf-hint">{rc.blurb}</p>
+                </div>
+              </section>
+            )}
+
+            {/* ---------- Student upgrade ---------- */}
+            {user.role === "NormalUser" && (
+              <section className="pf-card pf-upgrade">
+                <span className="pf-upgrade-icon"><Svg size={22}>{Icon.cap}</Svg></span>
+                <h2 className="pf-card-title">Are you a student?</h2>
+                <p className="pf-hint">Verify your <strong>.edu</strong> email to unlock student discounts and special license pricing.</p>
+                <button type="button" className="btn-primary" onClick={() => setShowUpgradeModal(true)}>
+                  Verify student status <Svg size={14}>{Icon.arrow}</Svg>
+                </button>
+              </section>
+            )}
+          </div>
         </div>
-      </div>
       )}
 
       {showPasswordModal && details && (
