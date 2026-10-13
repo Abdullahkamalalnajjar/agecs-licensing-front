@@ -94,7 +94,7 @@ export default function UserLicensesModal({ user, onClose }: { user: AppUserDto;
                         <button type="button" className="ul-main" onClick={() => setSelected(license)} title="View license details">
                           <span className="ul-product">{license.productName || "Unknown product"}</span>
                           <span className="ul-meta">
-                            <span>{license.type || (license.isTrial ? "trial" : "basic")}</span>
+                            <span>{license.isTrial ? "Trial" : "Full"}</span>
                             <span>Expires: {expiry}</span>
                             <span>Devices: {devices}/{license.licenseCount ?? 1}</span>
                           </span>

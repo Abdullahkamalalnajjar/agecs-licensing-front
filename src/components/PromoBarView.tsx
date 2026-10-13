@@ -4,10 +4,11 @@ import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import type { PromoBarDto } from "@/client/types.gen";
 import { resolveButtonLink } from "@/lib/heroSlides";
+import PromoEndCountdown from "./PromoEndCountdown";
 
 type PromoBarViewProps = {
   bar: Pick<PromoBarDto, "badgeText" | "message" | "buttonText" | "buttonUrl" | "backgroundColor" | "textColor"
-    | "badgeBackgroundColor" | "badgeTextColor" | "buttonBackgroundColor" | "buttonTextColor">;
+    | "badgeBackgroundColor" | "badgeTextColor" | "buttonBackgroundColor" | "buttonTextColor"> & Pick<Partial<PromoBarDto>, "endDate">;
   /** Extra content inside the bar, e.g. the dismiss button. */
   children?: ReactNode;
   /** Admin preview: render the button as plain text so clicking it doesn't navigate. */
@@ -40,6 +41,7 @@ export default function PromoBarView({ bar, children, preview, style }: PromoBar
     <div className="promo-bar" style={barStyle}>
       {bar.badgeText && <span className="discount" style={badgeStyle}>{bar.badgeText}</span>}
       <span>{bar.message}</span>
+      {bar.endDate && <PromoEndCountdown endDate={bar.endDate} />}
       {bar.buttonText && link && (
         preview ? (
           <span className="buy" style={buttonStyle}>{bar.buttonText}</span>

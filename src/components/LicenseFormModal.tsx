@@ -30,11 +30,8 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
     licenseCount: 1,
     migrationLimit: 1,
     expiryDate: "",
-    serial: "",
-    janDrozdId: "",
     hwidSalt: "",
     isTrial: false,
-    type: "Basic",
     isActive: true,
     version: "",
   });
@@ -84,11 +81,8 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
           licenseCount: initialData.licenseCount || 1,
           migrationLimit: initialData.migrationLimit || 1,
           expiryDate: initialData.expiryDate ? new Date(initialData.expiryDate).toISOString().split('T')[0] : "",
-          serial: initialData.serial || "",
-          janDrozdId: initialData.janDrozdId || "",
           hwidSalt: initialData.hwidSalt || "",
           isTrial: initialData.isTrial || false,
-          type: initialData.type || "Basic",
           isActive: initialData.isActive ?? true,
           version: initialData.version || "",
         });
@@ -118,11 +112,8 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
           licenseCount: 1,
           migrationLimit: 1,
           expiryDate: "",
-          serial: "",
-          janDrozdId: "",
           hwidSalt: "",
           isTrial: false,
-          type: "Basic",
           isActive: true,
           version: "",
         });
@@ -212,12 +203,9 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
         licenseCount: Number(licenseData.licenseCount) || 1,
         migrationLimit: Number(licenseData.migrationLimit) || 1,
         expiryDate: licenseData.expiryDate ? new Date(licenseData.expiryDate).toISOString() : undefined,
-        serial: licenseData.serial || undefined,
-        janDrozdId: licenseData.janDrozdId || undefined,
         // The HWID salt is the client's username; for a new client it's the user name typed for the account.
         hwidSalt: (!isEditing && clientMode === "new" ? newClient.userName : licenseData.hwidSalt).trim(),
         isTrial: licenseData.isTrial,
-        type: licenseData.type,
       };
 
       let response: any;
@@ -235,11 +223,8 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
           willExpire: !!licenseData.expiryDate,
           expiryDate: licenseData.expiryDate ? new Date(licenseData.expiryDate).toISOString() : undefined,
           isTrial: licenseData.isTrial,
-          type: licenseData.type || "basic",
           isActive: licenseData.isActive,
-          // Empty strings clear these on the server.
-          serial: licenseData.serial.trim(),
-          janDrozdId: licenseData.janDrozdId.trim(),
+          // An empty string clears it on the server. Serial and JanDrozd ID aren't sent, so they stay as issued.
           version: licenseData.version.trim(),
         };
         response = await putApiLicensesById({
@@ -457,13 +442,6 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                 <div style={{ fontSize: "0.68rem", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Product</div>
                 <div style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--text-primary)", marginTop: "0.2rem" }}>
                   {generatedLicense.productName || getProductName(generatedLicense.productId) || "Standard"}
-                </div>
-              </div>
-
-              <div style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: "0.75rem 1rem" }}>
-                <div style={{ fontSize: "0.68rem", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>License Type</div>
-                <div style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--text-primary)", marginTop: "0.2rem", textTransform: "capitalize" }}>
-                  {generatedLicense.type || (generatedLicense.isTrial ? "Trial" : "Basic")}
                 </div>
               </div>
 
@@ -746,23 +724,8 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                     </div>
                   </div>
 
-                  {/* Type & Expiry */}
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label htmlFor="type" className="form-label">Type</label>
-                      <select
-                        id="type"
-                        className="form-input"
-                        value={licenseData.type}
-                        onChange={(e) => setLicenseData(prev => ({ ...prev, type: e.target.value }))}
-                        style={{ appearance: "auto" }}
-                      >
-                        <option value="Basic">Basic</option>
-                        <option value="All">All</option>
-                        <option value="Edu">Edu</option>
-                      </select>
-                    </div>
-
+                  {/* Expiry */}
+                  <div>
                     <div className="form-group" style={{ marginBottom: 0 }}>
                       <label htmlFor="expiryDate" className="form-label">Expiry Date (Blank = Lifetime)</label>
                       <input
@@ -771,33 +734,6 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                         className="form-input"
                         value={licenseData.expiryDate}
                         onChange={(e) => setLicenseData(prev => ({ ...prev, expiryDate: e.target.value }))}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Custom Serial & JanDrozd ID */}
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label htmlFor="serial" className="form-label">Custom Serial (Optional)</label>
-                      <input
-                        id="serial"
-                        type="text"
-                        className="form-input"
-                        value={licenseData.serial}
-                        onChange={(e) => setLicenseData(prev => ({ ...prev, serial: e.target.value }))}
-                        placeholder="Auto-generated if empty"
-                        style={{ fontFamily: "var(--font-mono)" }}
-                      />
-                    </div>
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label htmlFor="janDrozdId" className="form-label">JanDrozd ID (Optional)</label>
-                      <input
-                        id="janDrozdId"
-                        type="text"
-                        className="form-input"
-                        placeholder="External ID"
-                        value={licenseData.janDrozdId}
-                        onChange={(e) => setLicenseData(prev => ({ ...prev, janDrozdId: e.target.value }))}
                       />
                     </div>
                   </div>

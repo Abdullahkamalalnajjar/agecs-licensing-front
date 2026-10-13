@@ -210,7 +210,6 @@ export type CreateLicenseCommand = {
     expiryDate?: string | null;
     isTrial?: boolean;
     willExpire?: boolean;
-    type?: string | null;
 };
 
 export type CreateOfferCommand = {
@@ -372,7 +371,6 @@ export type GetLicenseDiagnosticResponse = {
     licenseCount?: number;
     migrationLimit?: number;
     isTrial?: boolean;
-    type?: string | null;
     version?: string | null;
     createdAt?: string;
     updatedAt?: string | null;
@@ -495,7 +493,6 @@ export type LicenseDto = {
     serial?: string | null;
     janDrozdId?: string | null;
     isTrial?: boolean;
-    type?: string | null;
     version?: string | null;
     addedBy?: string | null;
     addedByName?: string | null;
@@ -886,6 +883,14 @@ export type PromoBarDto = {
     buttonText?: string | null;
     buttonUrl?: string | null;
     durationSeconds?: number;
+    /**
+     * When the bar stops showing (UTC); null = never.
+     */
+    endDate?: string | null;
+    /**
+     * True once endDate has passed; only admins (includeHidden) ever see ended bars.
+     */
+    hasEnded?: boolean;
     backgroundColor?: string | null;
     textColor?: string | null;
     badgeBackgroundColor?: string | null;
@@ -928,6 +933,7 @@ export type PromoBarRequest = {
     buttonBackgroundColor?: string | null;
     buttonTextColor?: string | null;
     hidden?: boolean;
+    endDate?: string | null;
 };
 
 export type PromocodeDiscountType = 'Percentage' | 'AmountOff' | 'FinalPrice';

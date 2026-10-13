@@ -2,7 +2,7 @@
 // @refresh reset
 // Fast Refresh: remount users of this hook on every edit instead of keeping old hook state.
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getApiPromoBars } from "@/client";
 import type { PromoBarDto } from "@/client/types.gen";
 
@@ -21,12 +21,31 @@ export const FALLBACK_PROMO_BARS: PromoBarDto[] = [
   },
 ];
 
+const hasEnded = (bar: PromoBarDto, now: number) => !!bar.endDate && new Date(bar.endDate).getTime() <= now;
+
 /**
  * The visible announcement bars, in order, plus the auto-rotating current index and the seconds left on it.
  * Each bar stays for its own durationSeconds. An empty list from the API means every bar is hidden.
+ * A bar with an end date drops out the moment it passes, even on a page that's already open.
  */
 export function usePromoBars() {
-  const [bars, setBars] = useState<PromoBarDto[]>(FALLBACK_PROMO_BARS);
+  const [allBars, setBars] = useState<PromoBarDto[]>(FALLBACK_PROMO_BARS);
+  const [now, setNow] = useState(() => Date.now());
+  // Keyed on which bars are still on, not on the clock, so the list (and the rotation timer below) only changes
+  // when a bar actually ends, not on every tick.
+  const visibleKey = allBars.filter((b) => !hasEnded(b, now)).map((b) => b.id).join("|");
+  const bars = useMemo(() => {
+    const visible = new Set(visibleKey.split("|"));
+    return allBars.filter((b) => visible.has(b.id ?? ""));
+  }, [allBars, visibleKey]);
+
+  // Re-check end dates once a second, but only while some bar still has one ahead of it.
+  const hasUpcomingEnd = allBars.some((b) => b.endDate && !hasEnded(b, now));
+  useEffect(() => {
+    if (!hasUpcomingEnd) return;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [hasUpcomingEnd]);
   // Index and seconds elapsed live together so one 1-second tick can advance both atomically.
   const [position, setPosition] = useState({ index: 0, elapsed: 0 });
 

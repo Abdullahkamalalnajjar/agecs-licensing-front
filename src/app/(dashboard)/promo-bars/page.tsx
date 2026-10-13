@@ -183,6 +183,14 @@ export default function PromoBarsPage() {
                   </div>
 
                   <span className="pb-meta"><Svg size={12}>{Icon.clock}</Svg>{bar.durationSeconds ?? 6}s</span>
+                  {bar.endDate && (
+                    <span
+                      className={`badge ${bar.hasEnded ? "badge-danger" : "badge-neutral"}`}
+                      title={bar.hasEnded ? "Past its end date: no longer shown on the site" : "Stops showing on the site at this time"}
+                    >
+                      {bar.hasEnded ? "Ended" : "Ends"} {new Date(bar.endDate).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
+                    </span>
+                  )}
 
                   <label className="pr-visibility" title={bar.hidden ? "Hidden — click to show" : "Shown — click to hide"} style={{ opacity: busy ? 0.6 : 1 }}>
                     <span className="pf-toggle-switch">
@@ -259,6 +267,12 @@ const COLOR_FIELDS: { key: ColorKey; label: string }[] = [
 
 const HEX = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
 
+/** A Date as the "YYYY-MM-DDTHH:mm" local-time value a datetime-local input expects. */
+const toLocalInputValue = (date: Date) => {
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 16);
+};
+
 /** The #RRGGBB part of a hex color, for the native color picker (which has no transparency). */
 const toPickerValue = (hex: string) => {
   if (/^#[0-9a-fA-F]{3}$/.test(hex)) return `#${hex[1]}${hex[1]}${hex[2]}${hex[2]}${hex[3]}${hex[3]}`;
@@ -306,6 +320,8 @@ function PromoBarModal({ bar, onClose, onSaved, onError }: {
   const [buttonText, setButtonText] = useState(bar?.buttonText ?? "");
   const [buttonUrl, setButtonUrl] = useState(bar?.buttonUrl ?? "");
   const [duration, setDuration] = useState(String(bar?.durationSeconds ?? 6));
+  // <input type="datetime-local"> works in the browser's local time; the API stores UTC.
+  const [endDate, setEndDate] = useState(bar?.endDate ? toLocalInputValue(new Date(bar.endDate)) : "");
   const [hidden, setHidden] = useState(bar?.hidden ?? false);
   const [colors, setColors] = useState<Colors>(() => {
     const c = {} as Colors;
@@ -337,6 +353,7 @@ function PromoBarModal({ bar, onClose, onSaved, onError }: {
         buttonUrl: buttonUrl.trim() || null,
         durationSeconds: Number(duration) || 6,
         hidden,
+        endDate: endDate ? new Date(endDate).toISOString() : null,
         ...Object.fromEntries(COLOR_FIELDS.map(({ key }) => [key, colors[key] || null])),
       };
       const res = bar?.id
@@ -372,14 +389,26 @@ function PromoBarModal({ bar, onClose, onSaved, onError }: {
           <form id="promoBarForm" onSubmit={submit} className="pb-form">
             <div className="pb-grid">
               <div className="ct-fields">
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" htmlFor="pbBadge">Badge</label>
+                  <input id="pbBadge" className="form-input" maxLength={30} value={badgeText} onChange={(e) => setBadgeText(e.target.value)} placeholder="e.g. 20% OFF" />
+                </div>
                 <div className="pb-row-2">
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label" htmlFor="pbBadge">Badge</label>
-                    <input id="pbBadge" className="form-input" maxLength={30} value={badgeText} onChange={(e) => setBadgeText(e.target.value)} placeholder="e.g. 20% OFF" />
-                  </div>
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label className="form-label" htmlFor="pbDuration">Duration (seconds)</label>
                     <input id="pbDuration" type="number" className="form-input" required min={2} max={60} value={duration} onChange={(e) => setDuration(e.target.value)} />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label" htmlFor="pbEndDate">Ends at (optional)</label>
+                    <input
+                      id="pbEndDate"
+                      type="datetime-local"
+                      className="form-input"
+                      value={endDate}
+                      min={endDate && bar?.endDate && endDate === toLocalInputValue(new Date(bar.endDate)) ? undefined : toLocalInputValue(new Date())}
+                      onChange={(e) => setEndDate(e.target.value)}
+                    />
+                    <p className="ct-hint" style={{ margin: "0.35rem 0 0" }}>Leave empty to keep it showing until you hide it.</p>
                   </div>
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>

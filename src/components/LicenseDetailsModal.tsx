@@ -167,11 +167,6 @@ export default function LicenseDetailsModal({ license, isOpen, onClose }: Licens
             <Card>
               <SectionLabel>License Info</SectionLabel>
               <Row label="Product"  value={license.productName || "—"} />
-              <Row label="Type"     value={
-                <span className={`badge ${license.type === "Edu" ? "badge-info" : license.type === "All" ? "badge-accent" : "badge-neutral"}`}>
-                  {license.type || "Basic"}
-                </span>
-              } />
               <Row label="Added By" value={license.addedByName || "System"} />
               <Row label="HWID Salt" value={license.hwidSalt || "—"} mono />
             </Card>

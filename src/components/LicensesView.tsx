@@ -294,7 +294,7 @@ export default function LicensesView({ embedded = false }: { embedded?: boolean 
         if (type === "trial" && !l.isTrial) return false;
         if (type === "paid" && l.isTrial) return false;
         if (!q) return true;
-        return [l.serial, l.name, l.email, productName(l), l.type].some((s) => s?.toLowerCase().includes(q));
+        return [l.serial, l.name, l.email, productName(l)].some((s) => s?.toLowerCase().includes(q));
       })
       .sort((a, b) => {
         const created = (l: License) => new Date(l.createdAtUtc || 0).getTime();
@@ -547,7 +547,7 @@ export default function LicensesView({ embedded = false }: { embedded?: boolean 
                   <td>
                     <span className="pr-row-text">
                       <span className="lc-product">{productName(l)}</span>
-                      <span className="pr-row-sub">{l.type || "Basic"}{l.version ? ` · v${l.version}` : ""}</span>
+                      <span className="pr-row-sub">{l.isTrial ? "Trial" : "Full"}{l.version ? ` · v${l.version}` : ""}</span>
                     </span>
                   </td>
                   <td><CopySerial serial={l.serial} /></td>
@@ -572,7 +572,7 @@ export default function LicensesView({ embedded = false }: { embedded?: boolean 
               <article key={l.id} className={`lc-card ${expired || !l.isActive ? "is-dim" : ""}`}>
                 <header className="lc-card-head">
                   <div className="lc-card-title">
-                    <span className="pr-card-meta">{l.type || "Standard"}{l.version ? ` · v${l.version}` : ""}</span>
+                    <span className="pr-card-meta">{l.isTrial ? "Trial" : "Full"}{l.version ? ` · v${l.version}` : ""}</span>
                     <h3>{productName(l)}</h3>
                   </div>
                   <StatusBadges license={l} now={now} />
