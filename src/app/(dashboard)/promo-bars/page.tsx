@@ -153,7 +153,7 @@ export default function PromoBarsPage() {
 
       {error && <div className="alert-error pr-alert">{error}</div>}
 
-      <p className="ct-hint">Shown bars rotate in this order, each for its own duration. Hide them all to remove the bar from the site.</p>
+      <p className="ct-hint">Shown bars rotate in this order, a few seconds each. Hide them all to remove the bar from the site.</p>
 
       <div className="pb-list">
         {loading ? (
@@ -182,7 +182,6 @@ export default function PromoBarsPage() {
                     </div>
                   </div>
 
-                  <span className="pb-meta"><Svg size={12}>{Icon.clock}</Svg>{bar.durationSeconds ?? 6}s</span>
                   {bar.endDate && (
                     <span
                       className={`badge ${bar.hasEnded ? "badge-danger" : "badge-neutral"}`}
@@ -319,7 +318,6 @@ function PromoBarModal({ bar, onClose, onSaved, onError }: {
   const [message, setMessage] = useState(bar?.message ?? "");
   const [buttonText, setButtonText] = useState(bar?.buttonText ?? "");
   const [buttonUrl, setButtonUrl] = useState(bar?.buttonUrl ?? "");
-  const [duration, setDuration] = useState(String(bar?.durationSeconds ?? 6));
   // <input type="datetime-local"> works in the browser's local time; the API stores UTC.
   const [endDate, setEndDate] = useState(bar?.endDate ? toLocalInputValue(new Date(bar.endDate)) : "");
   const [hidden, setHidden] = useState(bar?.hidden ?? false);
@@ -351,7 +349,6 @@ function PromoBarModal({ bar, onClose, onSaved, onError }: {
         badgeText: badgeText.trim() || null,
         buttonText: buttonText.trim() || null,
         buttonUrl: buttonUrl.trim() || null,
-        durationSeconds: Number(duration) || 6,
         hidden,
         endDate: endDate ? new Date(endDate).toISOString() : null,
         ...Object.fromEntries(COLOR_FIELDS.map(({ key }) => [key, colors[key] || null])),
@@ -389,14 +386,10 @@ function PromoBarModal({ bar, onClose, onSaved, onError }: {
           <form id="promoBarForm" onSubmit={submit} className="pb-form">
             <div className="pb-grid">
               <div className="ct-fields">
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label" htmlFor="pbBadge">Badge</label>
-                  <input id="pbBadge" className="form-input" maxLength={30} value={badgeText} onChange={(e) => setBadgeText(e.target.value)} placeholder="e.g. 20% OFF" />
-                </div>
                 <div className="pb-row-2">
                   <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label" htmlFor="pbDuration">Duration (seconds)</label>
-                    <input id="pbDuration" type="number" className="form-input" required min={2} max={60} value={duration} onChange={(e) => setDuration(e.target.value)} />
+                    <label className="form-label" htmlFor="pbBadge">Badge</label>
+                    <input id="pbBadge" className="form-input" maxLength={30} value={badgeText} onChange={(e) => setBadgeText(e.target.value)} placeholder="e.g. 20% OFF" />
                   </div>
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label className="form-label" htmlFor="pbEndDate">Ends at (optional)</label>

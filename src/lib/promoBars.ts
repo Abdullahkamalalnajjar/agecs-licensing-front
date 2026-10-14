@@ -7,7 +7,8 @@ import { getApiPromoBars } from "@/client";
 import type { PromoBarDto } from "@/client/types.gen";
 
 const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:5003";
-const DEFAULT_DURATION_SECONDS = 6;
+/** Every bar shows for the same time before the next one. */
+const ROTATION_SECONDS = 6;
 
 /** Shown until the API answers (and if the request fails), matching the bar the site used to hardcode. */
 export const FALLBACK_PROMO_BARS: PromoBarDto[] = [
@@ -17,7 +18,6 @@ export const FALLBACK_PROMO_BARS: PromoBarDto[] = [
     message: "Your First Year License for nanoCAD 26",
     buttonText: "Buy Now",
     buttonUrl: "#products",
-    durationSeconds: DEFAULT_DURATION_SECONDS,
   },
 ];
 
@@ -25,7 +25,7 @@ const hasEnded = (bar: PromoBarDto, now: number) => !!bar.endDate && new Date(ba
 
 /**
  * The visible announcement bars, in order, plus the auto-rotating current index and the seconds left on it.
- * Each bar stays for its own durationSeconds. An empty list from the API means every bar is hidden.
+ * Each bar stays for ROTATION_SECONDS. An empty list from the API means every bar is hidden.
  * A bar with an end date drops out the moment it passes, even on a page that's already open.
  */
 export function usePromoBars() {
@@ -62,15 +62,13 @@ export function usePromoBars() {
     return () => { cancelled = true; };
   }, []);
 
-  const durationOf = (bar: PromoBarDto | undefined) => bar?.durationSeconds || DEFAULT_DURATION_SECONDS;
-
   // Tick once a second; when the current bar's time is up, move to the next bar.
   useEffect(() => {
     if (bars.length < 2) return;
     const timer = setInterval(() => {
       setPosition((p) => {
         const index = Math.min(p.index, bars.length - 1);
-        return p.elapsed + 1 >= durationOf(bars[index])
+        return p.elapsed + 1 >= ROTATION_SECONDS
           ? { index: (index + 1) % bars.length, elapsed: 0 }
           : { index, elapsed: p.elapsed + 1 };
       });
@@ -79,7 +77,7 @@ export function usePromoBars() {
   }, [bars]);
 
   const index = bars.length === 0 ? 0 : Math.min(position.index, bars.length - 1);
-  const secondsLeft = Math.max(1, durationOf(bars[index]) - position.elapsed);
+  const secondsLeft = Math.max(1, ROTATION_SECONDS - position.elapsed);
 
   return {
     bars,

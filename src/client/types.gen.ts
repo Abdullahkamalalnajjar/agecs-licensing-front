@@ -882,7 +882,6 @@ export type PromoBarDto = {
     message?: string | null;
     buttonText?: string | null;
     buttonUrl?: string | null;
-    durationSeconds?: number;
     /**
      * When the bar stops showing (UTC); null = never.
      */
@@ -925,7 +924,6 @@ export type PromoBarRequest = {
     badgeText?: string | null;
     buttonText?: string | null;
     buttonUrl?: string | null;
-    durationSeconds?: number | null;
     backgroundColor?: string | null;
     textColor?: string | null;
     badgeBackgroundColor?: string | null;
