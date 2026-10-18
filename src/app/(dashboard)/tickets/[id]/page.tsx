@@ -12,7 +12,7 @@ export default function TicketDetailsPage() {
   const ticketId = params.id as string;
   const { user } = useAuth();
   // Customers reach their tickets from the profile page's Tickets tab.
-  const ticketsHref = user?.role === "Student" || user?.role === "NormalUser" ? "/profile?tab=tickets" : "/tickets";
+  const ticketsHref = user?.role === "Student" || user?.role === "User" ? "/profile?tab=tickets" : "/tickets";
   
   const [ticket, setTicket] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
@@ -157,7 +157,7 @@ export default function TicketDetailsPage() {
           </p>
         </div>
 
-        {(user?.role !== "Student" && user?.role !== "NormalUser") && (
+        {(user?.role !== "Student" && user?.role !== "User") && (
           <div style={{ marginTop: "24px", display: "flex", gap: "12px", alignItems: "center" }}>
             <span style={{ fontSize: "0.85rem", fontWeight: "600", color: "#4b5563" }}>Change Status:</span>
             <select 

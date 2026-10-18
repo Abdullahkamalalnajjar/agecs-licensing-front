@@ -46,16 +46,21 @@ export default function HwidListModal({ licenseId, isOpen, onClose }: HwidListMo
 
   const handleAddHwid = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newHwid.trim()) return;
+    // Several HWIDs can be entered at once, comma-separated.
+    const entered = Array.from(new Set(newHwid.split(/[\n,]+/).map((h) => h.trim()).filter(Boolean)));
+    if (entered.length === 0) return;
     setAdding(true);
+    setError("");
     try {
       const res = await postApiLicensesAdminByIdHwids({
         path: { id: licenseId },
-        body: { hwid: newHwid.trim() },
+        body: { hwids: entered },
         throwOnError: false,
       });
-      if ((res.data as any)?.isSuccess || res.response?.status === 204 || res.response?.status === 200) {
-        setNewHwid("");
+      if (res.data?.isSuccess) {
+        const failed = res.data.value?.failed ?? [];
+        setNewHwid(failed.join(", "));
+        if (failed.length > 0) setError(`JanDrozd rejected: ${failed.join(", ")}`);
         fetchHwids();
       } else {
         setError((res.data as any)?.errors?.map((e: any) => e.description).filter(Boolean).join(", ") || "Failed to add HWID.");
@@ -144,7 +149,7 @@ export default function HwidListModal({ licenseId, isOpen, onClose }: HwidListMo
             <input
               type="text"
               className="form-input"
-              placeholder="Add new Hardware ID (HWID)…"
+              placeholder="Add Hardware IDs (HWIDs), comma-separated…"
               value={newHwid}
               onChange={e => setNewHwid(e.target.value)}
               required

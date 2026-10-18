@@ -224,12 +224,12 @@ export default function LicenseDetailsModal({ license, isOpen, onClose }: Licens
           </Card>
 
           {/* Registered HWIDs */}
-          {license.clients && license.clients.length > 0 && (
+          {license.hwids && license.hwids.length > 0 && (
             <Card>
-              <SectionLabel>Registered Devices ({license.clients.length})</SectionLabel>
+              <SectionLabel>Registered Devices ({license.hwids.length})</SectionLabel>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem", maxHeight: 180, overflowY: "auto" }}>
-                {license.clients.map((c: any, i: number) => (
-                  <div key={c.id || i} style={{
+                {license.hwids.map((hwid: string, i: number) => (
+                  <div key={hwid} style={{
                     display: "flex", alignItems: "center", gap: "0.6rem",
                     padding: "0.4rem 0.75rem",
                     background: "var(--bg-surface)",
@@ -240,11 +240,8 @@ export default function LicenseDetailsModal({ license, isOpen, onClose }: Licens
                       {i + 1}
                     </span>
                     <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-primary)", wordBreak: "break-all", flex: 1 }}>
-                      {c.hwid || c}
+                      {hwid}
                     </span>
-                    {c.friendlyName && (
-                      <span style={{ fontSize: "0.72rem", color: "var(--text-muted)", flexShrink: 0 }}>({c.friendlyName})</span>
-                    )}
                   </div>
                 ))}
               </div>

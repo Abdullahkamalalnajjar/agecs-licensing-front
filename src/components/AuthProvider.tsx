@@ -6,7 +6,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { client } from "@/client/client.gen";
 import { postIdentityTokenRefreshToken } from "@/client";
 
-export type Role = "SuperAdmin" | "Admin" | "Sales" | "Student" | "NormalUser" | string;
+export type Role = "Admin" | "Sales" | "Student" | "User" | string;
 
 export interface AuthUser {
   id: string;
@@ -47,7 +47,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Extract role - might be in a different claim key depending on backend Identity config
         let role = decoded.role || decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
         if (Array.isArray(role)) role = role[0]; // If multiple roles, just take the first for simplicity
-        if (!role) role = "NormalUser"; // Default fallback
+        // Tokens issued before NormalUser was merged into User still say NormalUser until they expire.
+        if (!role || role === "NormalUser") role = "User";
         
         // Extract email - might be in array
         let email = decoded.email || decoded.unique_name || "";
@@ -83,7 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const decoded: any = jwtDecode(token);
       let role = decoded.role || decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
       if (Array.isArray(role)) role = role[0];
-      if (!role) role = "NormalUser";
+      if (!role || role === "NormalUser") role = "User";
       
       let email = decoded.email || decoded.unique_name || "";
       if (Array.isArray(email)) email = email[0];

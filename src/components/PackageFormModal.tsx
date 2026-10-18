@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { postApiPackages, putApiPackagesById, getApiProducts } from "@/client";
-import type { PackageDto, ProductDto } from "@/client/types.gen";
+import type { PackageDto, PeriodType, ProductDto } from "@/client/types.gen";
 
 type PackageFormModalProps = {
   isOpen: boolean;
@@ -15,19 +15,20 @@ interface ItemRow {
   key: string;
   topLevelProductId: string;
   variationProductId: string;
+  /** "1|Year": one of the variation's price periods, or "" until picked. */
   period: string;
-  licenseCount: string;
-  migrationLimit: string;
 }
 
 const emptyRow = (): ItemRow => ({
   key: Math.random().toString(36).slice(2),
   topLevelProductId: "",
   variationProductId: "",
-  period: "30",
-  licenseCount: "1",
-  migrationLimit: "2",
+  period: "",
 });
+
+const DAYS: Record<PeriodType, number> = { Day: 1, Month: 30, Year: 365 };
+const periodKey = (value: number, type: PeriodType) => `${value}|${type}`;
+const periodLabel = (value: number, type: PeriodType) => `${value} ${type}${value === 1 ? "" : "s"}`;
 
 export default function PackageFormModal({ isOpen, onClose, onSuccess, pkg }: PackageFormModalProps) {
   const [loading, setLoading] = useState(false);
@@ -63,9 +64,8 @@ export default function PackageFormModal({ isOpen, onClose, onSuccess, pkg }: Pa
               key: i.id || Math.random().toString(36).slice(2),
               topLevelProductId: "",
               variationProductId: i.itemId || "",
-              period: (i.period ?? 30).toString(),
-              licenseCount: (i.licenseCount ?? 1).toString(),
-              migrationLimit: (i.migrationLimit ?? 2).toString(),
+              // Items saved before periods came from the variation have no type; the admin re-picks one.
+              period: i.periodValue && i.periodType ? periodKey(i.periodValue, i.periodType) : "",
             }))
           : [emptyRow()]
       );
@@ -114,6 +114,30 @@ export default function PackageFormModal({ isOpen, onClose, onSuccess, pkg }: Pa
     return "";
   };
 
+  const findProduct = (id: string) =>
+    products.find((p) => p.id === id) ?? products.flatMap((p) => p.children ?? []).find((c) => c.id === id);
+
+  /** The distinct periods the variation is sold for (its active prices), shortest first, with the countries offering each. */
+  const periodsFor = (variationId: string) => {
+    const options = new Map<string, { value: number; type: PeriodType; countries: string[] }>();
+    for (const price of findProduct(variationId)?.prices ?? []) {
+      if (price.active === false || !price.period || !price.periodType) continue;
+      const key = periodKey(price.period, price.periodType);
+      const option = options.get(key) ?? { value: price.period, type: price.periodType, countries: [] };
+      if (price.country && !option.countries.includes(price.country)) option.countries.push(price.country);
+      options.set(key, option);
+    }
+    return [...options.entries()]
+      .map(([key, o]) => ({ key, ...o }))
+      .sort((a, b) => a.value * DAYS[a.type] - b.value * DAYS[b.type]);
+  };
+
+  const selectVariation = (key: string, variationProductId: string) => {
+    const periods = periodsFor(variationProductId);
+    // One period: nothing to choose.
+    updateItem(key, { variationProductId, period: periods.length === 1 ? periods[0].key : "" });
+  };
+
   const updateItem = (key: string, patch: Partial<ItemRow>) => {
     setItems((prev) => prev.map((row) => (row.key === key ? { ...row, ...patch } : row)));
   };
@@ -126,19 +150,21 @@ export default function PackageFormModal({ isOpen, onClose, onSuccess, pkg }: Pa
     e.preventDefault();
     setError("");
 
-    const resolvedItems = items.map((row) => ({
-      productId: row.variationProductId || row.topLevelProductId,
-      period: Number(row.period) || 0,
-      licenseCount: Number(row.licenseCount) || 1,
-      migrationLimit: Number(row.migrationLimit) || 2,
-    }));
+    const resolvedItems = items.map((row) => {
+      const [value, type] = row.period.split("|");
+      return {
+        productId: row.variationProductId || row.topLevelProductId,
+        period: Number(value) || 0,
+        periodType: (type || undefined) as PeriodType | undefined,
+      };
+    });
 
     if (resolvedItems.some((i) => !i.productId)) {
       setError("Select a product/variation for every item row.");
       return;
     }
-    if (resolvedItems.some((i) => i.period <= 0)) {
-      setError("Every item needs a period greater than 0 days.");
+    if (resolvedItems.some((i) => !i.period || !i.periodType)) {
+      setError("Select a period for every item row.");
       return;
     }
 
@@ -226,12 +252,14 @@ export default function PackageFormModal({ isOpen, onClose, onSuccess, pkg }: Pa
                   {items.map((row) => {
                     const topLevelId = row.topLevelProductId || resolveTopLevelId(row.variationProductId);
                     const variations = variationsFor(topLevelId);
+                    const variationId = row.variationProductId || (variations.length === 1 && variations[0].id === topLevelId ? topLevelId : "");
+                    const periods = variationId ? periodsFor(variationId) : [];
                     return (
                       <div
                         key={row.key}
                         style={{
                           display: "grid",
-                          gridTemplateColumns: "1.4fr 1.4fr 0.7fr 0.7fr 0.7fr auto",
+                          gridTemplateColumns: "1fr 1fr 1fr auto",
                           gap: "0.5rem",
                           alignItems: "center",
                         }}
@@ -239,7 +267,7 @@ export default function PackageFormModal({ isOpen, onClose, onSuccess, pkg }: Pa
                         <select
                           className="form-input"
                           value={topLevelId}
-                          onChange={(e) => updateItem(row.key, { topLevelProductId: e.target.value, variationProductId: "" })}
+                          onChange={(e) => updateItem(row.key, { topLevelProductId: e.target.value, variationProductId: "", period: "" })}
                         >
                           <option value="">Select product...</option>
                           {topLevelProducts.map((p) => (
@@ -251,7 +279,7 @@ export default function PackageFormModal({ isOpen, onClose, onSuccess, pkg }: Pa
                           className="form-input"
                           value={row.variationProductId}
                           disabled={!topLevelId}
-                          onChange={(e) => updateItem(row.key, { variationProductId: e.target.value })}
+                          onChange={(e) => selectVariation(row.key, e.target.value)}
                         >
                           <option value="">Select variation...</option>
                           {variations.map((v) => (
@@ -259,31 +287,21 @@ export default function PackageFormModal({ isOpen, onClose, onSuccess, pkg }: Pa
                           ))}
                         </select>
 
-                        <input
-                          type="number"
-                          min="1"
+                        <select
                           className="form-input"
                           value={row.period}
+                          disabled={!variationId || periods.length === 0}
                           onChange={(e) => updateItem(row.key, { period: e.target.value })}
-                          title="Period (days)"
-                          placeholder="Days"
-                        />
-                        <input
-                          type="number"
-                          min="1"
-                          className="form-input"
-                          value={row.licenseCount}
-                          onChange={(e) => updateItem(row.key, { licenseCount: e.target.value })}
-                          title="License count"
-                        />
-                        <input
-                          type="number"
-                          min="0"
-                          className="form-input"
-                          value={row.migrationLimit}
-                          onChange={(e) => updateItem(row.key, { migrationLimit: e.target.value })}
-                          title="Migration limit"
-                        />
+                          aria-label="Period"
+                          title={variationId && periods.length === 0 ? "This variation has no active prices with a period" : undefined}
+                        >
+                          <option value="">{variationId && periods.length === 0 ? "No periods" : "Select period..."}</option>
+                          {periods.map((o) => (
+                            <option key={o.key} value={o.key}>
+                              {periodLabel(o.value, o.type)}{o.countries.length > 0 ? ` · ${o.countries.join(", ")}` : ""}
+                            </option>
+                          ))}
+                        </select>
 
                         <button
                           type="button"
@@ -299,7 +317,7 @@ export default function PackageFormModal({ isOpen, onClose, onSuccess, pkg }: Pa
                   })}
                 </div>
                 <p style={{ margin: "0.6rem 0 0", fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                  Columns: Product, Variation, Period (days), License count, Migration limit.
+                  Columns: Product, Variation, Period. The period comes from the variation&apos;s prices; the package keeps its own price.
                 </p>
               </div>
 

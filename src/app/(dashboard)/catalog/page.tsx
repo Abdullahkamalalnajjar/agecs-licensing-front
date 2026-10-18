@@ -51,7 +51,7 @@ function IconButton({ title, onClick, tone = "accent", disabled, children }: {
 
 export default function CatalogPage() {
   const { user } = useAuth();
-  const isAdmin = user != null && user.role !== "Student" && user.role !== "NormalUser";
+  const isAdmin = user != null && user.role !== "Student" && user.role !== "User";
   const { families, companies, loaded, error } = useCatalog();
   const [tab, setTab] = useState<Tab>("companies");
   const [creating, setCreating] = useState(false);

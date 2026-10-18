@@ -24,7 +24,7 @@ const Icon = ({ children }: { children: React.ReactNode }) => (
   </span>
 );
 
-/** Public sign-up (POST /identity/register): always creates a NormalUser account and signs the visitor in. */
+/** Public sign-up (POST /identity/register): always creates a User account and signs the visitor in. */
 export default function RegisterPage() {
   const router = useRouter();
   const { login } = useAuth();

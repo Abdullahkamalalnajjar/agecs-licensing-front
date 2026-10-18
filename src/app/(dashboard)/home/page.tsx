@@ -24,7 +24,7 @@ export default function DashboardPage() {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setSiteView(new URLSearchParams(window.location.search).get("view") === "site"); }, []);
 
-  const isAdminUser = user?.role === "Admin" || user?.role === "SuperAdmin";
+  const isAdminUser = user?.role === "Admin";
   const isAdmin = isAdminUser && !siteView;
 
   useEffect(() => {
@@ -43,7 +43,7 @@ export default function DashboardPage() {
           if (error) throw new Error("Failed to load dashboard data.");
           if (data?.value) setStats(data.value);
         } else {
-          // NormalUser, Student, or unauthenticated
+          // User, Student, or unauthenticated
           const [prodRes, pkgRes] = await Promise.allSettled([
             getApiProducts({ query: { includeHidden: false }, throwOnError: false }),
             getApiPackages({ throwOnError: false })
@@ -100,7 +100,7 @@ export default function DashboardPage() {
     );
   }
 
-  // NormalUser or Student landing page view (or an admin previewing the site)
+  // User or Student landing page view (or an admin previewing the site)
   return (
     <div className="landing-content">
       {isAdminUser && siteView && (

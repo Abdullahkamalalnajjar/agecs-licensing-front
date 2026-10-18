@@ -5,7 +5,8 @@ import {
   getIdentityUsersDeleted,
   deleteIdentityByUserId,
   putIdentityUsersByUserIdRole,
-  putIdentityUsersByUserIdRestore
+  putIdentityUsersByUserIdRestore,
+  getIdentityRoles
 } from "@/client";
 import { client } from "@/client/client.gen";
 import { useRouter } from "next/navigation";
@@ -27,24 +28,6 @@ interface RoleConfig {
 }
 
 const ROLE_CONFIGS: Record<string, RoleConfig> = {
-  SuperAdmin: {
-    name: "SuperAdmin",
-    label: "Super Admin",
-    description: "Full uncontrolled system & database privileges",
-    badgeBg: "rgba(168, 85, 247, 0.12)",
-    badgeText: "#c084fc",
-    badgeBorder: "rgba(168, 85, 247, 0.3)",
-    icon: "👑",
-  },
-  SystemAdmin: {
-    name: "SystemAdmin",
-    label: "System Admin",
-    description: "Infrastructure, security & server controls",
-    badgeBg: "rgba(99, 102, 241, 0.12)",
-    badgeText: "#818cf8",
-    badgeBorder: "rgba(99, 102, 241, 0.3)",
-    icon: "⚡",
-  },
   Admin: {
     name: "Admin",
     label: "Administrator",
@@ -90,9 +73,9 @@ const ROLE_CONFIGS: Record<string, RoleConfig> = {
     badgeBorder: "rgba(245, 158, 11, 0.3)",
     icon: "🎓",
   },
-  NormalUser: {
-    name: "NormalUser",
-    label: "NormalUser",
+  User: {
+    name: "User",
+    label: "User",
     description: "Standard account for purchasing and managing personal licenses",
     badgeBg: "rgba(148, 163, 184, 0.12)",
     badgeText: "#94a3b8",
@@ -102,6 +85,17 @@ const ROLE_CONFIGS: Record<string, RoleConfig> = {
 };
 
 const ALL_ROLES = Object.keys(ROLE_CONFIGS);
+
+/** Roles added from the Roles page have no preset look, so they share a neutral one. */
+const customRoleConfig = (name: string): RoleConfig => ({
+  name,
+  label: name,
+  description: "Custom role added from the Roles page",
+  badgeBg: "rgba(20, 184, 166, 0.12)",
+  badgeText: "#14b8a6",
+  badgeBorder: "rgba(20, 184, 166, 0.25)",
+  icon: "🏷️",
+});
 
 // ============================================================
 // AVATAR COMPONENT
@@ -169,6 +163,7 @@ export default function UsersPage() {
   const [selectedNewRole, setSelectedNewRole] = useState<string>("");
   const [actionLoading, setActionLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [customRoles, setCustomRoles] = useState<string[]>([]);
 
   const showToast = (text: string, type: "success" | "error" = "success") => {
     setToastMessage({ text, type });
@@ -225,6 +220,23 @@ export default function UsersPage() {
   useEffect(() => {
     fetchAllUsers();
   }, [fetchAllUsers]);
+
+  // Custom roles from the Roles page join the built-in ones in the filters and pickers.
+  useEffect(() => {
+    if (!setupClient()) return;
+    getIdentityRoles({ throwOnError: false })
+      .then((res) => {
+        const names = (res.data?.value ?? []).filter((r) => !r.isSystem && r.name).map((r) => r.name!);
+        setCustomRoles(names.filter((n) => !ROLE_CONFIGS[n]));
+      })
+      .catch(() => { /* the built-in roles still work */ });
+  }, [setupClient]);
+
+  const allRoles = useMemo(() => [...ALL_ROLES, ...customRoles], [customRoles]);
+  const roleConfigFor = useCallback(
+    (name: string) => ROLE_CONFIGS[name] ?? (customRoles.includes(name) ? customRoleConfig(name) : ROLE_CONFIGS.User),
+    [customRoles]
+  );
 
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -333,7 +345,7 @@ export default function UsersPage() {
   const totalActive = activeUsers.length;
   const totalDeleted = deletedUsers.length;
   const totalStaff = activeUsers.filter(u => 
-    u.roles?.some(r => ["SuperAdmin", "SystemAdmin", "Admin", "Sales", "Editor", "Support"].includes(r))
+    u.roles?.some(r => ["Admin", "Sales", "Editor", "Support"].includes(r))
   ).length;
   const totalStudents = activeUsers.filter(u => u.roles?.includes("Student")).length;
 
@@ -751,11 +763,11 @@ export default function UsersPage() {
             }}
           >
             <option value="all">All Roles ({currentList.length})</option>
-            {ALL_ROLES.map((role) => {
+            {allRoles.map((role) => {
               const count = currentList.filter(u => u.roles?.includes(role)).length;
               return (
                 <option key={role} value={role}>
-                  {ROLE_CONFIGS[role]?.label || role} ({count})
+                  {roleConfigFor(role).label} ({count})
                 </option>
               );
             })}
@@ -879,8 +891,8 @@ export default function UsersPage() {
               </tr>
             ) : (
               filteredUsers.map((user) => {
-                const primaryRole = user.roles?.[0] || "NormalUser";
-                const roleConfig = ROLE_CONFIGS[primaryRole] || ROLE_CONFIGS.NormalUser;
+                const primaryRole = user.roles?.[0] || "User";
+                const roleConfig = roleConfigFor(primaryRole);
                 const isUserDeleted = viewMode === "deleted";
 
                 return (
@@ -1043,7 +1055,7 @@ export default function UsersPage() {
                             <button
                               onClick={() => {
                                 setRoleModalUser(user);
-                                setSelectedNewRole(user.roles?.[0] || "NormalUser");
+                                setSelectedNewRole(user.roles?.[0] || "User");
                               }}
                               style={{
                                 display: "inline-flex",
@@ -1196,8 +1208,8 @@ export default function UsersPage() {
                 Select Assigned Permission Role:
               </div>
 
-              {ALL_ROLES.map((roleKey) => {
-                const conf = ROLE_CONFIGS[roleKey];
+              {allRoles.map((roleKey) => {
+                const conf = roleConfigFor(roleKey);
                 const isSelected = selectedNewRole === roleKey;
                 return (
                   <div
@@ -1270,7 +1282,7 @@ export default function UsersPage() {
       )}
 
       {/* ── MODAL: CREATE USER (admin, any role) ── */}
-      {createUserOpen && <CreateUserModal onClose={() => setCreateUserOpen(false)} onCreated={() => fetchAllUsers(true)} />}
+      {createUserOpen && <CreateUserModal customRoles={customRoles} onClose={() => setCreateUserOpen(false)} onCreated={() => fetchAllUsers(true)} />}
 
       {/* ── MODAL: USER LICENSES ── */}
       {licensesModalUser && <UserLicensesModal user={licensesModalUser} onClose={() => setLicensesModalUser(null)} />}
@@ -1351,7 +1363,7 @@ export default function UsersPage() {
                 <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
                   {detailsModalUser.roles && detailsModalUser.roles.length > 0 ? (
                     detailsModalUser.roles.map(r => {
-                      const conf = ROLE_CONFIGS[r] || ROLE_CONFIGS.NormalUser;
+                      const conf = roleConfigFor(r);
                       return (
                         <div
                           key={r}

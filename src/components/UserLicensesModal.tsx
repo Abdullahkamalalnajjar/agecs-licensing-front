@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { getApiLicensesUsersByUserId } from "@/client";
 import type { AppUserDto, LicenseDto } from "@/client/types.gen";
-import LicenseDetailsModal from "./LicenseDetailsModal";
 import "./user-licenses-modal.css";
 
 const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:5003";
@@ -20,12 +20,12 @@ const statusOf = (l: LicenseDto): Status => {
 const fmtDate = (iso?: string | null) =>
   iso ? new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : null;
 
-/** Admin view of one user's licenses (GET /api/licenses/users/{userId}); click a license for its full details. */
+/** Admin view of one user's licenses (GET /api/licenses/users/{userId}); click a license to open it on the licenses page. */
 export default function UserLicensesModal({ user, onClose }: { user: AppUserDto; onClose: () => void }) {
+  const router = useRouter();
   const [licenses, setLicenses] = useState<LicenseDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [selected, setSelected] = useState<LicenseDto | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -88,10 +88,13 @@ export default function UserLicensesModal({ user, onClose }: { user: AppUserDto;
                   {licenses.map((license) => {
                     const status = statusOf(license);
                     const expiry = license.willExpire === false ? "Lifetime" : fmtDate(license.expiryDate) ?? "No expiry";
-                    const devices = license.clients?.length ?? 0;
+                    const devices = license.hwids?.length ?? 0;
                     return (
                       <div key={license.id} className="ul-row">
-                        <button type="button" className="ul-main" onClick={() => setSelected(license)} title="View license details">
+                        <button type="button" className="ul-main" onClick={() => router.push(`/licenses?license=${encodeURIComponent(license.id ?? "")}`)}
+                          title="Open on the licenses page"
+                          disabled={!license.id}
+                        >
                           <span className="ul-product">{license.productName || "Unknown product"}</span>
                           <span className="ul-meta">
                             <span>{license.isTrial ? "Trial" : "Full"}</span>
@@ -124,8 +127,6 @@ export default function UserLicensesModal({ user, onClose }: { user: AppUserDto;
           </div>
         </div>
       </div>
-
-      <LicenseDetailsModal license={selected} isOpen={!!selected} onClose={() => setSelected(null)} />
     </>
   );
 }

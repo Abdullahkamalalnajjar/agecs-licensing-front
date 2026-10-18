@@ -5,7 +5,22 @@ export type ClientOptions = {
 };
 
 export type AddHwidRequest = {
-    hwid?: string | null;
+    hwids?: Array<string> | null;
+};
+
+/**
+ * Which HWIDs JanDrozd accepted and which it rejected; the accepted ones are saved even when others fail.
+ */
+export type AddLicenseHwidsResponse = {
+    added?: Array<string> | null;
+    failed?: Array<string> | null;
+};
+
+export type AddLicenseHwidsResponseResult = {
+    readonly isSuccess?: boolean;
+    readonly isError?: boolean;
+    value?: AddLicenseHwidsResponse;
+    readonly errors?: Array<Error> | null;
 };
 
 export type AddTicketCommentRequest = {
@@ -235,9 +250,11 @@ export type CreatePackageCommand = {
 
 export type CreatePackageItemRequest = {
     productId?: string;
+    /**
+     * With periodType, one of the variation's price periods (e.g. 1 + Year).
+     */
     period?: number;
-    licenseCount?: number;
-    migrationLimit?: number;
+    periodType?: PeriodType;
 };
 
 export type CreateProductCommand = {
@@ -465,18 +482,6 @@ export type HeroSlideRequest = {
     hidden?: boolean;
 };
 
-export type LicenseClientDto = {
-    id?: string;
-    userId?: string;
-    productId?: string;
-    hwid?: string | null;
-    deviceName?: string | null;
-    lastUsedAt?: string | null;
-    resetCount?: number;
-    lastResetAt?: string | null;
-    isActive?: boolean;
-};
-
 export type LicenseDto = {
     id?: string;
     userId?: string;
@@ -503,7 +508,10 @@ export type LicenseDto = {
     createdAtUtc?: string;
     order?: number;
     isExpired?: boolean;
-    clients?: Array<LicenseClientDto> | null;
+    /**
+     * The devices (HWIDs) registered on this license.
+     */
+    hwids?: Array<string> | null;
 };
 
 export type LicenseDtoListResult = {
@@ -614,9 +622,15 @@ export type PackageItemDto = {
     itemType?: string | null;
     itemId?: string;
     itemName?: string | null;
+    /**
+     * License days this item grants.
+     */
     period?: number;
-    licenseCount?: number;
-    migrationLimit?: number;
+    /**
+     * The variation period it was picked from (with periodType); null for older items.
+     */
+    periodValue?: number | null;
+    periodType?: PeriodType | null;
 };
 
 export type PartnerDto = {
@@ -1017,6 +1031,14 @@ export type ReorderProductsCommand = {
     productIds?: Array<string> | null;
 };
 
+export type SetTicketCategoryActiveRequest = {
+    isActive?: boolean;
+};
+
+export type ReorderTicketCategoriesCommand = {
+    categoryIds?: Array<string> | null;
+};
+
 export type ReorderPromoBarsCommand = {
     promoBarIds?: Array<string> | null;
 };
@@ -1037,6 +1059,10 @@ export type RestoreDeletedUserRequest = {
 export type RoleDto = {
     id?: string | null;
     name?: string | null;
+    /**
+     * A built-in role the code depends on by name; it can't be deleted, and renaming it breaks the checks that use its name.
+     */
+    isSystem?: boolean;
 };
 
 export type RoleDtoListResult = {
@@ -1098,7 +1124,6 @@ export type TicketCategoryDto = {
     id?: string;
     name?: string | null;
     description?: string | null;
-    order?: number;
     isActive?: boolean;
 };
 
@@ -1206,8 +1231,6 @@ export type UpdateTicketCategoryCommand = {
     id?: string;
     name?: string | null;
     description?: string | null;
-    order?: number;
-    isActive?: boolean;
 };
 
 export type UpdateTicketStatusRequest = {
@@ -3229,8 +3252,10 @@ export type PostApiLicensesAdminByIdHwidsResponses = {
     /**
      * OK
      */
-    200: unknown;
+    200: AddLicenseHwidsResponseResult;
 };
+
+export type PostApiLicensesAdminByIdHwidsResponse = PostApiLicensesAdminByIdHwidsResponses[keyof PostApiLicensesAdminByIdHwidsResponses];
 
 export type DeleteApiLicensesAdminByIdHwidsByHwidData = {
     body?: never;
@@ -5133,6 +5158,58 @@ export type DeleteApiTicketCategoriesByIdResponses = {
      */
     200: unknown;
 };
+
+export type PutApiTicketCategoriesReorderData = {
+    body?: ReorderTicketCategoriesCommand;
+    path?: never;
+    query?: never;
+    url: '/api/ticket-categories/reorder';
+};
+
+export type PutApiTicketCategoriesReorderErrors = {
+    /**
+     * Bad Request
+     */
+    400: ObjectResult;
+};
+
+export type PutApiTicketCategoriesReorderError = PutApiTicketCategoriesReorderErrors[keyof PutApiTicketCategoriesReorderErrors];
+
+export type PutApiTicketCategoriesReorderResponses = {
+    /**
+     * OK
+     */
+    200: UpdatedResult;
+};
+
+export type PutApiTicketCategoriesReorderResponse = PutApiTicketCategoriesReorderResponses[keyof PutApiTicketCategoriesReorderResponses];
+
+export type PatchApiTicketCategoriesByIdActiveData = {
+    body?: SetTicketCategoryActiveRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/ticket-categories/{id}/active';
+};
+
+export type PatchApiTicketCategoriesByIdActiveErrors = {
+    /**
+     * Not Found
+     */
+    404: ObjectResult;
+};
+
+export type PatchApiTicketCategoriesByIdActiveError = PatchApiTicketCategoriesByIdActiveErrors[keyof PatchApiTicketCategoriesByIdActiveErrors];
+
+export type PatchApiTicketCategoriesByIdActiveResponses = {
+    /**
+     * OK
+     */
+    200: UpdatedResult;
+};
+
+export type PatchApiTicketCategoriesByIdActiveResponse = PatchApiTicketCategoriesByIdActiveResponses[keyof PatchApiTicketCategoriesByIdActiveResponses];
 
 export type PutApiTicketCategoriesByIdData = {
     body?: UpdateTicketCategoryCommand;

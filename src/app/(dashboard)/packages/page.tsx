@@ -255,7 +255,7 @@ export default function PackagesPage() {
                     <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
                       {(pkg.items || []).map((item) => (
                         <span key={item.id} style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>
-                          {item.itemName || item.itemId} · {item.period}d
+                          {item.itemName || item.itemId}
                         </span>
                       ))}
                     </div>

@@ -17,13 +17,11 @@ import "./profile.css";
 type Tone = "amber" | "purple" | "green" | "blue" | "neutral";
 
 const roleConfig: Record<string, { label: string; tone: Tone; blurb: string }> = {
-  SuperAdmin: { label: "Super Admin", tone: "amber", blurb: "Full access to every area of the platform, including roles and permissions." },
-  SystemAdmin: { label: "System Admin", tone: "amber", blurb: "Manage the platform's users, roles and system settings." },
   Admin: { label: "Administrator", tone: "purple", blurb: "Manage products, licenses, users and support across the platform." },
   Sales: { label: "Sales", tone: "green", blurb: "Issue and manage customer licenses, offers and promo codes." },
   Editor: { label: "Content Editor", tone: "purple", blurb: "Manage products, hero slides, promo bars and partners on the site." },
   Student: { label: "Student", tone: "blue", blurb: "Verified student account with access to student pricing." },
-  NormalUser: { label: "Customer", tone: "neutral", blurb: "Buy licenses, download software and contact support." },
+  User: { label: "Customer", tone: "neutral", blurb: "Buy licenses, download software and contact support." },
 };
 
 const EXPIRING_DAYS = 30;
@@ -31,7 +29,7 @@ const LICENSES_SHOWN = 5;
 const DAY_MS = 86_400_000;
 
 /** Admin roles manage everyone's licenses, so their profile has no "My licenses" section. */
-const ADMIN_ROLES = ["SuperAdmin", "SystemAdmin", "Admin"];
+const ADMIN_ROLES = ["Admin"];
 
 function summarize(licenses: LicenseDto[]) {
   const soon = Date.now() + EXPIRING_DAYS * DAY_MS;
@@ -132,7 +130,7 @@ function ProfileContent() {
   const [sendingReset, setSendingReset] = useState(false);
   const { success, error: toastError } = useToast();
 
-  const isCustomer = user?.role === "Student" || user?.role === "NormalUser";
+  const isCustomer = user?.role === "Student" || user?.role === "User";
   const showLicenses = !!user && !ADMIN_ROLES.includes(user.role);
   const licenseStats = licenses ? summarize(licenses) : null;
 
@@ -189,7 +187,7 @@ function ProfileContent() {
     );
   }
 
-  const rc = roleConfig[user.role] || roleConfig.NormalUser;
+  const rc = roleConfig[user.role] || roleConfig.User;
   const handle = details?.userName && !details.userName.includes("@") ? details.userName : user.email.split("@")[0] || user.email;
   const initials = handle.replace(/[^a-z0-9]/gi, "").slice(0, 2).toUpperCase() || "?";
   const viewAllLicenses = isCustomer ? "/profile?tab=licenses" : "/licenses";
@@ -421,7 +419,7 @@ function ProfileContent() {
             )}
 
             {/* ---------- Student upgrade ---------- */}
-            {user.role === "NormalUser" && (
+            {user.role === "User" && (
               <section className="pf-card pf-upgrade">
                 <span className="pf-upgrade-icon"><Svg size={22}>{Icon.cap}</Svg></span>
                 <h2 className="pf-card-title">Are you a student?</h2>

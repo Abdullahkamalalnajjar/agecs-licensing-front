@@ -134,7 +134,7 @@ export default function ProductDetailsPage() {
   const [isFeaturesModalOpen, setIsFeaturesModalOpen] = useState(false);
   const [isVersionsModalOpen, setIsVersionsModalOpen] = useState(false);
 
-  const isAdmin = user != null && user.role !== "Student" && user.role !== "NormalUser";
+  const isAdmin = user != null && user.role !== "Student" && user.role !== "User";
 
   const editions = product?.children || [];
   const target = (selectedEditionId && editions.find((c) => c.id === selectedEditionId)) || product || undefined;

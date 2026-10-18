@@ -14,8 +14,6 @@ export default function TicketCategoryFormModal({ initialData, onClose, onSucces
   const [categoryData, setCategoryData] = useState({
     name: initialData?.name || "",
     description: initialData?.description || "",
-    order: initialData?.order || 0,
-    isActive: initialData?.isActive ?? true,
   });
   
   const [saving, setSaving] = useState(false);
@@ -30,8 +28,6 @@ export default function TicketCategoryFormModal({ initialData, onClose, onSucces
       const payload = {
         name: categoryData.name,
         description: categoryData.description || undefined,
-        order: Number(categoryData.order),
-        isActive: categoryData.isActive,
       };
 
       let response;
@@ -93,20 +89,8 @@ export default function TicketCategoryFormModal({ initialData, onClose, onSucces
                     <label htmlFor="description" className="form-label">Description</label>
                     <textarea id="description" className="form-input" value={categoryData.description} onChange={(e) => setCategoryData({ ...categoryData, description: e.target.value })} rows={3} style={{ resize: "vertical" }} />
                   </div>
-
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label htmlFor="order" className="form-label">Order (Priority)</label>
-                    <input id="order" type="number" className="form-input" value={categoryData.order} onChange={(e) => setCategoryData({ ...categoryData, order: Number(e.target.value) })} required />
-                  </div>
                 </>
               )}
-
-              <div style={{ display: "flex", gap: "1rem", marginTop: "0.5rem" }}>
-                <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.875rem", cursor: "pointer", color: "var(--text-primary)" }}>
-                  <input type="checkbox" checked={categoryData.isActive} onChange={(e) => setCategoryData({ ...categoryData, isActive: e.target.checked })} style={{ width: "16px", height: "16px" }} />
-                  Active
-                </label>
-              </div>
 
             </div>
           </form>

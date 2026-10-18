@@ -24,6 +24,7 @@ const navItems = [
   { name: "Tickets", path: "/tickets" },
   { name: "Categories", path: "/ticket-categories" },
   { name: "Users", path: "/users" },
+  { name: "Roles", path: "/roles" },
   { name: "Profile", path: "/profile" },
 ];
 
@@ -118,14 +119,14 @@ function TopNavbarInner() {
     if (!user) {
       return item.name === "Products";
     }
-    if (user?.role === "Student" || user?.role === "NormalUser") {
+    if (user?.role === "Student" || user?.role === "User") {
       // Licenses and Tickets are tabs on the profile page for customers.
       return item.name === "Home" || item.name === "Products" || item.name === "Profile";
     }
     if (user?.role === "Editor") {
       return item.name === "Home" || item.name === "Products" || item.name === "Profile";
     }
-    return true; // SuperAdmin/Admin sees all
+    return true; // Admin sees all
   });
 
   return (
@@ -385,9 +386,7 @@ function TopNavbarInner() {
                     <span style={{
                       fontSize: '0.65rem', fontWeight: 800,
                       letterSpacing: '0.05em', textTransform: 'uppercase',
-                      color: user.role === 'SuperAdmin' ? '#c084fc'
-                           : user.role === 'SystemAdmin' ? '#8b5cf6'
-                           : user.role === 'Admin' ? '#3b82f6'
+                      color: user.role === 'Admin' ? '#3b82f6'
                            : user.role === 'Student' ? '#eab308'
                            : user.role === 'Sales' ? '#10b981'
                            : user.role === 'Support' ? '#14b8a6'
@@ -577,7 +576,7 @@ function TopNavbarInner() {
             )}
 
             {/* Upgrade button (kept in navbar) */}
-            {user && user.role === "NormalUser" && (
+            {user && user.role === "User" && (
               <div className="desktop-only" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <button
                   onClick={() => setShowUpgradeModal(true)}
@@ -668,7 +667,7 @@ function TopNavbarInner() {
                     <div style={{ color: "var(--text-muted)", fontSize: "0.8rem", marginTop: "2px", fontWeight: 500 }}>Role: {user.role}</div>
                   </div>
                 </div>
-                {user.role === "NormalUser" && (
+                {user.role === "User" && (
                   <button
                     onClick={() => {
                       setMobileMenuOpen(false);

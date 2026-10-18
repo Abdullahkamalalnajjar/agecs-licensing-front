@@ -17,6 +17,9 @@ interface CartSidebarProps {
   onClose: () => void;
 }
 
+// A package has no period of its own; each license inside it takes its variation's period.
+const isPackage = (item: { itemType?: string | null }) => item.itemType?.toLowerCase() === "package";
+
 const formatPeriod = (days?: number | null) => {
   if (!days) return "Lifetime";
   if (days % 365 === 0) return `${days / 365} Year${days / 365 > 1 ? "s" : ""}`;
@@ -133,7 +136,7 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
           },
           items: cart.items.map((item) => ({
             name: item.itemName ?? "License",
-            description: `Qty: ${item.quantity} • Period: ${formatPeriod(item.period)}`,
+            description: `Qty: ${item.quantity}${isPackage(item) ? "" : ` • Period: ${formatPeriod(item.period)}`}`,
             amountInMinorUnits: Math.round((item.unitPrice ?? 0) * 100),
             quantity: item.quantity ?? 1,
           })),
@@ -271,7 +274,7 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                     <div>
                       <h4 style={{ margin: "0 0 0.35rem 0", color: "var(--text-primary)", fontSize: '1rem', fontWeight: 700 }}>{item.itemName}</h4>
                       <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--text-secondary)", fontWeight: 600, letterSpacing: '0.02em', textTransform: 'uppercase' }}>
-                        Qty: {item.quantity} • Period: {formatPeriod(item.period)}
+                        Qty: {item.quantity}{!isPackage(item) && <> • Period: {formatPeriod(item.period)}</>}
                       </p>
                       <p style={{ margin: "0.5rem 0 0 0", fontWeight: 800, fontSize: '1.15rem', color: "var(--primary-color)" }}>
                         ${item.unitPrice?.toFixed(2)}

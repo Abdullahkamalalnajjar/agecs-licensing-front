@@ -1,10 +1,11 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
-import { getApiTicketCategories, deleteApiTicketCategoriesById } from "@/client";
+import { getApiTicketCategories, deleteApiTicketCategoriesById, putApiTicketCategoriesReorder, patchApiTicketCategoriesByIdActive } from "@/client";
 import { client } from "@/client/client.gen";
 import { useRouter } from "next/navigation";
 import TicketCategoryFormModal from "@/components/TicketCategoryFormModal";
 import { TicketCategoryDto } from "@/client/types.gen";
+import "@/components/product-form.css";
 
 export default function TicketCategoriesPage() {
   const [categories, setCategories] = useState<TicketCategoryDto[]>([]);
@@ -12,6 +13,8 @@ export default function TicketCategoriesPage() {
   const [error, setError] = useState("");
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<TicketCategoryDto | null>(null);
+  const [reordering, setReordering] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
   const router = useRouter();
 
   const fetchCategories = useCallback(async () => {
@@ -54,6 +57,52 @@ export default function TicketCategoriesPage() {
       }
     } catch (err: any) {
       setError(err.message || "Error deleting category.");
+    }
+  };
+
+  // Swaps a category with its neighbour and saves the whole order; the list goes back if the save fails.
+  const move = async (index: number, direction: -1 | 1) => {
+    const target = index + direction;
+    if (target < 0 || target >= categories.length) return;
+    const previous = categories;
+    const next = [...categories];
+    [next[index], next[target]] = [next[target], next[index]];
+    setCategories(next);
+    setError("");
+    setReordering(true);
+    try {
+      const res = await putApiTicketCategoriesReorder({ body: { categoryIds: next.map((c) => c.id!) }, throwOnError: false });
+      if (res.error || res.data?.isError) {
+        setCategories(previous);
+        setError(res.data?.errors?.map((e) => e.description).filter(Boolean).join(", ") || "Failed to save the new order.");
+      }
+    } catch (err) {
+      setCategories(previous);
+      setError((err instanceof Error && err.message) || "Failed to save the new order.");
+    } finally {
+      setReordering(false);
+    }
+  };
+
+  // Flips the switch right away and puts it back if the save fails.
+  const toggleActive = async (category: TicketCategoryDto) => {
+    const isActive = !category.isActive;
+    const setActive = (value: boolean) =>
+      setCategories((prev) => prev.map((c) => (c.id === category.id ? { ...c, isActive: value } : c)));
+    setActive(isActive);
+    setError("");
+    setTogglingId(category.id!);
+    try {
+      const res = await patchApiTicketCategoriesByIdActive({ path: { id: category.id! }, body: { isActive }, throwOnError: false });
+      if (res.error || res.data?.isError) {
+        setActive(!isActive);
+        setError(res.data?.errors?.map((e) => e.description).filter(Boolean).join(", ") || "Failed to update the status.");
+      }
+    } catch (err) {
+      setActive(!isActive);
+      setError((err instanceof Error && err.message) || "Failed to update the status.");
+    } finally {
+      setTogglingId(null);
     }
   };
 
@@ -118,15 +167,29 @@ export default function TicketCategoriesPage() {
                 </td>
               </tr>
             ) : (
-              categories.map((category) => (
+              categories.map((category, index) => (
                 <tr key={category.id}>
                   <td className="fw-medium">{category.name}</td>
                   <td style={{ color: "var(--text-secondary)" }}>{category.description || "—"}</td>
-                  <td><span className="badge badge-neutral">#{category.order}</span></td>
                   <td>
-                    {category.isActive
-                      ? <span className="badge badge-success">Active</span>
-                      : <span className="badge badge-danger">Inactive</span>}
+                    <div className="table-actions">
+                      <button type="button" className="btn-ghost" onClick={() => move(index, -1)} disabled={reordering || index === 0} aria-label="Move up" title="Move up">↑</button>
+                      <button type="button" className="btn-ghost" onClick={() => move(index, 1)} disabled={reordering || index === categories.length - 1} aria-label="Move down" title="Move down">↓</button>
+                    </div>
+                  </td>
+                  <td>
+                    <label
+                      title={category.isActive ? "Active — click to deactivate" : "Inactive — click to activate"}
+                      style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", opacity: togglingId === category.id ? 0.6 : 1 }}
+                    >
+                      <span className="pf-toggle-switch">
+                        <input type="checkbox" checked={!!category.isActive} disabled={togglingId === category.id} onChange={() => toggleActive(category)} aria-label={`${category.name} active`} />
+                        <span className="pf-toggle-track" />
+                      </span>
+                      <span style={{ fontSize: "0.85rem", color: category.isActive ? "var(--success)" : "var(--text-muted)" }}>
+                        {category.isActive ? "Active" : "Inactive"}
+                      </span>
+                    </label>
                   </td>
                   <td>
                     <div className="table-actions">

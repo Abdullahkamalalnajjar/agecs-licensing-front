@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import {
   getApiLicenses,
   getApiProducts,
@@ -58,7 +58,7 @@ const errorText = (data: any, fallback: string) =>
 const fmtDate = (iso?: string | null) =>
   iso ? new Date(iso).toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" }) : "—";
 
-const seatsUsed = (l: License) => l.usedCount ?? (l.clients || []).filter((c) => c.isActive !== false).length;
+const seatsUsed = (l: License) => l.usedCount ?? (l.hwids || []).length;
 
 function daysLeft(l: License, now: number) {
   if (!l.expiryDate || l.willExpire === false) return null;
@@ -205,7 +205,7 @@ export default function LicensesView({ embedded = false }: { embedded?: boolean 
     try { localStorage.setItem(SORT_STORAGE_KEY, value); } catch { /* storage unavailable */ }
   };
 
-  const isStaff = user != null && user.role !== "Student" && user.role !== "NormalUser";
+  const isStaff = user != null && user.role !== "Student" && user.role !== "User";
 
   const fetchLicenses = useCallback(async () => {
     if (!user) return;
@@ -246,6 +246,24 @@ export default function LicensesView({ embedded = false }: { embedded?: boolean 
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchLicenses(); }, [fetchLicenses]);
+
+  // ?license=<id> (e.g. from a user's licenses modal) narrows the list to that license and highlights it.
+  const [focusId, setFocusId] = useState<string | null>(null);
+  const focusApplied = useRef(false);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { setFocusId(new URLSearchParams(window.location.search).get("license")); }, []);
+
+  useEffect(() => {
+    if (!focusId || loading || focusApplied.current) return;
+    const target = licenses.find((l) => l.id === focusId);
+    if (!target) return;
+    focusApplied.current = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSearch(target.serial || target.email || target.name || "");
+    setStatus("all");
+    setType("all");
+    requestAnimationFrame(() => document.getElementById(`license-${focusId}`)?.scrollIntoView({ behavior: "smooth", block: "center" }));
+  }, [focusId, loading, licenses]);
 
   const productName = useCallback((l: License) => {
     if (l.productName) return l.productName;
@@ -519,7 +537,11 @@ export default function LicensesView({ embedded = false }: { embedded?: boolean 
             </thead>
             <tbody>
               {filtered.map((l, index) => (
-                <tr key={l.id} className={!l.isActive || isExpired(l, now) ? "is-dim" : ""}>
+                <tr
+                  key={l.id}
+                  id={`license-${l.id}`}
+                  className={`${!l.isActive || isExpired(l, now) ? "is-dim" : ""} ${l.id === focusId ? "is-focused" : ""}`}
+                >
                   <td>
                     <div className="lc-order" title={canReorder ? undefined : reorderHint}>
                       <span className="lc-order-num">{index + 1}</span>
@@ -567,7 +589,7 @@ export default function LicensesView({ embedded = false }: { embedded?: boolean 
           {filtered.map((l) => {
             const d = daysLeft(l, now);
             const expired = isExpired(l, now);
-            const devices = (l.clients || []).filter((c) => c.isActive !== false);
+            const devices = l.hwids || [];
             return (
               <article key={l.id} className={`lc-card ${expired || !l.isActive ? "is-dim" : ""}`}>
                 <header className="lc-card-head">
@@ -593,11 +615,10 @@ export default function LicensesView({ embedded = false }: { embedded?: boolean 
 
                 {devices.length > 0 && (
                   <ul className="lc-devices" aria-label="Activated devices">
-                    {devices.slice(0, 3).map((c) => (
-                      <li key={c.id}>
+                    {devices.slice(0, 3).map((hwid) => (
+                      <li key={hwid}>
                         <Svg size={13}>{Icon.monitor}</Svg>
-                        <span className="lc-device-name">{c.deviceName || "Unnamed device"}</span>
-                        {c.lastUsedAt && <span className="pr-muted">· {fmtDate(c.lastUsedAt)}</span>}
+                        <span className="lc-device-name">{hwid}</span>
                       </li>
                     ))}
                     {devices.length > 3 && <li className="pr-muted">+{devices.length - 3} more</li>}

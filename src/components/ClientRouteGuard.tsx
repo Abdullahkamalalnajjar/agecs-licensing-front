@@ -20,13 +20,13 @@ export function ClientRouteGuard({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if ((user.role === "Student" || user.role === "NormalUser")) {
+    if ((user.role === "Student" || user.role === "User")) {
       // Students can access home, tickets, products, profile, their own licenses, and the checkout result pages
       if (!pathname.startsWith("/home") && !pathname.startsWith("/tickets") && !pathname.startsWith("/products") && !pathname.startsWith("/profile") && !pathname.startsWith("/checkout") && !pathname.startsWith("/licenses")) {
         router.push("/home");
       }
     }
-    // SuperAdmin/Admin can access everything, no redirect needed
+    // Admin can access everything, no redirect needed
   }, [user, loading, pathname, router]);
 
   if (loading) {
@@ -47,7 +47,7 @@ export function ClientRouteGuard({ children }: { children: React.ReactNode }) {
   }
 
   // Prevent flash of unauthorized content for normal users
-  if ((user.role === "Student" || user.role === "NormalUser") && !pathname.startsWith("/home") && !pathname.startsWith("/tickets") && !pathname.startsWith("/products") && !pathname.startsWith("/profile") && !pathname.startsWith("/checkout") && !pathname.startsWith("/licenses")) {
+  if ((user.role === "Student" || user.role === "User") && !pathname.startsWith("/home") && !pathname.startsWith("/tickets") && !pathname.startsWith("/products") && !pathname.startsWith("/profile") && !pathname.startsWith("/checkout") && !pathname.startsWith("/licenses")) {
     return null;
   }
 

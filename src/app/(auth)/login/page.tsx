@@ -45,7 +45,7 @@ export default function LoginPage() {
           const decoded: any = jwtDecode(token);
           let role = decoded.role || decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
           if (Array.isArray(role)) role = role[0];
-          if (role === "NormalUser" || role === "Student") {
+          if (role === "User" || role === "Student") {
             router.push("/home");
           } else if (role === "Admin") {
             router.push("/products");
@@ -95,7 +95,7 @@ export default function LoginPage() {
           let role = decoded.role || decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
           if (Array.isArray(role)) role = role[0];
           
-          if (role === "NormalUser" || role === "Student") {
+          if (role === "User" || role === "Student") {
             router.push("/home");
           } else if (role === "Admin") {
             router.push("/products");

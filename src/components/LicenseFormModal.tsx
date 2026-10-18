@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { postApiLicenses, putApiLicensesById, postIdentityClients } from "@/client";
+import { postApiLicenses, putApiLicensesById, postIdentityClients, postApiLicensesAdminByIdHwids, deleteApiLicensesAdminByIdHwidsByHwid } from "@/client";
+import { useAuth } from "./AuthProvider";
 import { ClientDto, ProductDto } from "@/client/types.gen";
 import ClientPicker from "./ClientPicker";
 import "./client-picker.css";
@@ -9,6 +10,9 @@ import "./client-picker.css";
 const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:5003";
 
 type ClientMode = "existing" | "new";
+
+/** Only these roles may call the HWID endpoints (POST/DELETE /api/licenses/admin/{id}/hwids). */
+const HWID_ROLES = ["Admin"];
 const emptyNewClient = { email: "", userName: "", password: "" };
 
 type LicenseFormModalProps = {
@@ -42,13 +46,22 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
   const [generatedLicense, setGeneratedLicense] = useState<any>(null);
   const [copied, setCopied] = useState(false);
 
-  // Create mode: issue to an existing account, or create a NormalUser account first.
+  // Create mode: issue to an existing account, or create a User account first.
   const [clientMode, setClientMode] = useState<ClientMode>("existing");
   const [selectedClient, setSelectedClient] = useState<ClientDto | null>(null);
   const [newClient, setNewClient] = useState(emptyNewClient);
   // Set once the account exists, so a retry after a failed license doesn't try to create it again.
   const [createdClient, setCreatedClient] = useState<ClientDto | null>(null);
   const [passwordCopied, setPasswordCopied] = useState(false);
+
+  // Devices (HWIDs). They live in JanDrozd, so they're added/removed through the HWID endpoints after the license
+  // itself is saved; in edit mode only the difference from what the license already had is sent.
+  const { user } = useAuth();
+  const canManageHwids = !!user && HWID_ROLES.includes(user.role);
+  const [hwids, setHwids] = useState<string[]>([]);
+  const [originalHwids, setOriginalHwids] = useState<string[]>([]);
+  const [hwidInput, setHwidInput] = useState("");
+  const [hwidReport, setHwidReport] = useState("");
 
   const topLevelProducts = products.filter(p => !p.parentProductId);
 
@@ -71,6 +84,17 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
       setNewClient(emptyNewClient);
       setCreatedClient(null);
       setPasswordCopied(false);
+      setHwids([]);
+      setOriginalHwids([]);
+      setHwidInput("");
+      setHwidReport("");
+
+      // The license response carries its registered HWIDs, so editing starts from them.
+      if (initialData?.janDrozdId) {
+        const current: string[] = initialData.hwids ?? [];
+        setHwids(current);
+        setOriginalHwids(current);
+      }
 
       if (initialData) {
         setLicenseData({
@@ -120,7 +144,7 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
         setSelectedParentId("");
       }
     }
-  }, [isOpen, initialData, products]);
+  }, [isOpen, initialData, products, canManageHwids]);
 
   const availableVariants = selectedParentId ? getVariants(selectedParentId) : [];
 
@@ -148,10 +172,68 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
     }));
   };
 
+  /** Whether HWIDs can be attached: the product (a variation counts through its parent) is linked to JanDrozd. */
+  const productLinkedToJanDrozd = (() => {
+    if (isEditing) return !!initialData?.janDrozdId;
+    if (!licenseData.productId) return false;
+    const direct = products.find((p) => p.id === licenseData.productId);
+    const parent = direct?.parentProductId
+      ? products.find((p) => p.id === direct.parentProductId)
+      : products.find((p) => p.children?.some((c) => c.id === licenseData.productId));
+    if (direct && !direct.parentProductId && !parent) return !!direct.janDrozdId;
+    return !!(parent ?? direct)?.janDrozdId;
+  })();
+  const hwidsDisabledReason = !canManageHwids
+    ? "Only admins can register devices."
+    : !productLinkedToJanDrozd
+      ? (isEditing ? "This license isn't in JanDrozd, so devices can't be registered." : "This product isn't linked to JanDrozd, so devices can't be registered.")
+      : "";
+  const seatLimit = Math.max(1, Number(licenseData.licenseCount) || 1);
+  const tooManyHwids = !hwidsDisabledReason && hwids.length > seatLimit;
+
+  const addHwidFromInput = () => {
+    // Several can be pasted at once, one per line or comma-separated.
+    const entered = hwidInput.split(/[\n,]+/).map((h) => h.trim()).filter(Boolean);
+    if (entered.length === 0) return;
+    setHwids((prev) => Array.from(new Set([...prev, ...entered])));
+    setHwidInput("");
+  };
+
+  /** Removes HWIDs one by one, adds the new ones in a single call, and returns the ones that failed with the reason. */
+  const syncHwids = async (licenseId: string, toAdd: string[], toRemove: string[]) => {
+    type ApiErrors = { errors?: { description?: string | null }[] | null; title?: string; isError?: boolean };
+    // Failed calls come back as a Result body (data) or a problem-details body (error); both list "errors".
+    const failedReason = (res: { data?: unknown; error?: unknown }) => {
+      const data = res.data as ApiErrors | undefined;
+      const error = res.error as ApiErrors | undefined;
+      if (!error && !data?.isError) return null;
+      return [...(data?.errors ?? []), ...(error?.errors ?? [])].map((e) => e.description).filter(Boolean).join(", ")
+        || error?.title || "failed";
+    };
+    const failures: string[] = [];
+    for (const hwid of toRemove) {
+      const why = failedReason(await deleteApiLicensesAdminByIdHwidsByHwid({ path: { id: licenseId, hwid }, throwOnError: false }));
+      if (why) failures.push(`remove ${hwid} (${why})`);
+    }
+    if (toAdd.length > 0) {
+      const res = await postApiLicensesAdminByIdHwids({ path: { id: licenseId }, body: { hwids: toAdd }, throwOnError: false });
+      const why = failedReason(res);
+      // The whole call failed, or JanDrozd accepted some and rejected the rest.
+      const rejected = why ? toAdd : res.data?.value?.failed ?? [];
+      for (const hwid of rejected) failures.push(`add ${hwid} (${why || "rejected by JanDrozd"})`);
+    }
+    return failures;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (tooManyHwids) {
+      setError(`This license allows ${seatLimit} device${seatLimit !== 1 ? "s" : ""}; remove some HWIDs or raise the license count.`);
+      return;
+    }
     setSaving(true);
     setError("");
+    setHwidReport("");
 
     try {
       let userId = licenseData.userId;
@@ -234,6 +316,20 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
         });
 
         if (response.data !== undefined && response.error === undefined) {
+          if (!hwidsDisabledReason) {
+            const toAdd = hwids.filter((h) => !originalHwids.includes(h));
+            const toRemove = originalHwids.filter((h) => !hwids.includes(h));
+            const failures = await syncHwids(initialData.id, toAdd, toRemove);
+            if (failures.length > 0) {
+              // The license itself is saved; keep the form open so the devices can be retried.
+              const ok = new Set([...originalHwids.filter((h) => !toRemove.includes(h) || failures.some((f) => f.startsWith(`remove ${h} `))),
+                ...toAdd.filter((h) => !failures.some((f) => f.startsWith(`add ${h} `)))]);
+              setOriginalHwids(Array.from(ok));
+              setError(`License saved, but some devices weren't updated: ${failures.join("; ")}.`);
+              onSuccess();
+              return;
+            }
+          }
           onSuccess();
           onClose();
         } else if (response.error || response.data?.isError) {
@@ -245,6 +341,17 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
 
         if (response.data !== undefined && response.error === undefined) {
           const licenseObj = response.data?.value || response.data;
+          if (hwids.length > 0 && !hwidsDisabledReason && licenseObj?.id) {
+            if (!licenseObj.janDrozdId) {
+              setHwidReport(`Devices not registered: the license wasn't issued through JanDrozd.`);
+            } else {
+              const failures = await syncHwids(licenseObj.id, hwids, []);
+              const added = hwids.length - failures.length;
+              setHwidReport(failures.length === 0
+                ? `${added} device${added !== 1 ? "s" : ""} registered.`
+                : `${added} of ${hwids.length} devices registered. Failed: ${failures.join("; ")}. Add them from the license's HWID list.`);
+            }
+          }
           setGeneratedLicense(licenseObj);
         } else if (response.error || response.data?.isError) {
           const errorMsg = response.error?.title || response.error?.detail || response.data?.errors?.map((err: any) => err.description).filter(Boolean).join(", ") || "Failed to create license.";
@@ -460,6 +567,13 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
               </div>
             </div>
 
+            {hwidReport && (
+              <div className={hwidReport.includes("Failed") || hwidReport.startsWith("Devices not") ? "alert-error" : ""}
+                style={hwidReport.includes("Failed") || hwidReport.startsWith("Devices not") ? undefined : { fontSize: "0.85rem", color: "var(--success)", fontWeight: 600 }}>
+                {hwidReport}
+              </div>
+            )}
+
             {/* Actions */}
             <div style={{ display: "flex", gap: "0.75rem", marginTop: "0.5rem" }}>
               <button
@@ -579,7 +693,7 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                               placeholder="At least 6 characters"
                               value={newClient.password} onChange={(e) => setNewClient(c => ({ ...c, password: e.target.value }))} />
                           </div>
-                          <p className="lf-note">A member account (NormalUser) is created first, then the license is issued to it. The client signs in with the email.</p>
+                          <p className="lf-note">A member account (User) is created first, then the license is issued to it. The client signs in with the email.</p>
                         </>
                       )}
                     </div>
@@ -736,6 +850,53 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                         onChange={(e) => setLicenseData(prev => ({ ...prev, expiryDate: e.target.value }))}
                       />
                     </div>
+                  </div>
+
+                  {/* Devices (HWIDs) */}
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                      <label htmlFor="hwidInput" className="form-label">Devices / HWIDs (optional)</label>
+                      {!hwidsDisabledReason && (
+                        <span style={{ fontSize: "0.75rem", fontWeight: 600, color: tooManyHwids ? "var(--danger)" : "var(--text-muted)" }}>
+                          {hwids.length} / {seatLimit}
+                        </span>
+                      )}
+                    </div>
+                    {hwidsDisabledReason ? (
+                      <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--text-muted)" }}>{hwidsDisabledReason}</p>
+                    ) : (
+                      <>
+                        <div style={{ display: "flex", gap: "0.5rem" }}>
+                          <input
+                            id="hwidInput"
+                            type="text"
+                            className="form-input"
+                            placeholder="Paste a HWID and press Enter"
+                            value={hwidInput}
+                            onChange={(e) => setHwidInput(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addHwidFromInput(); } }}
+                            style={{ fontFamily: "var(--font-mono)" }}
+                          />
+                          <button type="button" className="btn-ghost" onClick={addHwidFromInput} disabled={!hwidInput.trim()}>Add</button>
+                        </div>
+                        {hwids.length > 0 && (
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginTop: "0.5rem" }}>
+                            {hwids.map((h) => (
+                              <span key={h} style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", padding: "0.2rem 0.3rem 0.2rem 0.6rem", borderRadius: "999px", border: "1px solid var(--border)", background: "var(--bg-elevated)", fontFamily: "var(--font-mono)", fontSize: "0.78rem", maxWidth: "100%" }}>
+                                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={h}>{h}</span>
+                                <button type="button" onClick={() => setHwids((prev) => prev.filter((x) => x !== h))} aria-label={`Remove ${h}`} title="Remove"
+                                  style={{ border: "none", background: "transparent", color: "var(--text-muted)", cursor: "pointer", padding: "0 0.2rem", lineHeight: 1, fontSize: "1rem" }}>×</button>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        <p style={{ margin: "0.35rem 0 0", fontSize: "0.76rem", color: tooManyHwids ? "var(--danger)" : "var(--text-muted)" }}>
+                          {tooManyHwids
+                            ? `More devices than the license count (${seatLimit}). Remove some or raise the count.`
+                            : isEditing ? "Removing a device here unregisters it in JanDrozd when you save." : "Registered in JanDrozd right after the license is created."}
+                        </p>
+                      </>
+                    )}
                   </div>
 
                   {/* Trial Toggle */}

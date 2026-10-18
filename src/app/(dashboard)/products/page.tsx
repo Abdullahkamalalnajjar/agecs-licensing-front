@@ -117,7 +117,7 @@ export default function ProductsPage() {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setView(readViewMode()); }, []);
 
-  const isAdmin = user != null && user.role !== "Student" && user.role !== "NormalUser";
+  const isAdmin = user != null && user.role !== "Student" && user.role !== "User";
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);

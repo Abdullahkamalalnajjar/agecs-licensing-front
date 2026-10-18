@@ -89,6 +89,8 @@
 /* ---------- Staff table ---------- */
 .lc-table tbody tr.is-dim .lc-client,
 .lc-table tbody tr.is-dim .lc-product { opacity: 0.6; }
+.lc-table tbody tr.is-focused td { background: var(--accent-dim); }
+.lc-table tbody tr.is-focused td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
 
 .lc-client { display: flex; align-items: center; gap: 0.7rem; min-width: 200px; }
 

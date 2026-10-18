@@ -51,7 +51,7 @@ function IconButton({ title, onClick, tone = "accent", disabled, children }: {
 
 export default function HeroSlidesPage() {
   const { user } = useAuth();
-  const isAdmin = user != null && user.role !== "Student" && user.role !== "NormalUser";
+  const isAdmin = user != null && user.role !== "Student" && user.role !== "User";
   const { success, error: toastError } = useToast();
 
   const [slides, setSlides] = useState<HeroSlideDto[]>([]);

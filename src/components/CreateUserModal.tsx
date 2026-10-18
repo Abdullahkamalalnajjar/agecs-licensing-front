@@ -5,10 +5,10 @@ import { postIdentitySignup } from "@/client";
 
 const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:5003";
 
-const ROLES = ["NormalUser", "Student", "User", "Editor", "Sales", "Admin", "SystemAdmin", "SuperAdmin"] as const;
+const ROLES = ["User", "Student", "Editor", "Sales", "Admin"] as const;
 // The API requires a city and phone number for these roles only.
-const CUSTOMER_ROLES = new Set(["NormalUser", "Student", "User"]);
-const STAFF_ROLES = new Set(["Editor", "Sales", "Admin", "SystemAdmin", "SuperAdmin"]);
+const CUSTOMER_ROLES = new Set(["User", "Student"]);
+const STAFF_ROLES = new Set(["Editor", "Sales", "Admin"]);
 
 const errorText = (data: unknown, fallback: string) => {
   const d = data as { errors?: unknown; title?: string } | undefined;
@@ -21,8 +21,13 @@ const errorText = (data: unknown, fallback: string) => {
  * Admin-only account creation with a chosen role (POST /identity/signup, which requires an admin token).
  * The API also returns a token for the new account; it's ignored so the admin stays signed in as themselves.
  */
-export default function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreated: (email: string) => void }) {
-  const [form, setForm] = useState({ email: "", password: "", role: "NormalUser", city: "", phoneNumber: "" });
+export default function CreateUserModal({ onClose, onCreated, customRoles = [] }: {
+  onClose: () => void;
+  onCreated: (email: string) => void;
+  /** Roles added from the Roles page; the API treats them as staff roles. */
+  customRoles?: string[];
+}) {
+  const [form, setForm] = useState({ email: "", password: "", role: "User", city: "", phoneNumber: "" });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -45,7 +50,7 @@ export default function CreateUserModal({ onClose, onCreated }: { onClose: () =>
         },
         throwOnError: false,
       });
-      if (res.response?.status === 403) throw new Error("Only Admin, SystemAdmin and SuperAdmin accounts can create users.");
+      if (res.response?.status === 403) throw new Error("Only Admin accounts can create users.");
       if (res.error || !res.data?.isSuccess) throw new Error(errorText(res.error ?? res.data, "Failed to create the user."));
       onCreated(form.email.trim());
       onClose();
@@ -86,6 +91,11 @@ export default function CreateUserModal({ onClose, onCreated }: { onClose: () =>
                 <label className="form-label" htmlFor="cuRole">Role *</label>
                 <select id="cuRole" className="form-input" value={form.role} onChange={(e) => set({ role: e.target.value })} style={{ appearance: "auto" }}>
                   {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+                  {customRoles.length > 0 && (
+                    <optgroup label="Custom roles">
+                      {customRoles.map((r) => <option key={r} value={r}>{r}</option>)}
+                    </optgroup>
+                  )}
                 </select>
               </div>
             </div>
