@@ -1,16 +1,18 @@
 "use client";
 
 import React, { useState } from "react";
-import { postApiLicensesByIdRenew } from "@/client";
+import { postApiLicensesByIdRenew, postApiLicensesPackageGroupsByPackageGroupIdRenew } from "@/client";
 
 interface RenewLicenseModalProps {
   licenseId: string;
+  /** Set to renew every license of a package at once instead of one license. */
+  packageGroupId?: string | null;
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export default function RenewLicenseModal({ licenseId, isOpen, onClose, onSuccess }: RenewLicenseModalProps) {
+export default function RenewLicenseModal({ licenseId, packageGroupId, isOpen, onClose, onSuccess }: RenewLicenseModalProps) {
   const [period, setPeriod] = useState(12);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -24,11 +26,13 @@ export default function RenewLicenseModal({ licenseId, isOpen, onClose, onSucces
     setError("");
 
     try {
-      const res = await postApiLicensesByIdRenew({
-        path: { id: licenseId },
-        body: { period },
-        throwOnError: false,
-      });
+      const res = packageGroupId
+        ? await postApiLicensesPackageGroupsByPackageGroupIdRenew({ path: { packageGroupId }, body: { period }, throwOnError: false })
+        : await postApiLicensesByIdRenew({
+            path: { id: licenseId },
+            body: { period },
+            throwOnError: false,
+          });
 
       if ((res.data as any)?.isSuccess || res.response?.status === 200 || res.response?.status === 204) {
         setSuccess(true);
@@ -72,8 +76,8 @@ export default function RenewLicenseModal({ licenseId, isOpen, onClose, onSucces
               </svg>
             </div>
             <div>
-              <h2 className="modal-title" style={{ fontSize: "1.1rem", margin: 0 }}>Renew License</h2>
-              <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--text-muted)" }}>Extend the license expiry date</p>
+              <h2 className="modal-title" style={{ fontSize: "1.1rem", margin: 0 }}>{packageGroupId ? "Renew Package" : "Renew License"}</h2>
+              <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--text-muted)" }}>{packageGroupId ? "Extend every license in the package" : "Extend the license expiry date"}</p>
             </div>
           </div>
           <button type="button" className="modal-close" onClick={handleClose} disabled={loading}>

@@ -95,7 +95,7 @@ export default function UserLicensesModal({ user, onClose }: { user: AppUserDto;
                           title="Open on the licenses page"
                           disabled={!license.id}
                         >
-                          <span className="ul-product">{license.productName || "Unknown product"}</span>
+                          <span className="ul-product">{license.kind === "package" ? `📦 ${license.packageName || "Package"}` : license.productName || "Unknown product"}</span>
                           <span className="ul-meta">
                             <span>{license.isTrial ? "Trial" : "Full"}</span>
                             <span>Expires: {expiry}</span>
@@ -110,7 +110,7 @@ export default function UserLicensesModal({ user, onClose }: { user: AppUserDto;
                           title={license.serial ? "Copy serial" : undefined}
                           disabled={!license.serial}
                         >
-                          {copiedId === license.id ? "Copied!" : license.serial || "No serial"}
+                          {copiedId === license.id ? "Copied!" : license.kind === "package" ? `${license.licenses?.length ?? 0} serials` : license.serial || "No serial"}
                         </button>
 
                         <span className={`ul-status is-${status.tone}`}>{status.label}</span>

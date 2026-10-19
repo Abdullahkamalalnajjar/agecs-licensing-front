@@ -7,6 +7,8 @@ import {
   deleteApiLicensesById,
   postApiLicensesAdminByIdRevoke,
   putApiLicensesReorder,
+  postApiLicensesPackageGroupsByPackageGroupIdRevoke,
+  deleteApiLicensesPackageGroupsByPackageGroupId,
 } from "@/client";
 import { client } from "@/client/client.gen";
 import { useRouter } from "next/navigation";
@@ -18,6 +20,8 @@ import RenewalCheckoutModal from "@/components/RenewalCheckoutModal";
 import MigrateHwidModal from "@/components/MigrateHwidModal";
 import HwidListModal from "@/components/HwidListModal";
 import DiagnosticModal from "@/components/DiagnosticModal";
+import PackageLicensesModal from "@/components/PackageLicensesModal";
+import PackageLicenseEditModal from "@/components/PackageLicenseEditModal";
 import type { LicenseDto, ProductDto } from "@/client/types.gen";
 import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/components/ToastProvider";
@@ -29,6 +33,8 @@ type License = LicenseDto & { usedCount?: number; migrationCount?: number };
 type StatusFilter = "all" | "active" | "inactive" | "expiring" | "expired";
 type TypeFilter = "all" | "paid" | "trial";
 type SortKey = "manual" | "newest" | "oldest" | "expiry" | "client" | "product";
+/** A table row / card: one license, or the licenses issued together for one package. */
+type Row = { kind: "license"; license: License } | { kind: "package"; key: string; name: string; entry: License; licenses: License[] };
 
 const SORT_OPTIONS: [SortKey, string][] = [
   ["manual", "Manual order"],
@@ -89,6 +95,8 @@ const Icon = {
   check: <path d="M20 6 9 17l-5-5" />,
   close: <><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></>,
   copy: <><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></>,
+  box: <><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /><polyline points="3.27 6.96 12 12.01 20.73 6.96" /><line x1="12" y1="22.08" x2="12" y2="12" /></>,
+  chevron: <polyline points="9 18 15 12 9 6" />,
   monitor: <><rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></>,
   lock: <><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></>,
   alert: <><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></>,
@@ -195,6 +203,10 @@ export default function LicensesView({ embedded = false }: { embedded?: boolean 
   const [type, setType] = useState<TypeFilter>("all");
   const [sort, setSort] = useState<SortKey>("manual");
   const [reordering, setReordering] = useState(false);
+  // A package row acts like one license: these hold the package being viewed / edited / renewed.
+  const [viewPackageKey, setViewPackageKey] = useState<string | null>(null);
+  const [editPackageKey, setEditPackageKey] = useState<string | null>(null);
+  const [renewPackageKey, setRenewPackageKey] = useState<string | null>(null);
 
   // Read after mount so server and client render the same markup first
   // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -271,16 +283,23 @@ export default function LicensesView({ embedded = false }: { embedded?: boolean 
     return p ? `${p.name}${p.version ? ` ${p.version}` : ""}` : "Unknown product";
   }, [products]);
 
-  const runAction = async (id: string, action: "revoke" | "delete") => {
+  // id is a license id, or a package group id when isPackage (then every license of the package is affected).
+  const runAction = async (id: string, action: "revoke" | "delete", isPackage = false) => {
     setBusyId(id);
     try {
-      const res = action === "delete"
-        ? await deleteApiLicensesById({ path: { id }, throwOnError: false })
-        : await postApiLicensesAdminByIdRevoke({ path: { id }, throwOnError: false });
+      const res = isPackage
+        ? action === "delete"
+          ? await deleteApiLicensesPackageGroupsByPackageGroupId({ path: { packageGroupId: id }, throwOnError: false })
+          : await postApiLicensesPackageGroupsByPackageGroupIdRevoke({ path: { packageGroupId: id }, throwOnError: false })
+        : action === "delete"
+          ? await deleteApiLicensesById({ path: { id }, throwOnError: false })
+          : await postApiLicensesAdminByIdRevoke({ path: { id }, throwOnError: false });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data = res.data as any;
       if (data?.isSuccess || res.response?.status === 200 || res.response?.status === 204) {
-        success(action === "delete" ? "License deleted." : "License revoked.");
+        success(isPackage
+          ? (action === "delete" ? "Package licenses deleted." : "Package licenses revoked.")
+          : (action === "delete" ? "License deleted." : "License revoked."));
         fetchLicenses();
       } else {
         toastError(errorText(data, `Failed to ${action} license.`));
@@ -312,7 +331,10 @@ export default function LicensesView({ embedded = false }: { embedded?: boolean 
         if (type === "trial" && !l.isTrial) return false;
         if (type === "paid" && l.isTrial) return false;
         if (!q) return true;
-        return [l.serial, l.name, l.email, productName(l)].some((s) => s?.toLowerCase().includes(q));
+        // A package license also matches by its serials and their products.
+        const serials = l.licenses ?? [];
+        return [l.serial, l.name, l.email, productName(l), l.packageName, ...serials.flatMap((s) => [s.serial, s.productName])]
+          .some((s) => s?.toLowerCase().includes(q));
       })
       .sort((a, b) => {
         const created = (l: License) => new Date(l.createdAtUtc || 0).getTime();
@@ -331,6 +353,12 @@ export default function LicensesView({ embedded = false }: { embedded?: boolean 
       });
   }, [licenses, search, status, type, sort, now, productName]);
 
+  // The API returns a package license as one entry (kind "package") with its serials in `licenses`.
+  const rows = useMemo<Row[]>(() => filtered.map((l): Row => l.kind === "package"
+    ? { kind: "package", key: l.id!, name: l.packageName || l.productName || "Package", entry: l, licenses: l.licenses ?? [] }
+    : { kind: "license", license: l }), [filtered]);
+  const rowEntry = (row: Row) => (row.kind === "license" ? row.license : row.entry);
+
   const hasFilters = !!search || status !== "all" || type !== "all";
   const clearFilters = () => { setSearch(""); setStatus("all"); setType("all"); };
 
@@ -338,13 +366,14 @@ export default function LicensesView({ embedded = false }: { embedded?: boolean 
   const canReorder = isStaff && sort === "manual" && !hasFilters;
   const reorderHint = "Clear filters and sort by Manual order to reorder";
 
-  // Moves a license one step, saving the whole new order; rolls back if the save fails.
+  // Moves a row (a license, or a package's licenses together) one step, saving the whole new order; rolls back if the save fails.
   const handleMove = async (index: number, direction: -1 | 1) => {
     const target = index + direction;
-    if (!canReorder || target < 0 || target >= filtered.length) return;
+    if (!canReorder || target < 0 || target >= rows.length) return;
 
-    const next = [...filtered];
-    [next[index], next[target]] = [next[target], next[index]];
+    const nextRows = [...rows];
+    [nextRows[index], nextRows[target]] = [nextRows[target], nextRows[index]];
+    const next = nextRows.map(rowEntry);
     const newOrder = new Map(next.map((l, i) => [l.id, i]));
 
     const previous = licenses;
@@ -387,6 +416,40 @@ export default function LicensesView({ embedded = false }: { embedded?: boolean 
       )}
     </div>
   );
+
+  // Same buttons as a license. Edit / renew / revoke / delete apply to all the package's licenses; devices,
+  // migration and diagnostics belong to each serial, so they open the package's serials.
+  const renderPackageActions = (row: Extract<Row, { kind: "package" }>) => {
+    const anyActive = !!row.entry.isActive;
+    return (
+      <div className="pr-actions">
+        <IconButton title="View serials" onClick={() => setViewPackageKey(row.key)}>{Icon.view}</IconButton>
+        <IconButton title="Edit package" onClick={() => setEditPackageKey(row.key)}>{Icon.edit}</IconButton>
+        <IconButton title="Renew package" tone="green" onClick={() => setRenewPackageKey(row.key)}>{Icon.renew}</IconButton>
+        <IconButton title="Migrate HWID (pick a serial)" tone="purple" onClick={() => setViewPackageKey(row.key)}>{Icon.migrate}</IconButton>
+        <IconButton title="Devices (pick a serial)" tone="purple" onClick={() => setViewPackageKey(row.key)}>{Icon.chip}</IconButton>
+        <IconButton title="Diagnostic (pick a serial)" tone="amber" onClick={() => setViewPackageKey(row.key)}>{Icon.pulse}</IconButton>
+        {confirm && confirm.id === row.key ? (
+          <span className="pr-confirm lc-confirm">
+            <span className="lc-confirm-label">{confirm.action === "delete" ? "Delete all?" : "Revoke all?"}</span>
+            <IconButton title={`Confirm ${confirm.action}`} tone="danger" onClick={() => runAction(row.key, confirm.action, true)} disabled={busyId === row.key}>{Icon.check}</IconButton>
+            <IconButton title="Cancel" onClick={() => setConfirm(null)}>{Icon.close}</IconButton>
+          </span>
+        ) : (
+          <>
+            {anyActive && <IconButton title="Revoke package" tone="danger" onClick={() => setConfirm({ id: row.key, action: "revoke" })}>{Icon.ban}</IconButton>}
+            <IconButton title="Delete package licenses" tone="danger" onClick={() => setConfirm({ id: row.key, action: "delete" })}>{Icon.trash}</IconButton>
+          </>
+        )}
+      </div>
+    );
+  };
+  const packageRow = (key: string | null) => {
+    const row = key ? rows.find((r) => r.kind === "package" && r.key === key) : undefined;
+    return row?.kind === "package" ? row : undefined;
+  };
+  const viewPackage = packageRow(viewPackageKey);
+  const editPackage = packageRow(editPackageKey);
 
   const statCards: [StatusFilter, string, number][] = isStaff
     ? [["all", "Total", stats.total], ["active", "Active", stats.active], ["expiring", `Expiring ≤ ${EXPIRING_DAYS}d`, stats.expiring], ["expired", "Expired", stats.expired]]
@@ -536,27 +599,25 @@ export default function LicensesView({ embedded = false }: { embedded?: boolean 
               </tr>
             </thead>
             <tbody>
-              {filtered.map((l, index) => (
-                <tr
-                  key={l.id}
-                  id={`license-${l.id}`}
-                  className={`${!l.isActive || isExpired(l, now) ? "is-dim" : ""} ${l.id === focusId ? "is-focused" : ""}`}
-                >
+              {rows.map((row, index) => {
+                const orderCell = (label: string) => (
                   <td>
                     <div className="lc-order" title={canReorder ? undefined : reorderHint}>
                       <span className="lc-order-num">{index + 1}</span>
                       <div className="lc-order-btns">
                         <button type="button" className="pr-icon-btn" onClick={() => handleMove(index, -1)}
-                          disabled={!canReorder || reordering || index === 0} aria-label={`Move ${l.name || l.serial} up`}>
+                          disabled={!canReorder || reordering || index === 0} aria-label={`Move ${label} up`}>
                           <Svg size={12}><polyline points="18 15 12 9 6 15" /></Svg>
                         </button>
                         <button type="button" className="pr-icon-btn" onClick={() => handleMove(index, 1)}
-                          disabled={!canReorder || reordering || index === filtered.length - 1} aria-label={`Move ${l.name || l.serial} down`}>
+                          disabled={!canReorder || reordering || index === rows.length - 1} aria-label={`Move ${label} down`}>
                           <Svg size={12}><polyline points="6 9 12 15 18 9" /></Svg>
                         </button>
                       </div>
                     </div>
                   </td>
+                );
+                const clientCell = (l: License) => (
                   <td>
                     <div className="lc-client">
                       <span className="lc-avatar" aria-hidden="true">{(l.name || l.email || "?").charAt(0).toUpperCase()}</span>
@@ -566,27 +627,98 @@ export default function LicensesView({ embedded = false }: { embedded?: boolean 
                       </span>
                     </div>
                   </td>
-                  <td>
-                    <span className="pr-row-text">
-                      <span className="lc-product">{productName(l)}</span>
-                      <span className="pr-row-sub">{l.isTrial ? "Trial" : "Full"}{l.version ? ` · v${l.version}` : ""}</span>
-                    </span>
-                  </td>
-                  <td><CopySerial serial={l.serial} /></td>
-                  <td className="lc-usage-cell">
-                    <Meter used={seatsUsed(l)} total={l.licenseCount ?? 1} label="Seats" />
-                  </td>
-                  <td className="pr-nowrap"><Expiry license={l} now={now} /></td>
-                  <td><StatusBadges license={l} now={now} /></td>
-                  <td>{renderStaffActions(l)}</td>
-                </tr>
-              ))}
+                );
+                const licenseCells = (l: License) => (
+                  <>
+                    <td>
+                      <span className="pr-row-text">
+                        <span className="lc-product">{productName(l)}</span>
+                        <span className="pr-row-sub">{l.isTrial ? "Trial" : "Full"}{l.version ? ` · v${l.version}` : ""}</span>
+                      </span>
+                    </td>
+                    <td><CopySerial serial={l.serial} /></td>
+                    <td className="lc-usage-cell">
+                      <Meter used={seatsUsed(l)} total={l.licenseCount ?? 1} label="Seats" />
+                    </td>
+                    <td className="pr-nowrap"><Expiry license={l} now={now} /></td>
+                    <td><StatusBadges license={l} now={now} /></td>
+                    <td>{renderStaffActions(l)}</td>
+                  </>
+                );
+
+                if (row.kind === "license") {
+                  const l = row.license;
+                  return (
+                    <tr key={l.id} id={`license-${l.id}`}
+                      className={`${!l.isActive || isExpired(l, now) ? "is-dim" : ""} ${l.id === focusId ? "is-focused" : ""}`}>
+                      {orderCell(l.name || l.serial || "license")}
+                      {clientCell(l)}
+                      {licenseCells(l)}
+                    </tr>
+                  );
+                }
+
+                // Package row: laid out like a license row; its serials open from View, not below the row.
+                const pkg = row.entry;
+                return (
+                  <tr key={row.key} id={`license-${row.key}`}
+                    className={`${!pkg.isActive || isExpired(pkg, now) ? "is-dim" : ""} ${row.key === focusId ? "is-focused" : ""}`}>
+                    {orderCell(row.name)}
+                    {clientCell(pkg)}
+                    <td>
+                      <span className="pr-row-text">
+                        <span className="lc-product lc-package-name"><Svg size={14}>{Icon.box}</Svg>{row.name}</span>
+                        <span className="pr-row-sub">Package{pkg.isTrial ? " · Trial" : ""}</span>
+                      </span>
+                    </td>
+                    <td>
+                      <button type="button" className="lc-package-serials" onClick={() => setViewPackageKey(row.key)}>
+                        {row.licenses.length} serial{row.licenses.length !== 1 ? "s" : ""}
+                      </button>
+                    </td>
+                    <td className="lc-usage-cell">
+                      <Meter used={Math.max(0, ...row.licenses.map(seatsUsed))} total={pkg.licenseCount ?? 1} label="Seats" />
+                    </td>
+                    <td className="pr-nowrap"><Expiry license={pkg} now={now} /></td>
+                    <td><StatusBadges license={pkg} now={now} /></td>
+                    <td>{renderPackageActions(row)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       ) : (
         <div className="lc-grid">
-          {filtered.map((l) => {
+          {rows.map((row) => {
+            if (row.kind === "package") {
+              return (
+                <article key={row.key} className="lc-card lc-package-card">
+                  <header className="lc-card-head">
+                    <div className="lc-card-title">
+                      <span className="pr-card-meta">Package · {row.licenses.length} serial{row.licenses.length !== 1 ? "s" : ""}</span>
+                      <h3>{row.name}</h3>
+                    </div>
+                  </header>
+                  <ul className="lc-package-list">
+                    {row.licenses.map((l) => (
+                      <li key={l.id} className={!l.isActive || isExpired(l, now) ? "is-dim" : ""}>
+                        <div className="lc-package-item-head">
+                          <span className="lc-product">{productName(l)}</span>
+                          <StatusBadges license={l} now={now} />
+                        </div>
+                        <CopySerial serial={l.serial} full />
+                        <div className="lc-package-item-foot">
+                          <span className="pr-muted">Expires <Expiry license={l} now={now} /></span>
+                          <button type="button" className="btn-ghost pr-btn-sm" onClick={() => setDetailsLicense(l)}>Details</button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </article>
+              );
+            }
+            const l = row.license;
             const d = daysLeft(l, now);
             const expired = isExpired(l, now);
             const devices = l.hwids || [];
@@ -682,6 +814,33 @@ export default function LicensesView({ embedded = false }: { embedded?: boolean 
             licenseId={migrateLicenseId!}
             onClose={() => setMigrateLicenseId(null)}
             onSuccess={() => { setMigrateLicenseId(null); fetchLicenses(); }}
+          />
+          <PackageLicensesModal
+            // Steps aside while a serial's own window (details, devices, migrate, diagnostic) is open, so that
+            // window isn't hidden behind it, and comes back when it closes.
+            isOpen={!!viewPackage && !detailsLicense && !hwidListLicenseId && !migrateLicenseId && !diagnosticLicenseId}
+            name={viewPackage?.name ?? ""}
+            licenses={viewPackage?.licenses ?? []}
+            productName={productName}
+            onClose={() => setViewPackageKey(null)}
+            onDetails={(l) => setDetailsLicense(l)}
+            onHwids={(id) => setHwidListLicenseId(id)}
+            onMigrate={(id) => setMigrateLicenseId(id)}
+            onDiagnostic={(id) => setDiagnosticLicenseId(id)}
+          />
+          <PackageLicenseEditModal
+            isOpen={!!editPackage}
+            packageLicense={editPackage?.entry ?? null}
+            name={editPackage?.name ?? ""}
+            onClose={() => setEditPackageKey(null)}
+            onSuccess={() => fetchLicenses()}
+          />
+          <RenewLicenseModal
+            isOpen={!!renewPackageKey}
+            licenseId=""
+            packageGroupId={renewPackageKey}
+            onClose={() => setRenewPackageKey(null)}
+            onSuccess={() => { setRenewPackageKey(null); fetchLicenses(); }}
           />
           <HwidListModal isOpen={!!hwidListLicenseId} licenseId={hwidListLicenseId!} onClose={() => setHwidListLicenseId(null)} />
           <DiagnosticModal isOpen={!!diagnosticLicenseId} licenseId={diagnosticLicenseId!} onClose={() => setDiagnosticLicenseId(null)} />

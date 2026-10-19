@@ -485,7 +485,7 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                 {packageResult ? "Package Licenses Generated" : generatedLicense ? "License Generated Successfully" : isEditing ? "Edit License" : "Generate AGECS Serial"}
               </h2>
               <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--text-muted)" }}>
-                {packageResult ? `${packageResult.created?.length ?? 0} license${(packageResult.created?.length ?? 0) !== 1 ? "s" : ""} issued for ${selectedPackage?.name ?? "the package"}` : generatedLicense ? "License key is active and ready to use" : isEditing ? "Update license configuration" : "Create and assign a new product serial"}
+                {packageResult ? `${packageResult.license?.licenses?.length ?? 0} serial${(packageResult.license?.licenses?.length ?? 0) !== 1 ? "s" : ""} issued for ${packageResult.license?.packageName ?? selectedPackage?.name ?? "the package"}` : generatedLicense ? "License key is active and ready to use" : isEditing ? "Update license configuration" : "Create and assign a new product serial"}
               </p>
             </div>
           </div>
@@ -510,8 +510,8 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
               </div>
             )}
 
-            {(packageResult.created ?? []).map((l) => (
-              <div key={l.licenseId} style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: "0.85rem 1rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+            {(packageResult.license?.licenses ?? []).map((l) => (
+              <div key={l.id} style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: "0.85rem 1rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "0.75rem" }}>
                   <span style={{ fontWeight: 700, color: "var(--text-primary)" }}>{l.productName || getProductName(l.productId) || "Product"}</span>
                   <span style={{ fontSize: "0.78rem", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
@@ -525,10 +525,10 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                   <button type="button" className="btn-ghost" style={{ whiteSpace: "nowrap" }} disabled={!l.serial}
                     onClick={() => {
                       navigator.clipboard.writeText(l.serial || "");
-                      setCopiedSerial(l.licenseId ?? null);
+                      setCopiedSerial(l.id ?? null);
                       setTimeout(() => setCopiedSerial(null), 2000);
                     }}>
-                    {copiedSerial === l.licenseId ? "Copied!" : "Copy"}
+                    {copiedSerial === l.id ? "Copied!" : "Copy"}
                   </button>
                 </div>
               </div>
@@ -546,7 +546,7 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
             <div style={{ display: "flex", gap: "0.75rem", marginTop: "0.25rem" }}>
               <button type="button" className="btn-primary" style={{ flex: 1 }}
                 onClick={() => {
-                  const text = (packageResult.created ?? []).map((l) => `${l.productName || getProductName(l.productId)}: ${l.serial}`).join("\n");
+                  const text = (packageResult.license?.licenses ?? []).map((l) => `${l.productName || getProductName(l.productId)}: ${l.serial}`).join("\n");
                   navigator.clipboard.writeText(text);
                   setCopied(true);
                   setTimeout(() => setCopied(false), 2000);

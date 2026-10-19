@@ -509,6 +509,21 @@ export type LicenseDto = {
     order?: number;
     isExpired?: boolean;
     /**
+     * "license" for a single license, "package" for a package license whose serials are in licenses.
+     */
+    kind?: 'license' | 'package' | string | null;
+    /**
+     * A package license's serials (each a full license); null for a single license.
+     */
+    licenses?: Array<LicenseDto> | null;
+    /**
+     * The package this license belongs to. On a package license, packageGroupId is its own id; on one of its
+     * serials it points at the package license.
+     */
+    packageId?: string | null;
+    packageGroupId?: string | null;
+    packageName?: string | null;
+    /**
      * The devices (HWIDs) registered on this license.
      */
     hwids?: Array<string> | null;
@@ -3019,14 +3034,6 @@ export type CreatePackageLicensesCommand = {
     isTrial?: boolean;
 };
 
-export type PackageLicenseCreated = {
-    licenseId?: string;
-    productId?: string;
-    productName?: string | null;
-    serial?: string | null;
-    expiryDate?: string | null;
-};
-
 export type PackageLicenseFailed = {
     productId?: string;
     productName?: string | null;
@@ -3034,10 +3041,10 @@ export type PackageLicenseFailed = {
 };
 
 /**
- * Licenses that were issued, and items that weren't (each is issued on its own, so one failure doesn't undo the rest).
+ * The package license that was issued, with its serials in license.licenses, and the items that couldn't be issued.
  */
 export type CreatePackageLicensesResponse = {
-    created?: Array<PackageLicenseCreated> | null;
+    license?: LicenseDto;
     failed?: Array<PackageLicenseFailed> | null;
 };
 
@@ -3047,6 +3054,101 @@ export type CreatePackageLicensesResponseResult = {
     value?: CreatePackageLicensesResponse;
     readonly errors?: Array<Error> | null;
 };
+
+export type PackageLicenseGroupFailure = {
+    licenseId?: string;
+    productName?: string | null;
+    reason?: string | null;
+};
+
+/**
+ * How many of the package's licenses the action applied to, and which failed (the others still changed).
+ */
+export type PackageLicenseGroupResult = {
+    succeeded?: number;
+    failed?: Array<PackageLicenseGroupFailure> | null;
+};
+
+export type PackageLicenseGroupResultResult = {
+    readonly isSuccess?: boolean;
+    readonly isError?: boolean;
+    value?: PackageLicenseGroupResult;
+    readonly errors?: Array<Error> | null;
+};
+
+/**
+ * Edits the fields a package's licenses share. A field that isn't sent (null) is left as it is.
+ */
+export type UpdatePackageLicensesCommand = {
+    userId?: string | null;
+    name?: string | null;
+    email?: string | null;
+    hwidSalt?: string | null;
+    licenseCount?: number | null;
+    migrationLimit?: number | null;
+    isTrial?: boolean | null;
+    isActive?: boolean | null;
+};
+
+export type PutApiLicensesPackageGroupsByPackageGroupIdData = {
+    body?: UpdatePackageLicensesCommand;
+    path: { packageGroupId: string };
+    query?: never;
+    url: '/api/licenses/package-groups/{packageGroupId}';
+};
+
+/**
+ * The edited package license with its serials in license.licenses, and any serial that wasn't updated.
+ */
+export type UpdatePackageLicensesResponse = {
+    license?: LicenseDto;
+    failed?: Array<PackageLicenseGroupFailure> | null;
+};
+
+export type UpdatePackageLicensesResponseResult = {
+    readonly isSuccess?: boolean;
+    readonly isError?: boolean;
+    value?: UpdatePackageLicensesResponse;
+    readonly errors?: Array<Error> | null;
+};
+
+export type PutApiLicensesPackageGroupsByPackageGroupIdResponses = { 200: UpdatePackageLicensesResponseResult };
+
+export type GetApiLicensesPackageGroupsByPackageGroupIdData = {
+    body?: never;
+    path: { packageGroupId: string };
+    query?: never;
+    url: '/api/licenses/package-groups/{packageGroupId}';
+};
+
+export type GetApiLicensesPackageGroupsByPackageGroupIdResponses = { 200: LicenseDtoResult };
+
+export type PostApiLicensesPackageGroupsByPackageGroupIdRenewData = {
+    body?: RenewLicenseRequest;
+    path: { packageGroupId: string };
+    query?: never;
+    url: '/api/licenses/package-groups/{packageGroupId}/renew';
+};
+
+export type PostApiLicensesPackageGroupsByPackageGroupIdRenewResponses = { 200: PackageLicenseGroupResultResult };
+
+export type PostApiLicensesPackageGroupsByPackageGroupIdRevokeData = {
+    body?: never;
+    path: { packageGroupId: string };
+    query?: never;
+    url: '/api/licenses/package-groups/{packageGroupId}/revoke';
+};
+
+export type PostApiLicensesPackageGroupsByPackageGroupIdRevokeResponses = { 200: PackageLicenseGroupResultResult };
+
+export type DeleteApiLicensesPackageGroupsByPackageGroupIdData = {
+    body?: never;
+    path: { packageGroupId: string };
+    query?: never;
+    url: '/api/licenses/package-groups/{packageGroupId}';
+};
+
+export type DeleteApiLicensesPackageGroupsByPackageGroupIdResponses = { 200: PackageLicenseGroupResultResult };
 
 export type PostApiLicensesPackageData = {
     body?: CreatePackageLicensesCommand;
