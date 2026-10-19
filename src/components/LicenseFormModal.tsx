@@ -1,15 +1,22 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { postApiLicenses, putApiLicensesById, postIdentityClients, postApiLicensesAdminByIdHwids, deleteApiLicensesAdminByIdHwidsByHwid } from "@/client";
+import { postApiLicenses, postApiLicensesPackage, getApiPackages, putApiLicensesById, postIdentityClients, postApiLicensesAdminByIdHwids, deleteApiLicensesAdminByIdHwidsByHwid } from "@/client";
 import { useAuth } from "./AuthProvider";
-import { ClientDto, ProductDto } from "@/client/types.gen";
+import { ClientDto, CreatePackageLicensesResponse, PackageDto, ProductDto } from "@/client/types.gen";
 import ClientPicker from "./ClientPicker";
 import "./client-picker.css";
 
 const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:5003";
 
 type ClientMode = "existing" | "new";
+/** Create mode: one license for a product, or one license per item of a package. */
+type IssueMode = "product" | "package";
+
+const itemPeriodLabel = (item: NonNullable<PackageDto["items"]>[number]) =>
+  item.periodValue && item.periodType
+    ? `${item.periodValue} ${item.periodType}${item.periodValue === 1 ? "" : "s"}`
+    : `${item.period ?? 0} days`;
 
 /** Only these roles may call the HWID endpoints (POST/DELETE /api/licenses/admin/{id}/hwids). */
 const HWID_ROLES = ["Admin"];
@@ -54,6 +61,13 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
   const [createdClient, setCreatedClient] = useState<ClientDto | null>(null);
   const [passwordCopied, setPasswordCopied] = useState(false);
 
+  const [issueMode, setIssueMode] = useState<IssueMode>("product");
+  const [packages, setPackages] = useState<PackageDto[]>([]);
+  const [packageId, setPackageId] = useState("");
+  const [packageResult, setPackageResult] = useState<CreatePackageLicensesResponse | null>(null);
+  const [copiedSerial, setCopiedSerial] = useState<string | null>(null);
+  const selectedPackage = packages.find((p) => p.id === packageId);
+
   // Devices (HWIDs). They live in JanDrozd, so they're added/removed through the HWID endpoints after the license
   // itself is saved; in edit mode only the difference from what the license already had is sent.
   const { user } = useAuth();
@@ -88,6 +102,9 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
       setOriginalHwids([]);
       setHwidInput("");
       setHwidReport("");
+      setIssueMode("product");
+      setPackageId("");
+      setPackageResult(null);
 
       // The license response carries its registered HWIDs, so editing starts from them.
       if (initialData?.janDrozdId) {
@@ -145,6 +162,14 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
       }
     }
   }, [isOpen, initialData, products, canManageHwids]);
+
+  // Packages (hidden ones too) for issuing a whole package from the create form.
+  useEffect(() => {
+    if (!isOpen || isEditing) return;
+    getApiPackages({ baseUrl, query: { includeHidden: true }, throwOnError: false })
+      .then((res) => setPackages((res.data?.value ?? []).filter((p) => (p.items?.length ?? 0) > 0)))
+      .catch(() => { /* the Package option just has nothing to pick */ });
+  }, [isOpen, isEditing]);
 
   const availableVariants = selectedParentId ? getVariants(selectedParentId) : [];
 
@@ -227,7 +252,12 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (tooManyHwids) {
+    const issuingPackage = !isEditing && issueMode === "package";
+    if (issuingPackage && !selectedPackage) {
+      setError("Choose the package to issue.");
+      return;
+    }
+    if (!issuingPackage && tooManyHwids) {
       setError(`This license allows ${seatLimit} device${seatLimit !== 1 ? "s" : ""}; remove some HWIDs or raise the license count.`);
       return;
     }
@@ -275,6 +305,35 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
           userId = created.userId || "";
           email = created.email || newClient.email.trim();
         }
+      }
+
+      if (issuingPackage) {
+        const res = await postApiLicensesPackage({
+          baseUrl,
+          body: {
+            packageId,
+            userId: userId || undefined,
+            name: (clientMode === "new" ? newClient.userName.trim() : licenseData.name) || undefined,
+            email: email || undefined,
+            hwidSalt: (clientMode === "new" ? newClient.userName : licenseData.hwidSalt).trim(),
+            licenseCount: Number(licenseData.licenseCount) || 1,
+            migrationLimit: Number(licenseData.migrationLimit) || 1,
+            isTrial: licenseData.isTrial,
+          },
+          throwOnError: false,
+        });
+        if (res.data?.isSuccess && res.data.value) {
+          setPackageResult(res.data.value);
+        } else {
+          const err = res.error as { title?: string; errors?: { description?: string }[] } | undefined;
+          const errorMsg = res.data?.errors?.map((e) => e.description).filter(Boolean).join(", ")
+            || err?.errors?.map?.((e) => e.description).filter(Boolean).join(", ")
+            || err?.title || "Failed to issue the package licenses.";
+          setError(clientMode === "new"
+            ? `The client account was created, but the licenses failed: ${errorMsg} Fix it and submit again; the account won't be created twice.`
+            : errorMsg);
+        }
+        return;
       }
 
       const payload = {
@@ -368,10 +427,11 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
   };
 
   const handleClose = () => {
-    if (generatedLicense) {
+    if (generatedLicense || packageResult) {
       onSuccess();
     }
     setGeneratedLicense(null);
+    setPackageResult(null);
     onClose();
   };
 
@@ -392,7 +452,7 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
 
   return (
     <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget && !saving) handleClose(); }}>
-      <div className="modal-container medium" style={{ maxWidth: generatedLicense ? 560 : 620, overflow: "hidden" }}>
+      <div className="modal-container medium" style={{ maxWidth: generatedLicense || packageResult ? 560 : 620, overflow: "hidden" }}>
         
         {/* ── HEADER ─────────────────────────── */}
         <div className="modal-header" style={{
@@ -406,11 +466,11 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
             <div style={{
               width: 36, height: 36, borderRadius: "var(--radius-md)",
-              background: generatedLicense ? "var(--success-dim)" : "var(--accent-dim)",
-              color: generatedLicense ? "var(--success)" : "var(--accent-light)",
+              background: generatedLicense || packageResult ? "var(--success-dim)" : "var(--accent-dim)",
+              color: generatedLicense || packageResult ? "var(--success)" : "var(--accent-light)",
               display: "flex", alignItems: "center", justifyContent: "center",
             }}>
-              {generatedLicense ? (
+              {generatedLicense || packageResult ? (
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="20 6 9 17 4 12"></polyline>
                 </svg>
@@ -422,10 +482,10 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
             </div>
             <div>
               <h2 className="modal-title" style={{ fontSize: "1.15rem", fontWeight: 700, margin: 0 }}>
-                {generatedLicense ? "License Generated Successfully" : isEditing ? "Edit License" : "Generate AGECS Serial"}
+                {packageResult ? "Package Licenses Generated" : generatedLicense ? "License Generated Successfully" : isEditing ? "Edit License" : "Generate AGECS Serial"}
               </h2>
               <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--text-muted)" }}>
-                {generatedLicense ? "License key is active and ready to use" : isEditing ? "Update license configuration" : "Create and assign a new product serial"}
+                {packageResult ? `${packageResult.created?.length ?? 0} license${(packageResult.created?.length ?? 0) !== 1 ? "s" : ""} issued for ${selectedPackage?.name ?? "the package"}` : generatedLicense ? "License key is active and ready to use" : isEditing ? "Update license configuration" : "Create and assign a new product serial"}
               </p>
             </div>
           </div>
@@ -436,8 +496,67 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
           </button>
         </div>
 
-        {/* ── SUCCESS VIEW ────────────────────── */}
-        {generatedLicense ? (
+        {/* ── PACKAGE SUCCESS VIEW ────────────── */}
+        {packageResult ? (
+          <div className="modal-body" style={{ padding: "1.75rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
+            {createdClient && (
+              <div className="lf-credentials">
+                <p className="lf-credentials-title">New client account created</p>
+                <dl style={{ margin: 0 }}>
+                  <div className="lf-credential-row"><dt>Email</dt><dd>{createdClient.email}</dd></div>
+                  <div className="lf-credential-row"><dt>User name</dt><dd>{createdClient.userName}</dd></div>
+                  <div className="lf-credential-row"><dt>Password</dt><dd>{newClient.password}</dd></div>
+                </dl>
+              </div>
+            )}
+
+            {(packageResult.created ?? []).map((l) => (
+              <div key={l.licenseId} style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: "0.85rem 1rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "0.75rem" }}>
+                  <span style={{ fontWeight: 700, color: "var(--text-primary)" }}>{l.productName || getProductName(l.productId) || "Product"}</span>
+                  <span style={{ fontSize: "0.78rem", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
+                    Expires {l.expiryDate ? new Date(l.expiryDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "never"}
+                  </span>
+                </div>
+                <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                  <code style={{ flex: 1, minWidth: 0, background: "var(--bg-surface)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-md)", padding: "0.5rem 0.75rem", fontFamily: "var(--font-mono)", fontSize: "0.85rem", fontWeight: 700, wordBreak: "break-all", userSelect: "all" }}>
+                    {l.serial || "N/A"}
+                  </code>
+                  <button type="button" className="btn-ghost" style={{ whiteSpace: "nowrap" }} disabled={!l.serial}
+                    onClick={() => {
+                      navigator.clipboard.writeText(l.serial || "");
+                      setCopiedSerial(l.licenseId ?? null);
+                      setTimeout(() => setCopiedSerial(null), 2000);
+                    }}>
+                    {copiedSerial === l.licenseId ? "Copied!" : "Copy"}
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            {(packageResult.failed?.length ?? 0) > 0 && (
+              <div className="alert-error" style={{ flexDirection: "column", alignItems: "flex-start" }}>
+                <strong>Not issued:</strong>
+                {packageResult.failed!.map((f) => (
+                  <span key={f.productId}>{f.productName || getProductName(f.productId) || f.productId}: {f.reason}</span>
+                ))}
+              </div>
+            )}
+
+            <div style={{ display: "flex", gap: "0.75rem", marginTop: "0.25rem" }}>
+              <button type="button" className="btn-primary" style={{ flex: 1 }}
+                onClick={() => {
+                  const text = (packageResult.created ?? []).map((l) => `${l.productName || getProductName(l.productId)}: ${l.serial}`).join("\n");
+                  navigator.clipboard.writeText(text);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}>
+                {copied ? "All serials copied!" : "Copy all serials"}
+              </button>
+              <button type="button" className="btn-ghost" style={{ minWidth: 100 }} onClick={handleClose}>Done</button>
+            </div>
+          </div>
+        ) : generatedLicense ? (
           <div className="modal-body" style={{ padding: "1.75rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
             
             {/* Client Card */}
@@ -770,7 +889,45 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                     </div>
                   )}
 
-                  {/* Product & Variant */}
+                  {/* Product or package (create mode) */}
+                  {!isEditing && (
+                    <div className="lf-client-head">
+                      <p className="lf-client-title">Issue for</p>
+                      <div className="lf-toggle" role="tablist" aria-label="Issue for">
+                        <button type="button" role="tab" aria-selected={issueMode === "product"} className={issueMode === "product" ? "is-active" : ""}
+                          onClick={() => setIssueMode("product")}>
+                          Product
+                        </button>
+                        <button type="button" role="tab" aria-selected={issueMode === "package"} className={issueMode === "package" ? "is-active" : ""}
+                          onClick={() => setIssueMode("package")} disabled={packages.length === 0} title={packages.length === 0 ? "No packages with items yet" : undefined}>
+                          Package
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {!isEditing && issueMode === "package" ? (
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label htmlFor="packageId" className="form-label">Package *</label>
+                      <select id="packageId" className="form-input" value={packageId} onChange={(e) => setPackageId(e.target.value)} required style={{ appearance: "auto" }}>
+                        <option value="">Select a package...</option>
+                        {packages.map((p) => (
+                          <option key={p.id} value={p.id}>{p.name}{p.hidden ? " (hidden)" : ""}</option>
+                        ))}
+                      </select>
+                      {selectedPackage && (
+                        <ul style={{ margin: "0.6rem 0 0", padding: "0.6rem 0.85rem", listStyle: "none", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", background: "var(--bg-elevated)", display: "flex", flexDirection: "column", gap: "0.3rem", fontSize: "0.85rem" }}>
+                          {(selectedPackage.items ?? []).map((item) => (
+                            <li key={item.id} style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem" }}>
+                              <span>{getProductName(item.itemId) || item.itemName || "Product"}</span>
+                              <span style={{ color: "var(--text-muted)", whiteSpace: "nowrap" }}>{itemPeriodLabel(item)}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      <p className="lf-note">One license is issued per item, each expiring after its own period. Seats, migrations and trial below apply to all of them.</p>
+                    </div>
+                  ) : (
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
                     <div className="form-group" style={{ marginBottom: 0 }}>
                       <label htmlFor="parentProductId" className="form-label">Product *</label>
@@ -809,6 +966,7 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                       </select>
                     </div>
                   </div>
+                  )}
 
                   {/* License Count & Migration Limit */}
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
@@ -838,7 +996,8 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                     </div>
                   </div>
 
-                  {/* Expiry */}
+                  {/* Expiry (a package's licenses use each item's period) */}
+                  {(isEditing || issueMode === "product") && (
                   <div>
                     <div className="form-group" style={{ marginBottom: 0 }}>
                       <label htmlFor="expiryDate" className="form-label">Expiry Date (Blank = Lifetime)</label>
@@ -852,7 +1011,10 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                     </div>
                   </div>
 
-                  {/* Devices (HWIDs) */}
+                  )}
+
+                  {/* Devices (HWIDs); a package issues several licenses, so devices are added per license afterwards */}
+                  {(isEditing || issueMode === "product") && (
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
                       <label htmlFor="hwidInput" className="form-label">Devices / HWIDs (optional)</label>
@@ -898,6 +1060,7 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                       </>
                     )}
                   </div>
+                  )}
 
                   {/* Trial Toggle */}
                   <div style={{
@@ -986,7 +1149,7 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                       <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
                     </svg>
-                    <span>Generate Serial</span>
+                    <span>{issueMode === "package" ? "Generate Package Serials" : "Generate Serial"}</span>
                   </>
                 )}
               </button>

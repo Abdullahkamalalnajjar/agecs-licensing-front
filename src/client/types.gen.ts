@@ -3005,6 +3005,78 @@ export type GetApiLicensesMyResponses = {
 
 export type GetApiLicensesMyResponse = GetApiLicensesMyResponses[keyof GetApiLicensesMyResponses];
 
+/**
+ * Issues one license per item of a package, the way a purchase of that package would.
+ */
+export type CreatePackageLicensesCommand = {
+    packageId?: string;
+    userId?: string;
+    name?: string | null;
+    email?: string | null;
+    hwidSalt?: string | null;
+    licenseCount?: number;
+    migrationLimit?: number;
+    isTrial?: boolean;
+};
+
+export type PackageLicenseCreated = {
+    licenseId?: string;
+    productId?: string;
+    productName?: string | null;
+    serial?: string | null;
+    expiryDate?: string | null;
+};
+
+export type PackageLicenseFailed = {
+    productId?: string;
+    productName?: string | null;
+    reason?: string | null;
+};
+
+/**
+ * Licenses that were issued, and items that weren't (each is issued on its own, so one failure doesn't undo the rest).
+ */
+export type CreatePackageLicensesResponse = {
+    created?: Array<PackageLicenseCreated> | null;
+    failed?: Array<PackageLicenseFailed> | null;
+};
+
+export type CreatePackageLicensesResponseResult = {
+    readonly isSuccess?: boolean;
+    readonly isError?: boolean;
+    value?: CreatePackageLicensesResponse;
+    readonly errors?: Array<Error> | null;
+};
+
+export type PostApiLicensesPackageData = {
+    body?: CreatePackageLicensesCommand;
+    path?: never;
+    query?: never;
+    url: '/api/licenses/package';
+};
+
+export type PostApiLicensesPackageErrors = {
+    /**
+     * Bad Request
+     */
+    400: ObjectResult;
+    /**
+     * Not Found
+     */
+    404: ObjectResult;
+};
+
+export type PostApiLicensesPackageError = PostApiLicensesPackageErrors[keyof PostApiLicensesPackageErrors];
+
+export type PostApiLicensesPackageResponses = {
+    /**
+     * OK
+     */
+    200: CreatePackageLicensesResponseResult;
+};
+
+export type PostApiLicensesPackageResponse = PostApiLicensesPackageResponses[keyof PostApiLicensesPackageResponses];
+
 export type PostApiLicensesData = {
     body?: CreateLicenseCommand;
     path?: never;
