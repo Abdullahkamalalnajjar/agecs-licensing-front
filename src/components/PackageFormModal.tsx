@@ -33,8 +33,12 @@ const periodLabel = (value: number, type: PeriodType) => `${value} ${type}${valu
 
 export default function PackageFormModal({ isOpen, onClose, onSuccess, pkg }: PackageFormModalProps) {
   const { canField } = usePermissions();
-  // Edit mode only: fields the user can't change are disabled (the API rejects changing them).
+  // Edit mode only: fields the user can't change are hidden (the API rejects changing them);
+  // their saved values stay in state and are still sent.
   const locked = (field: string) => !!pkg && !canField("packages", field);
+  const show = (field: string) => !locked(field);
+  const showFlags = ["hidden", "comingSoon", "withTaxes"].some(show);
+  const noAccess = !showFlags && !["name", "price", "description", "items"].some(show);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [products, setProducts] = useState<ProductDto[]>([]);
@@ -227,28 +231,41 @@ export default function PackageFormModal({ isOpen, onClose, onSuccess, pkg }: Pa
 
           <form id="packageForm" onSubmit={handleSubmit}>
             <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "1rem" }}>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Name</label>
-                  <input type="text" required value={name} onChange={(e) => setName(e.target.value)} className="form-input" placeholder="e.g. Starter Bundle" disabled={locked("name")} />
-                </div>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Price (the package's own price)</label>
-                  <input type="number" step="0.01" min="0" required value={price} onChange={(e) => setPrice(e.target.value)} className="form-input" disabled={locked("price")} />
-                </div>
-              </div>
+              {noAccess && (
+                <p style={{ margin: 0, color: "var(--text-muted)", fontSize: "0.9rem" }}>You don&apos;t have permission to edit any field here.</p>
+              )}
 
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">Description</label>
-                <textarea value={description} onChange={(e) => setDescription(e.target.value)} className="form-input" rows={2} disabled={locked("description")} />
-              </div>
+              {(show("name") || show("price")) && (
+                <div style={{ display: "grid", gridTemplateColumns: show("name") && show("price") ? "2fr 1fr" : "1fr", gap: "1rem" }}>
+                  {show("name") && (
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label">Name</label>
+                      <input type="text" required value={name} onChange={(e) => setName(e.target.value)} className="form-input" placeholder="e.g. Starter Bundle" />
+                    </div>
+                  )}
+                  {show("price") && (
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label">Price (the package's own price)</label>
+                      <input type="number" step="0.01" min="0" required value={price} onChange={(e) => setPrice(e.target.value)} className="form-input" />
+                    </div>
+                  )}
+                </div>
+              )}
 
+              {show("description") && (
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Description</label>
+                  <textarea value={description} onChange={(e) => setDescription(e.target.value)} className="form-input" rows={2} />
+                </div>
+              )}
+
+              {show("items") && (
               <div style={{ padding: "1rem", borderRadius: "var(--radius-lg)", border: "1px solid var(--border)", background: "var(--bg-elevated)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
                   <h3 style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>
                     Bundled Items
                   </h3>
-                  <button type="button" className="btn-ghost" onClick={() => setItems((prev) => [...prev, emptyRow()])} disabled={locked("items")}>
+                  <button type="button" className="btn-ghost" onClick={() => setItems((prev) => [...prev, emptyRow()])}>
                     + Add item
                   </button>
                 </div>
@@ -272,7 +289,6 @@ export default function PackageFormModal({ isOpen, onClose, onSuccess, pkg }: Pa
                         <select
                           className="form-input"
                           value={topLevelId}
-                          disabled={locked("items")}
                           onChange={(e) => updateItem(row.key, { topLevelProductId: e.target.value, variationProductId: "", period: "" })}
                         >
                           <option value="">Select product...</option>
@@ -284,7 +300,7 @@ export default function PackageFormModal({ isOpen, onClose, onSuccess, pkg }: Pa
                         <select
                           className="form-input"
                           value={row.variationProductId}
-                          disabled={locked("items") || !topLevelId}
+                          disabled={!topLevelId}
                           onChange={(e) => selectVariation(row.key, e.target.value)}
                         >
                           <option value="">Select variation...</option>
@@ -296,7 +312,7 @@ export default function PackageFormModal({ isOpen, onClose, onSuccess, pkg }: Pa
                         <select
                           className="form-input"
                           value={row.period}
-                          disabled={locked("items") || !variationId || periods.length === 0}
+                          disabled={!variationId || periods.length === 0}
                           onChange={(e) => updateItem(row.key, { period: e.target.value })}
                           aria-label="Period"
                           title={variationId && periods.length === 0 ? "This variation has no active prices with a period" : undefined}
@@ -313,7 +329,7 @@ export default function PackageFormModal({ isOpen, onClose, onSuccess, pkg }: Pa
                           type="button"
                           className="btn-danger-ghost"
                           onClick={() => removeItem(row.key)}
-                          disabled={locked("items") || items.length === 1}
+                          disabled={items.length === 1}
                           title="Remove item"
                         >
                           ×
@@ -326,28 +342,37 @@ export default function PackageFormModal({ isOpen, onClose, onSuccess, pkg }: Pa
                   Columns: Product, Variation, Period. The period comes from the variation&apos;s prices; the package keeps its own price.
                 </p>
               </div>
+              )}
 
-              <div style={{ display: "flex", gap: "1.5rem", marginTop: "0.5rem" }}>
-                <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.875rem", cursor: "pointer", color: "var(--text-primary)" }}>
-                  <input type="checkbox" checked={hidden} onChange={(e) => setHidden(e.target.checked)} disabled={locked("hidden")} style={{ width: "16px", height: "16px" }} />
-                  Hidden
-                </label>
-                <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.875rem", cursor: "pointer", color: "var(--text-primary)" }}>
-                  <input type="checkbox" checked={comingSoon} onChange={(e) => setComingSoon(e.target.checked)} disabled={locked("comingSoon")} style={{ width: "16px", height: "16px" }} />
-                  Coming Soon
-                </label>
-                <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.875rem", cursor: "pointer", color: "var(--text-primary)" }}>
-                  <input type="checkbox" checked={withTaxes} onChange={(e) => setWithTaxes(e.target.checked)} disabled={locked("withTaxes")} style={{ width: "16px", height: "16px" }} />
-                  With Taxes
-                </label>
-              </div>
+              {showFlags && (
+                <div style={{ display: "flex", gap: "1.5rem", marginTop: "0.5rem" }}>
+                  {show("hidden") && (
+                    <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.875rem", cursor: "pointer", color: "var(--text-primary)" }}>
+                      <input type="checkbox" checked={hidden} onChange={(e) => setHidden(e.target.checked)} style={{ width: "16px", height: "16px" }} />
+                      Hidden
+                    </label>
+                  )}
+                  {show("comingSoon") && (
+                    <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.875rem", cursor: "pointer", color: "var(--text-primary)" }}>
+                      <input type="checkbox" checked={comingSoon} onChange={(e) => setComingSoon(e.target.checked)} style={{ width: "16px", height: "16px" }} />
+                      Coming Soon
+                    </label>
+                  )}
+                  {show("withTaxes") && (
+                    <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.875rem", cursor: "pointer", color: "var(--text-primary)" }}>
+                      <input type="checkbox" checked={withTaxes} onChange={(e) => setWithTaxes(e.target.checked)} style={{ width: "16px", height: "16px" }} />
+                      With Taxes
+                    </label>
+                  )}
+                </div>
+              )}
             </div>
           </form>
         </div>
 
         <div className="modal-footer">
           <button type="button" className="btn-ghost" onClick={onClose} disabled={loading}>Cancel</button>
-          <button type="submit" form="packageForm" className="btn-primary" disabled={loading}>
+          <button type="submit" form="packageForm" className="btn-primary" disabled={loading || noAccess}>
             {loading ? "Saving..." : "Save Package"}
           </button>
         </div>

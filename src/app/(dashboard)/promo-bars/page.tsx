@@ -182,10 +182,12 @@ export default function PromoBarsPage() {
                 <div className="pb-card-footer">
                   <div className="ct-order">
                     <span className="ct-order-num">{index + 1}</span>
-                    <div className="ct-order-btns">
-                      <button type="button" className="pr-icon-btn" onClick={() => move(index, -1)} disabled={!canField("promo-bars", "order") || reordering || index === 0} aria-label="Move up" title="Move up"><Svg size={12}>{Icon.up}</Svg></button>
-                      <button type="button" className="pr-icon-btn" onClick={() => move(index, 1)} disabled={!canField("promo-bars", "order") || reordering || index === bars.length - 1} aria-label="Move down" title="Move down"><Svg size={12}>{Icon.down}</Svg></button>
-                    </div>
+                    {canField("promo-bars", "order") && (
+                      <div className="ct-order-btns">
+                        <button type="button" className="pr-icon-btn" onClick={() => move(index, -1)} disabled={reordering || index === 0} aria-label="Move up" title="Move up"><Svg size={12}>{Icon.up}</Svg></button>
+                        <button type="button" className="pr-icon-btn" onClick={() => move(index, 1)} disabled={reordering || index === bars.length - 1} aria-label="Move down" title="Move down"><Svg size={12}>{Icon.down}</Svg></button>
+                      </div>
+                    )}
                   </div>
 
                   {bar.endDate && (
@@ -197,13 +199,17 @@ export default function PromoBarsPage() {
                     </span>
                   )}
 
-                  <label className="pr-visibility" title={bar.hidden ? "Hidden — click to show" : "Shown — click to hide"} style={{ opacity: busy ? 0.6 : 1 }}>
-                    <span className="pf-toggle-switch">
-                      <input type="checkbox" checked={!bar.hidden} disabled={!canField("promo-bars", "hidden") || busy} onChange={() => toggleHidden(bar)} aria-label={`${bar.message} shown`} />
-                      <span className="pf-toggle-track" />
-                    </span>
-                    <span className={bar.hidden ? "pr-muted" : ""}>{bar.hidden ? "Hidden" : "Shown"}</span>
-                  </label>
+                  {canField("promo-bars", "hidden") ? (
+                    <label className="pr-visibility" title={bar.hidden ? "Hidden — click to show" : "Shown — click to hide"} style={{ opacity: busy ? 0.6 : 1 }}>
+                      <span className="pf-toggle-switch">
+                        <input type="checkbox" checked={!bar.hidden} disabled={busy} onChange={() => toggleHidden(bar)} aria-label={`${bar.message} shown`} />
+                        <span className="pf-toggle-track" />
+                      </span>
+                      <span className={bar.hidden ? "pr-muted" : ""}>{bar.hidden ? "Hidden" : "Shown"}</span>
+                    </label>
+                  ) : (
+                    <span className={`pr-visibility ${bar.hidden ? "pr-muted" : ""}`}>{bar.hidden ? "Hidden" : "Shown"}</span>
+                  )}
 
                   <div className="pr-actions" style={{ marginLeft: "auto" }}>
                     {canUpdateAny("promo-bars") && <IconButton title="Edit" onClick={() => setEditing(bar)}>{Icon.edit}</IconButton>}
@@ -325,6 +331,10 @@ function PromoBarModal({ bar, onClose, onSaved, onError }: {
   const { canField } = usePermissions();
   const locked = (field: string) => !!bar && !canField("promo-bars", field);
   const lockColors = locked("colors");
+  // Edit mode only renders fields the user may change; hidden ones still submit their saved values.
+  const show = (field: string) => !locked(field);
+  const showMain = show("badge") || show("endDate") || show("message") || show("button") || !bar;
+  const noFields = !showMain && lockColors;
   const [badgeText, setBadgeText] = useState(bar?.badgeText ?? "");
   const [message, setMessage] = useState(bar?.message ?? "");
   const [buttonText, setButtonText] = useState(bar?.buttonText ?? "");
@@ -361,7 +371,10 @@ function PromoBarModal({ bar, onClose, onSaved, onError }: {
         buttonText: buttonText.trim() || null,
         buttonUrl: buttonUrl.trim() || null,
         hidden,
-        endDate: endDate ? new Date(endDate).toISOString() : null,
+        // Untouched end date goes back exactly as saved (the input drops seconds).
+        endDate: bar?.endDate && endDate === toLocalInputValue(new Date(bar.endDate))
+          ? bar.endDate
+          : endDate ? new Date(endDate).toISOString() : null,
         ...Object.fromEntries(COLOR_FIELDS.map(({ key }) => [key, colors[key] || null])),
       };
       const res = bar?.id
@@ -395,13 +408,20 @@ function PromoBarModal({ bar, onClose, onSaved, onError }: {
           </div>
 
           <form id="promoBarForm" onSubmit={submit} className="pb-form">
+            {noFields && <p className="ct-hint" style={{ margin: 0 }}>You don&apos;t have permission to edit any field here.</p>}
+            {!noFields && (
             <div className="pb-grid">
+              {showMain && (
               <div className="ct-fields">
+                {(show("badge") || show("endDate")) && (
                 <div className="pb-row-2">
+                  {show("badge") && (
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label className="form-label" htmlFor="pbBadge">Badge</label>
-                    <input id="pbBadge" className="form-input" maxLength={30} value={badgeText} disabled={locked("badge")} onChange={(e) => setBadgeText(e.target.value)} placeholder="e.g. 20% OFF" />
+                    <input id="pbBadge" className="form-input" maxLength={30} value={badgeText} onChange={(e) => setBadgeText(e.target.value)} placeholder="e.g. 20% OFF" />
                   </div>
+                  )}
+                  {show("endDate") && (
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label className="form-label" htmlFor="pbEndDate">Ends at (optional)</label>
                     <input
@@ -409,30 +429,35 @@ function PromoBarModal({ bar, onClose, onSaved, onError }: {
                       type="datetime-local"
                       className="form-input"
                       value={endDate}
-                      disabled={locked("endDate")}
                       min={endDate && bar?.endDate && endDate === toLocalInputValue(new Date(bar.endDate)) ? undefined : toLocalInputValue(new Date())}
                       onChange={(e) => setEndDate(e.target.value)}
                     />
                     <p className="ct-hint" style={{ margin: "0.35rem 0 0" }}>Leave empty to keep it showing until you hide it.</p>
                   </div>
+                  )}
                 </div>
+                )}
+                {show("message") && (
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <div className="ct-label-row">
                     <label className="form-label" htmlFor="pbMessage">Message *</label>
                     <span className="ct-char-count">{message.length}/200</span>
                   </div>
-                  <input id="pbMessage" className="form-input" required autoFocus maxLength={200} value={message} disabled={locked("message")} onChange={(e) => setMessage(e.target.value)} placeholder="e.g. Your First Year License for nanoCAD 26" />
+                  <input id="pbMessage" className="form-input" required autoFocus maxLength={200} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="e.g. Your First Year License for nanoCAD 26" />
                 </div>
+                )}
+                {show("button") && (
                 <div className="pb-row-2">
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label className="form-label" htmlFor="pbButtonText">Button text</label>
-                    <input id="pbButtonText" className="form-input" maxLength={40} value={buttonText} disabled={locked("button")} onChange={(e) => setButtonText(e.target.value)} placeholder="e.g. Buy Now" />
+                    <input id="pbButtonText" className="form-input" maxLength={40} value={buttonText} onChange={(e) => setButtonText(e.target.value)} placeholder="e.g. Buy Now" />
                   </div>
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label className="form-label" htmlFor="pbButtonUrl">Button link</label>
-                    <input id="pbButtonUrl" className="form-input" maxLength={500} value={buttonUrl} disabled={locked("button")} onChange={(e) => setButtonUrl(e.target.value)} placeholder="/products, #contact or www.site.com" />
+                    <input id="pbButtonUrl" className="form-input" maxLength={500} value={buttonUrl} onChange={(e) => setButtonUrl(e.target.value)} placeholder="/products, #contact or www.site.com" />
                   </div>
                 </div>
+                )}
                 {buttonHalf && <p className="pb-warning">The button needs both a text and a link (or leave both empty for no button).</p>}
                 {!bar && (
                   <label className="pf-toggle">
@@ -444,17 +469,19 @@ function PromoBarModal({ bar, onClose, onSaved, onError }: {
                   </label>
                 )}
               </div>
+              )}
 
+              {!lockColors && (
               <div className="ct-fields">
                 <div className="ct-label-row">
                   <span className="ct-section-label">Colors</span>
-                  <button type="button" className="pb-link-btn" disabled={lockColors} onClick={() => setColors({ backgroundColor: "", textColor: "", badgeBackgroundColor: "", badgeTextColor: "", buttonBackgroundColor: "", buttonTextColor: "" })}>
+                  <button type="button" className="pb-link-btn" onClick={() => setColors({ backgroundColor: "", textColor: "", badgeBackgroundColor: "", badgeTextColor: "", buttonBackgroundColor: "", buttonTextColor: "" })}>
                     Use site defaults
                   </button>
                 </div>
                 <div className="pb-presets" role="group" aria-label="Color presets">
                   {PRESETS.map((preset) => (
-                    <button key={preset.name} type="button" className="pb-preset" disabled={lockColors} onClick={() => setColors(preset.colors)} title={preset.name}>
+                    <button key={preset.name} type="button" className="pb-preset" onClick={() => setColors(preset.colors)} title={preset.name}>
                       <span className="pb-preset-swatch" style={{ background: preset.colors.backgroundColor }}>
                         <span style={{ background: preset.colors.buttonBackgroundColor }} />
                       </span>
@@ -464,18 +491,20 @@ function PromoBarModal({ bar, onClose, onSaved, onError }: {
                 </div>
                 <div className="pb-colors">
                   {COLOR_FIELDS.map(({ key, label }) => (
-                    <ColorField key={key} label={label} value={colors[key]} fallback={DEFAULT_COLORS[key]} disabled={lockColors} onChange={(v) => setColor(key, v)} />
+                    <ColorField key={key} label={label} value={colors[key]} fallback={DEFAULT_COLORS[key]} onChange={(v) => setColor(key, v)} />
                   ))}
                 </div>
                 <p className="ct-hint" style={{ margin: 0 }}>Hex codes like #22C55E. Add two digits for transparency, e.g. #22C55E26.</p>
               </div>
+              )}
             </div>
+            )}
           </form>
         </div>
 
         <div className="modal-footer">
           <button type="button" className="btn-ghost" onClick={onClose} disabled={saving}>Cancel</button>
-          <button type="submit" form="promoBarForm" className="btn-primary" disabled={saving || !message.trim() || invalidColor || buttonHalf}>
+          <button type="submit" form="promoBarForm" className="btn-primary" disabled={saving || noFields || !message.trim() || invalidColor || buttonHalf}>
             {saving ? "Saving…" : bar ? "Save changes" : "Create promo bar"}
           </button>
         </div>

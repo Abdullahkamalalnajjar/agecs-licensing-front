@@ -45,6 +45,11 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
 
   // Field-level edit rights only apply when editing an existing variant.
   const locked = (field: string) => !!newChild.id && !canField("products", field);
+  // Locked fields are hidden; their original values still go out in the payload.
+  const show = (field: string) => !locked(field);
+  const showFlags = ["comingSoon", "hidden", "withTaxes"].some(show);
+  const showFields = showFlags || ["name", "fullName", "janDrozdId", "version", "miniDescription", "description"].some(show);
+  const noAccess = !showFields && !show("prices");
 
   const handleEditClick = (child: ProductDto) => {
     setNewChild({
@@ -61,7 +66,7 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
     });
     setPrices(
       child.prices && child.prices.length > 0 
-        ? child.prices.map((p: any) => ({ period: p.period || 1, periodType: p.periodType || "Day", price: p.price || 0, country: p.country || "II", active: p.active ?? true }))
+        ? child.prices.map((p: any) => ({ id: p.id, period: p.period || 1, periodType: p.periodType || "Day", price: p.price || 0, country: p.country || "II", active: p.active ?? true }))
         : [{ period: 1, periodType: "Day", price: 0, country: "II", active: true }]
     );
     setIsAddingChild(true);
@@ -243,49 +248,75 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
                 </span>
               </div>
               <form onSubmit={handleAddChild}>
+                {noAccess && (
+                  <p style={{ margin: "0 0 1.25rem", color: "var(--text-muted)", fontSize: "0.85rem" }}>You don&apos;t have permission to edit any field here.</p>
+                )}
+                {showFields && (
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.85rem", marginBottom: "1.25rem" }}>
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label" style={{ fontSize: "0.72rem" }}>Name</label>
-                    <input required type="text" className="form-input" placeholder="e.g. BASIC" value={newChild.name} onChange={e => setNewChild({...newChild, name: e.target.value})} disabled={locked("name")} style={{ fontSize: "0.85rem", padding: "0.6rem 0.85rem" }} />
-                  </div>
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label" style={{ fontSize: "0.72rem" }}>Full Name</label>
-                    <input type="text" className="form-input" placeholder="e.g. AGECS_RCD_BASIC" value={newChild.fullName} onChange={e => setNewChild({...newChild, fullName: e.target.value})} disabled={locked("fullName")} style={{ fontSize: "0.85rem", padding: "0.6rem 0.85rem" }} />
-                  </div>
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label" style={{ fontSize: "0.72rem" }}>JanDrozd ID</label>
-                    <input type="text" className="form-input" placeholder="e.g. 11" value={newChild.janDrozdId} onChange={e => setNewChild({...newChild, janDrozdId: e.target.value})} disabled={locked("janDrozdId")} style={{ fontSize: "0.85rem", padding: "0.6rem 0.85rem" }} />
-                  </div>
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label" style={{ fontSize: "0.72rem" }}>Version</label>
-                    <input type="text" className="form-input" placeholder="e.g. 1.0.0" value={newChild.version} onChange={e => setNewChild({...newChild, version: e.target.value})} disabled={locked("version")} style={{ fontSize: "0.85rem", padding: "0.6rem 0.85rem" }} />
-                  </div>
-                  <div className="form-group" style={{ marginBottom: 0, display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "1rem" }}>
-                    <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.75rem" }}>
-                      <input type="checkbox" checked={newChild.comingSoon} onChange={e => setNewChild({...newChild, comingSoon: e.target.checked})} disabled={locked("comingSoon")} />
-                      Coming Soon
-                    </label>
-                    <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.75rem" }}>
-                      <input type="checkbox" checked={newChild.hidden} onChange={e => setNewChild({...newChild, hidden: e.target.checked})} disabled={locked("hidden")} />
-                      Hidden
-                    </label>
-                    <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.75rem" }}>
-                      <input type="checkbox" checked={newChild.withTaxes} onChange={e => setNewChild({...newChild, withTaxes: e.target.checked})} disabled={locked("withTaxes")} />
-                      With Taxes
-                    </label>
-                  </div>
-                  <div className="form-group" style={{ marginBottom: 0, gridColumn: "1 / -1" }}>
-                    <label className="form-label" style={{ fontSize: "0.72rem" }}>Mini Description</label>
-                    <textarea className="form-input" rows={2} value={newChild.miniDescription} onChange={e => setNewChild({...newChild, miniDescription: e.target.value})} disabled={locked("miniDescription")} style={{ fontSize: "0.85rem", padding: "0.6rem 0.85rem", resize: "vertical" }} />
-                  </div>
-                  <div className="form-group" style={{ marginBottom: 0, gridColumn: "1 / -1" }}>
-                    <label className="form-label" style={{ fontSize: "0.72rem" }}>Description</label>
-                    <textarea className="form-input" rows={3} value={newChild.description} onChange={e => setNewChild({...newChild, description: e.target.value})} disabled={locked("description")} style={{ fontSize: "0.85rem", padding: "0.6rem 0.85rem", resize: "vertical" }} />
-                  </div>
+                  {show("name") && (
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label" style={{ fontSize: "0.72rem" }}>Name</label>
+                      <input required type="text" className="form-input" placeholder="e.g. BASIC" value={newChild.name} onChange={e => setNewChild({...newChild, name: e.target.value})} style={{ fontSize: "0.85rem", padding: "0.6rem 0.85rem" }} />
+                    </div>
+                  )}
+                  {show("fullName") && (
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label" style={{ fontSize: "0.72rem" }}>Full Name</label>
+                      <input type="text" className="form-input" placeholder="e.g. AGECS_RCD_BASIC" value={newChild.fullName} onChange={e => setNewChild({...newChild, fullName: e.target.value})} style={{ fontSize: "0.85rem", padding: "0.6rem 0.85rem" }} />
+                    </div>
+                  )}
+                  {show("janDrozdId") && (
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label" style={{ fontSize: "0.72rem" }}>JanDrozd ID</label>
+                      <input type="text" className="form-input" placeholder="e.g. 11" value={newChild.janDrozdId} onChange={e => setNewChild({...newChild, janDrozdId: e.target.value})} style={{ fontSize: "0.85rem", padding: "0.6rem 0.85rem" }} />
+                    </div>
+                  )}
+                  {show("version") && (
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label" style={{ fontSize: "0.72rem" }}>Version</label>
+                      <input type="text" className="form-input" placeholder="e.g. 1.0.0" value={newChild.version} onChange={e => setNewChild({...newChild, version: e.target.value})} style={{ fontSize: "0.85rem", padding: "0.6rem 0.85rem" }} />
+                    </div>
+                  )}
+                  {showFlags && (
+                    <div className="form-group" style={{ marginBottom: 0, display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "1rem" }}>
+                      {show("comingSoon") && (
+                        <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.75rem" }}>
+                          <input type="checkbox" checked={newChild.comingSoon} onChange={e => setNewChild({...newChild, comingSoon: e.target.checked})} />
+                          Coming Soon
+                        </label>
+                      )}
+                      {show("hidden") && (
+                        <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.75rem" }}>
+                          <input type="checkbox" checked={newChild.hidden} onChange={e => setNewChild({...newChild, hidden: e.target.checked})} />
+                          Hidden
+                        </label>
+                      )}
+                      {show("withTaxes") && (
+                        <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.75rem" }}>
+                          <input type="checkbox" checked={newChild.withTaxes} onChange={e => setNewChild({...newChild, withTaxes: e.target.checked})} />
+                          With Taxes
+                        </label>
+                      )}
+                    </div>
+                  )}
+                  {show("miniDescription") && (
+                    <div className="form-group" style={{ marginBottom: 0, gridColumn: "1 / -1" }}>
+                      <label className="form-label" style={{ fontSize: "0.72rem" }}>Mini Description</label>
+                      <textarea className="form-input" rows={2} value={newChild.miniDescription} onChange={e => setNewChild({...newChild, miniDescription: e.target.value})} style={{ fontSize: "0.85rem", padding: "0.6rem 0.85rem", resize: "vertical" }} />
+                    </div>
+                  )}
+                  {show("description") && (
+                    <div className="form-group" style={{ marginBottom: 0, gridColumn: "1 / -1" }}>
+                      <label className="form-label" style={{ fontSize: "0.72rem" }}>Description</label>
+                      <textarea className="form-input" rows={3} value={newChild.description} onChange={e => setNewChild({...newChild, description: e.target.value})} style={{ fontSize: "0.85rem", padding: "0.6rem 0.85rem", resize: "vertical" }} />
+                    </div>
+                  )}
                 </div>
+                )}
 
                 {/* Dynamic Prices Section */}
-                <fieldset disabled={locked("prices")} style={{ minWidth: 0, margin: 0, padding: "1rem", background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", marginBottom: "1.25rem" }}>
+                {show("prices") && (
+                <fieldset style={{ minWidth: 0, margin: 0, padding: "1rem", background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", marginBottom: "1.25rem" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
                     <label className="form-label" style={{ margin: 0, fontSize: "0.85rem", color: "var(--accent-light)" }}>Pricing Tiers</label>
                     <button type="button" className="btn-ghost" style={{ padding: "0.2rem 0.4rem", fontSize: "0.75rem" }} onClick={() => setPrices([...prices, { period: 1, periodType: "Day", price: 0, country: "II", active: true }])}>
@@ -350,10 +381,11 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
                     ))}
                   </div>
                 </fieldset>
+                )}
 
                 <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
                   <button type="button" className="btn-ghost" style={{ fontSize: "0.85rem" }} onClick={() => { setIsAddingChild(false); setNewChild({ id: "", name: "", fullName: "", janDrozdId: "", description: "", miniDescription: "", version: "", comingSoon: false, hidden: false, withTaxes: true }); setPrices([{ period: 1, periodType: "Day", price: 0, country: "II", active: true }]); }}>Cancel</button>
-                  <button type="submit" className="btn-primary" disabled={loading} style={{ fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                  <button type="submit" className="btn-primary" disabled={loading || noAccess} style={{ fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
                     {loading ? (
                       <><span className="spinner" style={{ width: 14, height: 14 }}></span> Saving...</>
                     ) : (
@@ -420,14 +452,16 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
 
                   {/* Actions */}
                   <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", flexShrink: 0 }}>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                      <button type="button" className="btn-ghost" style={{ padding: "0 6px", minHeight: "16px", lineHeight: 1, fontSize: "0.65rem" }}
-                        onClick={() => handleMove(index, -1)} disabled={!canReorder || reordering || index === 0}
-                        title="Move up" aria-label={`Move ${child.name} up`}>▲</button>
-                      <button type="button" className="btn-ghost" style={{ padding: "0 6px", minHeight: "16px", lineHeight: 1, fontSize: "0.65rem" }}
-                        onClick={() => handleMove(index, 1)} disabled={!canReorder || reordering || index === childrenList.length - 1}
-                        title="Move down" aria-label={`Move ${child.name} down`}>▼</button>
-                    </div>
+                    {canReorder && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                        <button type="button" className="btn-ghost" style={{ padding: "0 6px", minHeight: "16px", lineHeight: 1, fontSize: "0.65rem" }}
+                          onClick={() => handleMove(index, -1)} disabled={reordering || index === 0}
+                          title="Move up" aria-label={`Move ${child.name} up`}>▲</button>
+                        <button type="button" className="btn-ghost" style={{ padding: "0 6px", minHeight: "16px", lineHeight: 1, fontSize: "0.65rem" }}
+                          onClick={() => handleMove(index, 1)} disabled={reordering || index === childrenList.length - 1}
+                          title="Move down" aria-label={`Move ${child.name} down`}>▼</button>
+                      </div>
+                    )}
                     {canUpdate && (
                       <button type="button" title="Edit Variant" onClick={() => handleEditClick(child)} style={{
                         width: "32px", height: "32px", borderRadius: "8px",

@@ -217,14 +217,16 @@ export default function HeroSlidesPage() {
               <div key={slide.id} className={`ct-row hs-row ${slide.hidden ? "is-hidden" : ""}`}>
                 <div className="ct-order">
                   <span className="ct-order-num">{index + 1}</span>
-                  <div className="ct-order-btns">
-                    <button type="button" className="pr-icon-btn" onClick={() => move(index, -1)} disabled={!canField("hero-slides", "order") || reordering || index === 0} aria-label={`Move ${slide.title} up`} title="Move up">
-                      <Svg size={12}>{Icon.up}</Svg>
-                    </button>
-                    <button type="button" className="pr-icon-btn" onClick={() => move(index, 1)} disabled={!canField("hero-slides", "order") || reordering || index === slides.length - 1} aria-label={`Move ${slide.title} down`} title="Move down">
-                      <Svg size={12}>{Icon.down}</Svg>
-                    </button>
-                  </div>
+                  {canField("hero-slides", "order") && (
+                    <div className="ct-order-btns">
+                      <button type="button" className="pr-icon-btn" onClick={() => move(index, -1)} disabled={reordering || index === 0} aria-label={`Move ${slide.title} up`} title="Move up">
+                        <Svg size={12}>{Icon.up}</Svg>
+                      </button>
+                      <button type="button" className="pr-icon-btn" onClick={() => move(index, 1)} disabled={reordering || index === slides.length - 1} aria-label={`Move ${slide.title} down`} title="Move down">
+                        <Svg size={12}>{Icon.down}</Svg>
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="hs-thumb">
@@ -252,13 +254,17 @@ export default function HeroSlidesPage() {
                   </div>
                 </div>
 
-                <label className="pr-visibility" title={slide.hidden ? "Hidden — click to show" : "Shown — click to hide"} style={{ opacity: busy ? 0.6 : 1 }}>
-                  <span className="pf-toggle-switch">
-                    <input type="checkbox" checked={!slide.hidden} disabled={!canField("hero-slides", "hidden") || busy} onChange={() => toggleHidden(slide)} aria-label={`${slide.title} shown`} />
-                    <span className="pf-toggle-track" />
-                  </span>
-                  <span className={slide.hidden ? "pr-muted" : ""}>{slide.hidden ? "Hidden" : "Shown"}</span>
-                </label>
+                {canField("hero-slides", "hidden") ? (
+                  <label className="pr-visibility" title={slide.hidden ? "Hidden — click to show" : "Shown — click to hide"} style={{ opacity: busy ? 0.6 : 1 }}>
+                    <span className="pf-toggle-switch">
+                      <input type="checkbox" checked={!slide.hidden} disabled={busy} onChange={() => toggleHidden(slide)} aria-label={`${slide.title} shown`} />
+                      <span className="pf-toggle-track" />
+                    </span>
+                    <span className={slide.hidden ? "pr-muted" : ""}>{slide.hidden ? "Hidden" : "Shown"}</span>
+                  </label>
+                ) : (
+                  <span className={`pr-visibility ${slide.hidden ? "pr-muted" : ""}`}>{slide.hidden ? "Hidden" : "Shown"}</span>
+                )}
 
                 <div className="pr-actions">
                   {canField("hero-slides", "image") && (
@@ -313,6 +319,11 @@ function SlideModal({ slide, onClose, onSaved, onError }: {
   const { canField } = usePermissions();
   const locked = (field: string) => !!slide && !canField("hero-slides", field);
   const lockButtons = locked("buttons");
+  // Edit mode only renders fields the user may change; hidden ones still submit their saved values.
+  const show = (field: string) => !locked(field);
+  const showText = show("badge") || show("title") || show("description");
+  const showSide = show("duration") || show("image") || !slide;
+  const noFields = !showText && !showSide && lockButtons;
   const [badge, setBadge] = useState(slide?.badge ?? "");
   const [title, setTitle] = useState(slide?.title ?? "");
   const [description, setDescription] = useState(slide?.description ?? "");
@@ -420,48 +431,65 @@ function SlideModal({ slide, onClose, onSaved, onError }: {
           </div>
 
           <form id="slideForm" onSubmit={submit} className="hs-form">
+            {noFields && <p className="ct-hint" style={{ margin: 0 }}>You don&apos;t have permission to edit any field here.</p>}
+            {(showText || showSide) && (
             <div className="hs-form-grid">
+              {showText && (
               <div className="ct-fields">
+                {show("badge") && (
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <div className="ct-label-row">
                     <label className="form-label" htmlFor="slideBadge">Badge</label>
                     <span className="ct-char-count">{badge.length}/100</span>
                   </div>
-                  <input id="slideBadge" className="form-input" maxLength={100} value={badge} disabled={locked("badge")} onChange={(e) => setBadge(e.target.value)} placeholder="e.g. Professional-grade CAD software" />
+                  <input id="slideBadge" className="form-input" maxLength={100} value={badge} onChange={(e) => setBadge(e.target.value)} placeholder="e.g. Professional-grade CAD software" />
                 </div>
+                )}
+                {show("title") && (
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <div className="ct-label-row">
                     <label className="form-label" htmlFor="slideTitle">Title *</label>
                     <span className="ct-char-count">{title.length}/200</span>
                   </div>
-                  <input id="slideTitle" className="form-input" required autoFocus maxLength={200} value={title} disabled={locked("title")} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. nanoCAD Platform" />
+                  <input id="slideTitle" className="form-input" required autoFocus maxLength={200} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. nanoCAD Platform" />
                 </div>
+                )}
+                {show("description") && (
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <div className="ct-label-row">
                     <label className="form-label" htmlFor="slideDescription">Description</label>
                     <span className="ct-char-count">{description.length}/1000</span>
                   </div>
-                  <textarea id="slideDescription" className="form-input" rows={3} maxLength={1000} value={description} disabled={locked("description")} onChange={(e) => setDescription(e.target.value)} style={{ resize: "vertical" }} />
+                  <textarea id="slideDescription" className="form-input" rows={3} maxLength={1000} value={description} onChange={(e) => setDescription(e.target.value)} style={{ resize: "vertical" }} />
                 </div>
+                )}
               </div>
+              )}
 
+              {showSide && (
               <div className="ct-fields">
+                {show("duration") && (
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label" htmlFor="slideDuration">Duration (seconds)</label>
                   <div className="hs-duration">
                     <input id="slideDuration" type="number" className="form-input" required min={2} max={60} step={1}
-                      value={duration} disabled={locked("duration")} onChange={(e) => setDuration(e.target.value)} />
+                      value={duration} onChange={(e) => setDuration(e.target.value)} />
                     <span className="ct-hint" style={{ margin: 0 }}>How long this slide stays (2–60).</span>
                   </div>
                 </div>
+                )}
+                {show("image") && (
+                <>
                 <span className="form-label">Image</span>
                 <div className="hs-image-picker">
-                  <label className={`btn-ghost ${locked("image") ? "is-disabled" : ""}`} style={{ cursor: locked("image") ? "not-allowed" : "pointer", opacity: locked("image") ? 0.6 : 1 }}>
+                  <label className="btn-ghost" style={{ cursor: "pointer" }}>
                     {imagePreview ? "Change image" : "Choose image"}
-                    <input type="file" accept="image/*" hidden disabled={locked("image")} onChange={(e) => { pickImage(e.target.files?.[0]); e.target.value = ""; }} />
+                    <input type="file" accept="image/*" hidden onChange={(e) => { pickImage(e.target.files?.[0]); e.target.value = ""; }} />
                   </label>
                   {imageFile && <span className="ct-hint" style={{ margin: 0 }}>Uploads when you save.</span>}
                 </div>
+                </>
+                )}
                 {!slide && (
                   <label className="pf-toggle" style={{ marginTop: "0.5rem" }}>
                     <span className="pf-toggle-switch">
@@ -472,8 +500,11 @@ function SlideModal({ slide, onClose, onSaved, onError }: {
                   </label>
                 )}
               </div>
+              )}
             </div>
+            )}
 
+            {!lockButtons && (
             <div className="hs-buttons-editor">
               <div className="ct-label-row">
                 <p className="ct-section-label">Buttons</p>
@@ -485,37 +516,38 @@ function SlideModal({ slide, onClose, onSaved, onError }: {
               {buttons.map((b, i) => (
                 <div key={i} className="hs-button-row">
                   <div className="ct-order-btns">
-                    <button type="button" className="pr-icon-btn" onClick={() => moveButton(i, -1)} disabled={lockButtons || i === 0} aria-label="Move button up"><Svg size={12}>{Icon.up}</Svg></button>
-                    <button type="button" className="pr-icon-btn" onClick={() => moveButton(i, 1)} disabled={lockButtons || i === buttons.length - 1} aria-label="Move button down"><Svg size={12}>{Icon.down}</Svg></button>
+                    <button type="button" className="pr-icon-btn" onClick={() => moveButton(i, -1)} disabled={i === 0} aria-label="Move button up"><Svg size={12}>{Icon.up}</Svg></button>
+                    <button type="button" className="pr-icon-btn" onClick={() => moveButton(i, 1)} disabled={i === buttons.length - 1} aria-label="Move button down"><Svg size={12}>{Icon.down}</Svg></button>
                   </div>
                   <input className="form-input" required maxLength={60} placeholder="Text, e.g. Browse Products" aria-label={`Button ${i + 1} text`}
-                    value={b.text} disabled={lockButtons} onChange={(e) => setButton(i, { text: e.target.value })} />
+                    value={b.text} onChange={(e) => setButton(i, { text: e.target.value })} />
                   <input className="form-input" required maxLength={500} placeholder="/products, #contact or www.site.com" aria-label={`Button ${i + 1} link`}
-                    value={b.url} disabled={lockButtons} onChange={(e) => setButton(i, { url: e.target.value })} />
-                  <select className="form-input" aria-label={`Button ${i + 1} icon`} value={b.icon} disabled={lockButtons} onChange={(e) => setButton(i, { icon: e.target.value })} style={{ appearance: "auto" }}>
+                    value={b.url} onChange={(e) => setButton(i, { url: e.target.value })} />
+                  <select className="form-input" aria-label={`Button ${i + 1} icon`} value={b.icon} onChange={(e) => setButton(i, { icon: e.target.value })} style={{ appearance: "auto" }}>
                     <option value="">No icon</option>
                     {Object.entries(HERO_ICONS).map(([key, icon]) => <option key={key} value={key}>{icon.label}</option>)}
                   </select>
                   <div className="hs-variant" role="radiogroup" aria-label={`Button ${i + 1} style`}>
-                    <button type="button" role="radio" aria-checked={b.variant === "primary"} className={b.variant === "primary" ? "is-active" : ""} disabled={lockButtons} onClick={() => setButton(i, { variant: "primary" })}>Filled</button>
-                    <button type="button" role="radio" aria-checked={b.variant === "secondary"} className={b.variant === "secondary" ? "is-active" : ""} disabled={lockButtons} onClick={() => setButton(i, { variant: "secondary" })}>Outline</button>
+                    <button type="button" role="radio" aria-checked={b.variant === "primary"} className={b.variant === "primary" ? "is-active" : ""} onClick={() => setButton(i, { variant: "primary" })}>Filled</button>
+                    <button type="button" role="radio" aria-checked={b.variant === "secondary"} className={b.variant === "secondary" ? "is-active" : ""} onClick={() => setButton(i, { variant: "secondary" })}>Outline</button>
                   </div>
-                  <IconButton title="Remove button" tone="danger" disabled={lockButtons} onClick={() => setButtons((prev) => prev.filter((_, j) => j !== i))}>{Icon.trash}</IconButton>
+                  <IconButton title="Remove button" tone="danger" onClick={() => setButtons((prev) => prev.filter((_, j) => j !== i))}>{Icon.trash}</IconButton>
                 </div>
               ))}
 
-              {buttons.length < MAX_BUTTONS && !lockButtons && (
+              {buttons.length < MAX_BUTTONS && (
                 <button type="button" className="btn-ghost hs-add-button" onClick={() => setButtons((prev) => [...prev, newButton(prev.length)])}>
                   <Svg>{Icon.plus}</Svg>Add button
                 </button>
               )}
             </div>
+            )}
           </form>
         </div>
 
         <div className="modal-footer">
           <button type="button" className="btn-ghost" onClick={onClose} disabled={saving}>Cancel</button>
-          <button type="submit" form="slideForm" className="btn-primary" disabled={saving || !title.trim()}>
+          <button type="submit" form="slideForm" className="btn-primary" disabled={saving || noFields || !title.trim()}>
             {saving ? "Saving…" : slide ? "Save changes" : "Create slide"}
           </button>
         </div>

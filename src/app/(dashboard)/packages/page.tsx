@@ -199,12 +199,13 @@ export default function PackagesPage() {
                       <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.85rem", fontWeight: 600, color: "var(--text-primary)", minWidth: "1.2rem", textAlign: "center" }}>
                         {index + 1}
                       </span>
+                      {canReorder && (
                       <div style={{ display: "flex", flexDirection: "column", background: "var(--bg-elevated)", borderRadius: "10px", border: "1px solid var(--border)", overflow: "hidden" }}>
                         <button
                           type="button"
                           style={{ padding: "6px 4px", minHeight: "28px", minWidth: "28px", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)", background: "transparent", border: "none", borderBottom: "1px solid var(--border)", cursor: (reordering || index === 0) ? "not-allowed" : "pointer", opacity: (reordering || index === 0) ? 0.3 : 1 }}
                           onClick={() => handleMove(index, -1)}
-                          disabled={!canReorder || reordering || index === 0}
+                          disabled={reordering || index === 0}
                           title="Move up"
                           aria-label={`Move ${pkg.name} up`}
                           onMouseEnter={(e) => e.currentTarget.style.color = "var(--text-primary)"}
@@ -219,7 +220,7 @@ export default function PackagesPage() {
                           type="button"
                           style={{ padding: "6px 4px", minHeight: "28px", minWidth: "28px", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)", background: "transparent", border: "none", cursor: (reordering || index === packages.length - 1) ? "not-allowed" : "pointer", opacity: (reordering || index === packages.length - 1) ? 0.3 : 1 }}
                           onClick={() => handleMove(index, 1)}
-                          disabled={!canReorder || reordering || index === packages.length - 1}
+                          disabled={reordering || index === packages.length - 1}
                           title="Move down"
                           aria-label={`Move ${pkg.name} down`}
                           onMouseEnter={(e) => e.currentTarget.style.color = "var(--text-primary)"}
@@ -231,6 +232,7 @@ export default function PackagesPage() {
                           </svg>
                         </button>
                       </div>
+                      )}
                     </div>
                   </td>
                   <td>
@@ -274,6 +276,11 @@ export default function PackagesPage() {
                   </td>
                   <td>
                     <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
+                      {!canToggleHidden ? (
+                        <span style={{ fontSize: "0.8rem", color: pkg.hidden ? "var(--text-muted)" : "var(--text-primary)" }}>
+                          {pkg.hidden ? "Hidden" : "Visible"}
+                        </span>
+                      ) : (
                       <label
                         style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", cursor: hiddenBusyId === pkg.id ? "wait" : "pointer", opacity: hiddenBusyId === pkg.id ? 0.6 : 1 }}
                         title={pkg.hidden ? "Hidden from customers — click to show" : "Visible to customers — click to hide"}
@@ -282,7 +289,7 @@ export default function PackagesPage() {
                           <input
                             type="checkbox"
                             checked={!pkg.hidden}
-                            disabled={!canToggleHidden || hiddenBusyId === pkg.id}
+                            disabled={hiddenBusyId === pkg.id}
                             onChange={() => handleToggleHidden(pkg)}
                           />
                           <span className="pf-toggle-track" />
@@ -291,6 +298,7 @@ export default function PackagesPage() {
                           {pkg.hidden ? "Hidden" : "Visible"}
                         </span>
                       </label>
+                      )}
                       {pkg.comingSoon && <span className="badge badge-neutral">Coming Soon</span>}
                     </div>
                   </td>

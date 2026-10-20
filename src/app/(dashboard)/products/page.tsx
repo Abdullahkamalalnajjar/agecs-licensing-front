@@ -236,7 +236,8 @@ export default function ProductsPage() {
 
   const hasFilters = !!search || company !== "all" || family !== "all" || status !== "all";
   // Reordering needs the full, unfiltered list in display order, since the API reorders all top-level products at once.
-  const canReorder = canField("products", "order") && !hasFilters && sort === "order";
+  const canOrder = canField("products", "order");
+  const canReorder = canOrder && !hasFilters && sort === "order";
 
   // Moves a product one step, saving the whole new order; rolls back if the save fails.
   // Flips a product's visibility right away, rolling back if the save fails.
@@ -528,7 +529,7 @@ export default function ProductsPage() {
           <table className="data-table pr-table">
             <thead>
               <tr>
-                <th style={{ width: "90px" }} title={canReorder ? undefined : "Clear filters and sort by Featured to reorder"}>Order</th>
+                <th style={{ width: "90px" }} title={canReorder || !canOrder ? undefined : "Clear filters and sort by Featured to reorder"}>Order</th>
                 <th>Product</th>
                 <th>Family</th>
                 <th>Version</th>
@@ -547,7 +548,7 @@ export default function ProductsPage() {
                         {index + 1}
                       </span>
                       {/* Reordering moves the whole top-level product, so the arrows sit on its first row only. */}
-                      {first && (
+                      {first && canOrder && (
                         <div
                           style={{ display: "flex", flexDirection: "column", gap: "2px" }}
                           title={canReorder ? undefined : "Clear filters and sort by Featured to reorder"}
@@ -592,16 +593,19 @@ export default function ProductsPage() {
                   <td>{renderPrice(product, true)}</td>
                   <td>
                     <div className="pr-badges">
+                      {!canEditHidden ? (
+                        <span className={`pr-visibility ${product.hidden ? "pr-muted" : ""}`}>{product.hidden ? "Hidden" : "Visible"}</span>
+                      ) : (
                       <label
                         className="pr-visibility"
                         title={product.hidden ? "Hidden from customers — click to show" : "Visible to customers — click to hide"}
-                        style={{ cursor: !canEditHidden ? "default" : hiddenBusyId === product.id ? "wait" : "pointer", opacity: hiddenBusyId === product.id ? 0.6 : 1 }}
+                        style={{ cursor: hiddenBusyId === product.id ? "wait" : "pointer", opacity: hiddenBusyId === product.id ? 0.6 : 1 }}
                       >
                         <span className="pf-toggle-switch">
                           <input
                             type="checkbox"
                             checked={!product.hidden}
-                            disabled={!canEditHidden || hiddenBusyId === product.id}
+                            disabled={hiddenBusyId === product.id}
                             onChange={() => handleToggleHidden(product)}
                             aria-label={`${product.name} visible`}
                           />
@@ -609,6 +613,7 @@ export default function ProductsPage() {
                         </span>
                         <span className={product.hidden ? "pr-muted" : ""}>{product.hidden ? "Hidden" : "Visible"}</span>
                       </label>
+                      )}
                       {product.comingSoon && <span className="pr-badge pr-badge-soon">Soon</span>}
                       {saleBadge(product)}
                     </div>

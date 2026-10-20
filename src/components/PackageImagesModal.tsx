@@ -153,12 +153,16 @@ export default function PackageImagesModal({ pkg, onClose, onChange }: PackageIm
                     )}
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", padding: "0.45rem" }}>
-                    <button type="button" style={{ ...iconButton, opacity: index === 0 ? 0.35 : 1 }} disabled={!canReorder || busy || index === 0} onClick={() => move(index, -1)} title="Move earlier" aria-label="Move earlier">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
-                    </button>
-                    <button type="button" style={{ ...iconButton, opacity: index === images.length - 1 ? 0.35 : 1 }} disabled={!canReorder || busy || index === images.length - 1} onClick={() => move(index, 1)} title="Move later" aria-label="Move later">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
-                    </button>
+                    {canReorder && (
+                      <>
+                        <button type="button" style={{ ...iconButton, opacity: index === 0 ? 0.35 : 1 }} disabled={busy || index === 0} onClick={() => move(index, -1)} title="Move earlier" aria-label="Move earlier">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
+                        </button>
+                        <button type="button" style={{ ...iconButton, opacity: index === images.length - 1 ? 0.35 : 1 }} disabled={busy || index === images.length - 1} onClick={() => move(index, 1)} title="Move later" aria-label="Move later">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+                        </button>
+                      </>
+                    )}
                     {canReorder && index !== 0 && (
                       <button type="button" className="btn-ghost" style={{ padding: "0.2rem 0.5rem", fontSize: "0.75rem" }} disabled={busy} onClick={() => makeCover(index)}>
                         Make cover

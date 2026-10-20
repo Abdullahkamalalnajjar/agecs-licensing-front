@@ -18,6 +18,12 @@ export default function ProductFormModal({ initialData, onClose, onSuccess }: Pr
   // Field-level edit rights only apply to an existing product; creating unlocks everything.
   const locked = (field: string) => isEditing && !canField("products", field);
   const bare = { border: 0, padding: 0, margin: 0, minWidth: 0 };
+  // Locked fields are hidden; their original values still go out in the payload.
+  const show = (field: string) => !locked(field);
+  const showDetails = ["name", "fullName", "description", "family", "version", "janDrozdId", "company"].some(show);
+  const showPricing = show("prices");
+  const showSettings = ["comingSoon", "hidden", "withTaxes"].some(show);
+  const noAccess = !showDetails && !showPricing && !showSettings;
   const [productData, setProductData] = useState({
     name: initialData?.name || "",
     fullName: initialData?.fullName || "",
@@ -103,56 +109,77 @@ export default function ProductFormModal({ initialData, onClose, onSuccess }: Pr
           
           <form id="productForm" onSubmit={handleSubmit}>
             <div className="pf-body">
+              {noAccess && (
+                <p style={{ margin: 0, color: "var(--text-muted)", fontSize: "0.9rem" }}>You don&apos;t have permission to edit any field here.</p>
+              )}
 
+              {showDetails && (
               <div className="pf-section">
                 <div className="pf-section-title">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>
                   Details
                 </div>
 
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label" htmlFor="name">Name</label>
-                  <input id="name" type="text" className="form-input" value={productData.name} onChange={(e) => setProductData({ ...productData, name: e.target.value })} required disabled={locked("name")} />
-                </div>
-
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label" htmlFor="fullName">Full Name</label>
-                  <input id="fullName" type="text" className="form-input" value={productData.fullName} onChange={(e) => setProductData({ ...productData, fullName: e.target.value })} disabled={locked("fullName")} />
-                </div>
-
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label" htmlFor="description">Description</label>
-                  <textarea id="description" className="form-input" value={productData.description} onChange={(e) => setProductData({ ...productData, description: e.target.value })} rows={3} style={{ resize: "vertical" }} disabled={locked("description")} />
-                </div>
-
-                <div className="pf-row">
+                {show("name") && (
                   <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label" htmlFor="family">Family</label>
-                    <fieldset disabled={locked("family")} style={bare}>
-                      <CatalogSelect kind="family" id="family" value={productData.familyId} onChange={(familyId) => setProductData({ ...productData, familyId })} required />
-                    </fieldset>
+                    <label className="form-label" htmlFor="name">Name</label>
+                    <input id="name" type="text" className="form-input" value={productData.name} onChange={(e) => setProductData({ ...productData, name: e.target.value })} required />
                   </div>
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label" htmlFor="version">Version</label>
-                    <input id="version" type="text" className="form-input" value={productData.version} onChange={(e) => setProductData({ ...productData, version: e.target.value })} disabled={locked("version")} />
-                  </div>
-                </div>
+                )}
 
-                <div className="pf-row">
+                {show("fullName") && (
                   <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label" htmlFor="janDrozdId">JanDrozd ID</label>
-                    <input id="janDrozdId" type="text" className="form-input" value={productData.janDrozdId} onChange={(e) => setProductData({ ...productData, janDrozdId: e.target.value })} disabled={locked("janDrozdId")} />
+                    <label className="form-label" htmlFor="fullName">Full Name</label>
+                    <input id="fullName" type="text" className="form-input" value={productData.fullName} onChange={(e) => setProductData({ ...productData, fullName: e.target.value })} />
                   </div>
+                )}
+
+                {show("description") && (
                   <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label" htmlFor="company">Company</label>
-                    <fieldset disabled={locked("company")} style={bare}>
-                      <CatalogSelect kind="company" id="company" value={productData.companyId} onChange={(companyId) => setProductData({ ...productData, companyId })} required />
-                    </fieldset>
+                    <label className="form-label" htmlFor="description">Description</label>
+                    <textarea id="description" className="form-input" value={productData.description} onChange={(e) => setProductData({ ...productData, description: e.target.value })} rows={3} style={{ resize: "vertical" }} />
                   </div>
-                </div>
+                )}
+
+                {(show("family") || show("version")) && (
+                  <div className="pf-row">
+                    {show("family") && (
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label className="form-label" htmlFor="family">Family</label>
+                        <CatalogSelect kind="family" id="family" value={productData.familyId} onChange={(familyId) => setProductData({ ...productData, familyId })} required />
+                      </div>
+                    )}
+                    {show("version") && (
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label className="form-label" htmlFor="version">Version</label>
+                        <input id="version" type="text" className="form-input" value={productData.version} onChange={(e) => setProductData({ ...productData, version: e.target.value })} />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {(show("janDrozdId") || show("company")) && (
+                  <div className="pf-row">
+                    {show("janDrozdId") && (
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label className="form-label" htmlFor="janDrozdId">JanDrozd ID</label>
+                        <input id="janDrozdId" type="text" className="form-input" value={productData.janDrozdId} onChange={(e) => setProductData({ ...productData, janDrozdId: e.target.value })} />
+                      </div>
+                    )}
+                    {show("company") && (
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label className="form-label" htmlFor="company">Company</label>
+                        <CatalogSelect kind="company" id="company" value={productData.companyId} onChange={(companyId) => setProductData({ ...productData, companyId })} required />
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
+              )}
 
-              <hr className="pf-divider" />
+              {showPricing && (
+              <>
+              {showDetails && <hr className="pf-divider" />}
 
               <div className="pf-section">
                 <div className="pf-section-title">
@@ -160,7 +187,7 @@ export default function ProductFormModal({ initialData, onClose, onSuccess }: Pr
                   Pricing Tiers
                 </div>
 
-                <fieldset className="pf-prices" disabled={locked("prices")} style={bare}>
+                <fieldset className="pf-prices" style={bare}>
                   <div className="pf-prices-header">
                     <span className="pf-field-hint">{prices.length === 0 ? "Free product — no charges apply" : `${prices.length} tier${prices.length !== 1 ? "s" : ""} configured`}</span>
                     <button type="button" className="btn-ghost pf-add-price" onClick={() => setPrices([...prices, { period: 1, price: 0, country: "II", active: true }])}>
@@ -213,8 +240,12 @@ export default function ProductFormModal({ initialData, onClose, onSuccess }: Pr
                   </div>
                 </fieldset>
               </div>
+              </>
+              )}
 
-              <hr className="pf-divider" />
+              {showSettings && (
+              <>
+              {(showDetails || showPricing) && <hr className="pf-divider" />}
 
               <div className="pf-section">
                 <div className="pf-section-title">
@@ -223,29 +254,37 @@ export default function ProductFormModal({ initialData, onClose, onSuccess }: Pr
                 </div>
 
                 <div className="pf-toggles">
-                  <label className="pf-toggle">
-                    <span className="pf-toggle-switch">
-                      <input type="checkbox" checked={productData.comingSoon} onChange={(e) => setProductData({ ...productData, comingSoon: e.target.checked })} disabled={locked("comingSoon")} />
-                      <span className="pf-toggle-track" />
-                    </span>
-                    <span className="pf-toggle-label">Coming Soon</span>
-                  </label>
-                  <label className="pf-toggle">
-                    <span className="pf-toggle-switch">
-                      <input type="checkbox" checked={productData.hidden} onChange={(e) => setProductData({ ...productData, hidden: e.target.checked })} disabled={locked("hidden")} />
-                      <span className="pf-toggle-track" />
-                    </span>
-                    <span className="pf-toggle-label">Hidden</span>
-                  </label>
-                  <label className="pf-toggle">
-                    <span className="pf-toggle-switch">
-                      <input type="checkbox" checked={productData.withTaxes} onChange={(e) => setProductData({ ...productData, withTaxes: e.target.checked })} disabled={locked("withTaxes")} />
-                      <span className="pf-toggle-track" />
-                    </span>
-                    <span className="pf-toggle-label">With Taxes</span>
-                  </label>
+                  {show("comingSoon") && (
+                    <label className="pf-toggle">
+                      <span className="pf-toggle-switch">
+                        <input type="checkbox" checked={productData.comingSoon} onChange={(e) => setProductData({ ...productData, comingSoon: e.target.checked })} />
+                        <span className="pf-toggle-track" />
+                      </span>
+                      <span className="pf-toggle-label">Coming Soon</span>
+                    </label>
+                  )}
+                  {show("hidden") && (
+                    <label className="pf-toggle">
+                      <span className="pf-toggle-switch">
+                        <input type="checkbox" checked={productData.hidden} onChange={(e) => setProductData({ ...productData, hidden: e.target.checked })} />
+                        <span className="pf-toggle-track" />
+                      </span>
+                      <span className="pf-toggle-label">Hidden</span>
+                    </label>
+                  )}
+                  {show("withTaxes") && (
+                    <label className="pf-toggle">
+                      <span className="pf-toggle-switch">
+                        <input type="checkbox" checked={productData.withTaxes} onChange={(e) => setProductData({ ...productData, withTaxes: e.target.checked })} />
+                        <span className="pf-toggle-track" />
+                      </span>
+                      <span className="pf-toggle-label">With Taxes</span>
+                    </label>
+                  )}
                 </div>
               </div>
+              </>
+              )}
 
             </div>
           </form>
@@ -253,7 +292,7 @@ export default function ProductFormModal({ initialData, onClose, onSuccess }: Pr
 
         <div className="modal-footer">
           <button type="button" className="btn-ghost" onClick={onClose} disabled={saving}>Cancel</button>
-          <button type="submit" form="productForm" className="btn-primary" disabled={saving}>
+          <button type="submit" form="productForm" className="btn-primary" disabled={saving || noAccess}>
             {saving ? "Saving..." : "Save Product"}
           </button>
         </div>

@@ -483,16 +483,16 @@ export default function OffersPage() {
                         <span className="of-dot" />
                         {STATUS_LABEL[status]}
                       </span>
-                      <label className="of-switch" title={offer.isActive ? "Pause offer" : "Activate offer"}>
+                      {canToggleActive && <label className="of-switch" title={offer.isActive ? "Pause offer" : "Activate offer"}>
                         <input
                           type="checkbox"
                           checked={!!offer.isActive}
-                          disabled={!canToggleActive || busy}
+                          disabled={busy}
                           onChange={() => handleToggleActive(offer)}
                           aria-label={offer.isActive ? "Pause offer" : "Activate offer"}
                         />
                         <span className="of-switch-track"><span className="of-switch-thumb" /></span>
-                      </label>
+                      </label>}
                     </header>
 
                     <div className="of-discount">

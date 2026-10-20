@@ -169,18 +169,20 @@ function useReorder<T extends { id?: string }>(
 
 function OrderControl({ index, count, busy, onMove, label }: { index: number; count: number; busy: boolean; onMove: (i: number, d: -1 | 1) => void; label: string }) {
   const { canField } = usePermissions();
-  const locked = busy || !canField("catalog", "order");
+  const canOrder = canField("catalog", "order");
   return (
     <div className="ct-order">
       <span className="ct-order-num">{index + 1}</span>
-      <div className="ct-order-btns">
-        <button type="button" className="pr-icon-btn" onClick={() => onMove(index, -1)} disabled={locked || index === 0} aria-label={`Move ${label} up`} title="Move up">
-          <Svg size={12}>{Icon.up}</Svg>
-        </button>
-        <button type="button" className="pr-icon-btn" onClick={() => onMove(index, 1)} disabled={locked || index === count - 1} aria-label={`Move ${label} down`} title="Move down">
-          <Svg size={12}>{Icon.down}</Svg>
-        </button>
-      </div>
+      {canOrder && (
+        <div className="ct-order-btns">
+          <button type="button" className="pr-icon-btn" onClick={() => onMove(index, -1)} disabled={busy || index === 0} aria-label={`Move ${label} up`} title="Move up">
+            <Svg size={12}>{Icon.up}</Svg>
+          </button>
+          <button type="button" className="pr-icon-btn" onClick={() => onMove(index, 1)} disabled={busy || index === count - 1} aria-label={`Move ${label} down`} title="Move down">
+            <Svg size={12}>{Icon.down}</Svg>
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -351,6 +353,11 @@ function CompanyModal({ company, onClose, onSave, onError }: {
 }) {
   const { canField } = usePermissions();
   const locked = (field: keyof CompanyForm) => !!company && !canField("catalog", field);
+  // Edit mode only renders fields the user may change; hidden ones still submit their saved values.
+  const show = (field: keyof CompanyForm) => !locked(field);
+  const showBasics = show("name") || show("icon");
+  const showSection = show("tagline") || show("headline") || show("description");
+  const noFields = !showBasics && !showSection;
   const [form, setForm] = useState<CompanyForm>(company ? {
     name: company.name || "",
     icon: company.icon || "",
@@ -394,13 +401,18 @@ function CompanyModal({ company, onClose, onSave, onError }: {
         <div className="modal-body">
           <form id="companyForm" onSubmit={submit} className="ct-modal-grid">
             <div className="ct-fields">
+              {noFields && <p className="ct-hint" style={{ margin: 0 }}>You don&apos;t have permission to edit any field here.</p>}
+              {showBasics && (
               <fieldset className="ct-fieldset">
                 <legend className="ct-section-label">Basics</legend>
+                {show("name") && (
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label" htmlFor="companyName">Name</label>
-                  <input id="companyName" className="form-input" required autoFocus maxLength={100} value={form.name} disabled={locked("name")} onChange={(e) => set({ name: e.target.value })} placeholder="e.g. NanoCAD" />
+                  <input id="companyName" className="form-input" required autoFocus maxLength={100} value={form.name} onChange={(e) => set({ name: e.target.value })} placeholder="e.g. NanoCAD" />
                 </div>
+                )}
 
+                {show("icon") && (
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <span className="form-label" id="companyIconLabel">Menu icon</span>
                   <div className="ct-icon-picker" role="radiogroup" aria-labelledby="companyIconLabel">
@@ -413,7 +425,6 @@ function CompanyModal({ company, onClose, onSave, onError }: {
                           role="radio"
                           aria-checked={selected}
                           className={`ct-icon-choice ${selected ? "is-selected" : ""}`}
-                          disabled={locked("icon")}
                           onClick={() => set({ icon: choice })}
                         >
                           {choice}
@@ -424,40 +435,49 @@ function CompanyModal({ company, onClose, onSave, onError }: {
                       className={`form-input ct-icon-custom ${customIcon ? "is-selected" : ""}`}
                       maxLength={16}
                       value={customIcon ? form.icon : ""}
-                      disabled={locked("icon")}
                       onChange={(e) => set({ icon: e.target.value })}
                       placeholder="Other"
                       aria-label="Custom icon (any emoji)"
                     />
                   </div>
                 </div>
+                )}
               </fieldset>
+              )}
 
+              {showSection && (
               <fieldset className="ct-fieldset">
                 <legend className="ct-section-label">Home page section</legend>
                 <p className="ct-hint" style={{ margin: 0 }}>All optional. Empty fields fall back to the company name.</p>
+                {show("tagline") && (
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <div className="ct-label-row">
                     <label className="form-label" htmlFor="companyTagline">Tagline</label>
                     <CharCount value={form.tagline} max={200} />
                   </div>
-                  <input id="companyTagline" className="form-input" maxLength={200} value={form.tagline} disabled={locked("tagline")} onChange={(e) => set({ tagline: e.target.value })} placeholder="Small label above the headline" />
+                  <input id="companyTagline" className="form-input" maxLength={200} value={form.tagline} onChange={(e) => set({ tagline: e.target.value })} placeholder="Small label above the headline" />
                 </div>
+                )}
+                {show("headline") && (
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <div className="ct-label-row">
                     <label className="form-label" htmlFor="companyHeadline">Headline</label>
                     <CharCount value={form.headline} max={300} />
                   </div>
-                  <input id="companyHeadline" className="form-input" maxLength={300} value={form.headline} disabled={locked("headline")} onChange={(e) => set({ headline: e.target.value })} placeholder={`${name} Products`} />
+                  <input id="companyHeadline" className="form-input" maxLength={300} value={form.headline} onChange={(e) => set({ headline: e.target.value })} placeholder={`${name} Products`} />
                 </div>
+                )}
+                {show("description") && (
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <div className="ct-label-row">
                     <label className="form-label" htmlFor="companyDescription">Description</label>
                     <CharCount value={form.description} max={2000} />
                   </div>
-                  <textarea id="companyDescription" className="form-input" rows={4} maxLength={2000} value={form.description} disabled={locked("description")} onChange={(e) => set({ description: e.target.value })} placeholder="A sentence or two about what this company offers" style={{ resize: "vertical" }} />
+                  <textarea id="companyDescription" className="form-input" rows={4} maxLength={2000} value={form.description} onChange={(e) => set({ description: e.target.value })} placeholder="A sentence or two about what this company offers" style={{ resize: "vertical" }} />
                 </div>
+                )}
               </fieldset>
+              )}
             </div>
 
             <aside className="ct-preview-wrap" aria-label="Preview">
@@ -501,7 +521,7 @@ function CompanyModal({ company, onClose, onSave, onError }: {
         </div>
         <div className="modal-footer">
           <button type="button" className="btn-ghost" onClick={onClose} disabled={saving}>Cancel</button>
-          <button type="submit" form="companyForm" className="btn-primary" disabled={saving || !form.name.trim()}>
+          <button type="submit" form="companyForm" className="btn-primary" disabled={saving || noFields || !form.name.trim()}>
             {saving ? "Saving…" : company ? "Save changes" : "Create company"}
           </button>
         </div>

@@ -234,10 +234,12 @@ export default function PartnersPage() {
               <div key={partner.id} className={`ct-row pt-row ${partner.hidden || !partner.logoUrl ? "is-off" : ""}`}>
                 <div className="ct-order">
                   <span className="ct-order-num">{index + 1}</span>
-                  <div className="ct-order-btns">
-                    <button type="button" className="pr-icon-btn" onClick={() => move(index, -1)} disabled={!canField("partners", "order") || reordering || index === 0} aria-label={`Move ${partnerLabel(partner)} up`} title="Move up"><Svg size={12}>{Icon.up}</Svg></button>
-                    <button type="button" className="pr-icon-btn" onClick={() => move(index, 1)} disabled={!canField("partners", "order") || reordering || index === partners.length - 1} aria-label={`Move ${partnerLabel(partner)} down`} title="Move down"><Svg size={12}>{Icon.down}</Svg></button>
-                  </div>
+                  {canField("partners", "order") && (
+                    <div className="ct-order-btns">
+                      <button type="button" className="pr-icon-btn" onClick={() => move(index, -1)} disabled={reordering || index === 0} aria-label={`Move ${partnerLabel(partner)} up`} title="Move up"><Svg size={12}>{Icon.up}</Svg></button>
+                      <button type="button" className="pr-icon-btn" onClick={() => move(index, 1)} disabled={reordering || index === partners.length - 1} aria-label={`Move ${partnerLabel(partner)} down`} title="Move down"><Svg size={12}>{Icon.down}</Svg></button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="pt-logo">
@@ -255,13 +257,17 @@ export default function PartnersPage() {
                   {!partner.logoUrl && <div className="pt-warning">Not shown on the site until a logo is uploaded.</div>}
                 </div>
 
-                <label className="pr-visibility" title={partner.hidden ? "Hidden — click to show" : "Shown — click to hide"} style={{ opacity: busy ? 0.6 : 1 }}>
-                  <span className="pf-toggle-switch">
-                    <input type="checkbox" checked={!partner.hidden} disabled={!canField("partners", "hidden") || busy} onChange={() => toggleHidden(partner)} aria-label={`${partnerLabel(partner)} shown`} />
-                    <span className="pf-toggle-track" />
-                  </span>
-                  <span className={partner.hidden ? "pr-muted" : ""}>{partner.hidden ? "Hidden" : "Shown"}</span>
-                </label>
+                {canField("partners", "hidden") ? (
+                  <label className="pr-visibility" title={partner.hidden ? "Hidden — click to show" : "Shown — click to hide"} style={{ opacity: busy ? 0.6 : 1 }}>
+                    <span className="pf-toggle-switch">
+                      <input type="checkbox" checked={!partner.hidden} disabled={busy} onChange={() => toggleHidden(partner)} aria-label={`${partnerLabel(partner)} shown`} />
+                      <span className="pf-toggle-track" />
+                    </span>
+                    <span className={partner.hidden ? "pr-muted" : ""}>{partner.hidden ? "Hidden" : "Shown"}</span>
+                  </label>
+                ) : (
+                  <span className={`pr-visibility ${partner.hidden ? "pr-muted" : ""}`}>{partner.hidden ? "Hidden" : "Shown"}</span>
+                )}
 
                 <div className="pr-actions">
                   {canField("partners", "logo") && (
@@ -312,6 +318,9 @@ function PartnerModal({ partner, onClose, onSaved, onError }: {
 }) {
   const { canField } = usePermissions();
   const locked = (field: string) => !!partner && !canField("partners", field);
+  // Edit mode only renders fields the user may change; hidden ones still submit their saved values.
+  const show = (field: string) => !locked(field);
+  const noFields = !show("logo") && !show("name") && !show("website");
   const [name, setName] = useState(partner?.name ?? "");
   const [websiteUrl, setWebsiteUrl] = useState(partner?.websiteUrl ?? "");
   const [hidden, setHidden] = useState(partner?.hidden ?? false);
@@ -368,6 +377,8 @@ function PartnerModal({ partner, onClose, onSaved, onError }: {
 
         <div className="modal-body">
           <form id="partnerForm" onSubmit={submit} className="ct-fields">
+            {noFields && <p className="ct-hint" style={{ margin: 0 }}>You don&apos;t have permission to edit any field here.</p>}
+            {show("logo") && (
             <div className="pt-logo-picker">
               <div className="pt-logo pt-logo-lg">
                 {logoPreview
@@ -376,24 +387,29 @@ function PartnerModal({ partner, onClose, onSaved, onError }: {
                   : <span className="pt-logo-empty" style={{ gap: "0.5rem" }}><Svg size={28}>{Icon.image}</Svg>No logo</span>}
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", alignItems: "flex-start" }}>
-                <label className="btn-ghost" style={{ cursor: locked("logo") ? "not-allowed" : "pointer", opacity: locked("logo") ? 0.6 : 1 }}>
+                <label className="btn-ghost" style={{ cursor: "pointer" }}>
                   {logoPreview ? "Change logo" : "Choose logo"}
-                  <input type="file" accept={LOGO_ACCEPT} hidden disabled={locked("logo")} onChange={(e) => { pickLogo(e.target.files?.[0]); e.target.value = ""; }} />
+                  <input type="file" accept={LOGO_ACCEPT} hidden onChange={(e) => { pickLogo(e.target.files?.[0]); e.target.value = ""; }} />
                 </label>
                 <span className="ct-hint" style={{ margin: 0 }}>
                   PNG, JPG, WebP or GIF, up to 5 MB. A transparent PNG/WebP looks best.{logoFile ? " Uploads when you save." : ""}
                 </span>
               </div>
             </div>
+            )}
 
+            {show("name") && (
             <div className="form-group" style={{ marginBottom: "0.5rem" }}>
               <label className="pt-form-label" htmlFor="partnerName">NAME</label>
-              <input id="partnerName" className="form-input" autoFocus maxLength={150} value={name} disabled={locked("name")} onChange={(e) => setName(e.target.value)} placeholder="Optional, e.g. EDGES Consulting" />
+              <input id="partnerName" className="form-input" autoFocus maxLength={150} value={name} onChange={(e) => setName(e.target.value)} placeholder="Optional, e.g. EDGES Consulting" />
             </div>
+            )}
+            {show("website") && (
             <div className="form-group" style={{ marginBottom: "0.5rem" }}>
               <label className="pt-form-label" htmlFor="partnerSite">WEBSITE</label>
-              <input id="partnerSite" className="form-input" maxLength={500} value={websiteUrl} disabled={locked("website")} onChange={(e) => setWebsiteUrl(e.target.value)} placeholder="Optional, e.g. www.edges.com" />
+              <input id="partnerSite" className="form-input" maxLength={500} value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} placeholder="Optional, e.g. www.edges.com" />
             </div>
+            )}
 
             {!partner && (
               <label className="pt-visibility-box">
@@ -409,7 +425,7 @@ function PartnerModal({ partner, onClose, onSaved, onError }: {
 
         <div className="modal-footer">
           <button type="button" className="btn-ghost" onClick={onClose} disabled={saving}>Cancel</button>
-          <button type="submit" form="partnerForm" className="btn-primary" disabled={saving}>
+          <button type="submit" form="partnerForm" className="btn-primary" disabled={saving || noFields}>
             {saving ? "Saving…" : partner ? "Save changes" : "Add partner"}
           </button>
         </div>

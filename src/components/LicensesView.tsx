@@ -371,7 +371,8 @@ export default function LicensesView({ embedded = false }: { embedded?: boolean 
   const clearFilters = () => { setSearch(""); setStatus("all"); setType("all"); };
 
   // ▲▼ need the full list in manual order, since the API reorders every license at once.
-  const canReorder = canField("licenses", "order") && sort === "manual" && !hasFilters;
+  const canOrder = canField("licenses", "order");
+  const canReorder = canOrder && sort === "manual" && !hasFilters;
   const reorderHint = "Clear filters and sort by Manual order to reorder";
 
   // Moves a row (a license, or a package's licenses together) one step, saving the whole new order; rolls back if the save fails.
@@ -604,7 +605,7 @@ export default function LicensesView({ embedded = false }: { embedded?: boolean 
           <table className="data-table pr-table lc-table">
             <thead>
               <tr>
-                <th style={{ width: "90px" }} title={canReorder ? undefined : reorderHint}>Order</th>
+                <th style={{ width: "90px" }} title={canReorder || !canOrder ? undefined : reorderHint}>Order</th>
                 <th>Client</th>
                 <th>Product</th>
                 <th>Serial</th>
@@ -618,18 +619,20 @@ export default function LicensesView({ embedded = false }: { embedded?: boolean 
               {rows.map((row, index) => {
                 const orderCell = (label: string) => (
                   <td>
-                    <div className="lc-order" title={canReorder ? undefined : reorderHint}>
+                    <div className="lc-order" title={canReorder || !canOrder ? undefined : reorderHint}>
                       <span className="lc-order-num">{index + 1}</span>
-                      <div className="lc-order-btns">
-                        <button type="button" className="pr-icon-btn" onClick={() => handleMove(index, -1)}
-                          disabled={!canReorder || reordering || index === 0} aria-label={`Move ${label} up`}>
-                          <Svg size={12}><polyline points="18 15 12 9 6 15" /></Svg>
-                        </button>
-                        <button type="button" className="pr-icon-btn" onClick={() => handleMove(index, 1)}
-                          disabled={!canReorder || reordering || index === rows.length - 1} aria-label={`Move ${label} down`}>
-                          <Svg size={12}><polyline points="6 9 12 15 18 9" /></Svg>
-                        </button>
-                      </div>
+                      {canOrder && (
+                        <div className="lc-order-btns">
+                          <button type="button" className="pr-icon-btn" onClick={() => handleMove(index, -1)}
+                            disabled={!canReorder || reordering || index === 0} aria-label={`Move ${label} up`}>
+                            <Svg size={12}><polyline points="18 15 12 9 6 15" /></Svg>
+                          </button>
+                          <button type="button" className="pr-icon-btn" onClick={() => handleMove(index, 1)}
+                            disabled={!canReorder || reordering || index === rows.length - 1} aria-label={`Move ${label} down`}>
+                            <Svg size={12}><polyline points="6 9 12 15 18 9" /></Svg>
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </td>
                 );

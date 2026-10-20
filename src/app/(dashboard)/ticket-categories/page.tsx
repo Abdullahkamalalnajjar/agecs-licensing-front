@@ -180,24 +180,32 @@ export default function TicketCategoriesPage() {
                   <td className="fw-medium">{category.name}</td>
                   <td style={{ color: "var(--text-secondary)" }}>{category.description || "—"}</td>
                   <td>
-                    <div className="table-actions">
-                      <button type="button" className="btn-ghost" onClick={() => move(index, -1)} disabled={!canReorder || reordering || index === 0} aria-label="Move up" title="Move up">↑</button>
-                      <button type="button" className="btn-ghost" onClick={() => move(index, 1)} disabled={!canReorder || reordering || index === categories.length - 1} aria-label="Move down" title="Move down">↓</button>
-                    </div>
+                    {canReorder && (
+                      <div className="table-actions">
+                        <button type="button" className="btn-ghost" onClick={() => move(index, -1)} disabled={reordering || index === 0} aria-label="Move up" title="Move up">↑</button>
+                        <button type="button" className="btn-ghost" onClick={() => move(index, 1)} disabled={reordering || index === categories.length - 1} aria-label="Move down" title="Move down">↓</button>
+                      </div>
+                    )}
                   </td>
                   <td>
+                    {!canToggleActive ? (
+                      <span style={{ fontSize: "0.85rem", color: category.isActive ? "var(--success)" : "var(--text-muted)" }}>
+                        {category.isActive ? "Active" : "Inactive"}
+                      </span>
+                    ) : (
                     <label
                       title={category.isActive ? "Active — click to deactivate" : "Inactive — click to activate"}
                       style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", opacity: togglingId === category.id ? 0.6 : 1 }}
                     >
                       <span className="pf-toggle-switch">
-                        <input type="checkbox" checked={!!category.isActive} disabled={!canToggleActive || togglingId === category.id} onChange={() => toggleActive(category)} aria-label={`${category.name} active`} />
+                        <input type="checkbox" checked={!!category.isActive} disabled={togglingId === category.id} onChange={() => toggleActive(category)} aria-label={`${category.name} active`} />
                         <span className="pf-toggle-track" />
                       </span>
                       <span style={{ fontSize: "0.85rem", color: category.isActive ? "var(--success)" : "var(--text-muted)" }}>
                         {category.isActive ? "Active" : "Inactive"}
                       </span>
                     </label>
+                    )}
                   </td>
                   <td>
                     <div className="table-actions">

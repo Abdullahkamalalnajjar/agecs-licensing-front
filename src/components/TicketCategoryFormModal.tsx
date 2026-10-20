@@ -14,6 +14,8 @@ export default function TicketCategoryFormModal({ initialData, onClose, onSucces
   const isEditing = !!initialData;
   const { canField } = usePermissions();
   const locked = (field: string) => isEditing && !canField("ticket-categories", field);
+  // Locked fields are hidden; their original values still go out in the payload.
+  const noAccess = locked("name") && locked("description");
   const [categoryData, setCategoryData] = useState({
     name: initialData?.name || "",
     description: initialData?.description || "",
@@ -80,19 +82,22 @@ export default function TicketCategoryFormModal({ initialData, onClose, onSucces
           
           <form id="categoryForm" onSubmit={handleSubmit}>
             <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-              
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label htmlFor="name" className="form-label">Name</label>
-                <input id="name" type="text" className="form-input" value={categoryData.name} onChange={(e) => setCategoryData({ ...categoryData, name: e.target.value })} required disabled={locked("name")} />
-              </div>
+              {noAccess && (
+                <p style={{ margin: 0, color: "var(--text-muted)", fontSize: "0.9rem" }}>You don&apos;t have permission to edit any field here.</p>
+              )}
 
-              {isEditing && (
-                <>
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label htmlFor="description" className="form-label">Description</label>
-                    <textarea id="description" className="form-input" value={categoryData.description} onChange={(e) => setCategoryData({ ...categoryData, description: e.target.value })} rows={3} style={{ resize: "vertical" }} disabled={locked("description")} />
-                  </div>
-                </>
+              {!locked("name") && (
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label htmlFor="name" className="form-label">Name</label>
+                  <input id="name" type="text" className="form-input" value={categoryData.name} onChange={(e) => setCategoryData({ ...categoryData, name: e.target.value })} required />
+                </div>
+              )}
+
+              {isEditing && !locked("description") && (
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label htmlFor="description" className="form-label">Description</label>
+                  <textarea id="description" className="form-input" value={categoryData.description} onChange={(e) => setCategoryData({ ...categoryData, description: e.target.value })} rows={3} style={{ resize: "vertical" }} />
+                </div>
               )}
 
             </div>
@@ -101,7 +106,7 @@ export default function TicketCategoryFormModal({ initialData, onClose, onSucces
         
         <div className="modal-footer">
           <button type="button" className="btn-ghost" onClick={onClose} disabled={saving}>Cancel</button>
-          <button type="submit" form="categoryForm" className="btn-primary" disabled={saving}>
+          <button type="submit" form="categoryForm" className="btn-primary" disabled={saving || noAccess}>
             {saving ? "Saving..." : isEditing ? "Save Changes" : "Create Category"}
           </button>
         </div>

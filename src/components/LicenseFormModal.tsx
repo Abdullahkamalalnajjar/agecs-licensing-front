@@ -121,7 +121,8 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
           email: initialData.email || "",
           productId: initialData.productId || "",
           licenseCount: initialData.licenseCount || 1,
-          migrationLimit: initialData.migrationLimit || 1,
+          // ?? keeps a saved 0, so an untouched (or hidden) limit is sent back unchanged.
+          migrationLimit: initialData.migrationLimit ?? 1,
           expiryDate: initialData.expiryDate ? new Date(initialData.expiryDate).toISOString().split('T')[0] : "",
           hwidSalt: initialData.hwidSalt || "",
           isTrial: initialData.isTrial || false,
@@ -214,6 +215,9 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
     : !productLinkedToJanDrozd
       ? (isEditing ? "This license isn't in JanDrozd, so devices can't be registered." : "This product isn't linked to JanDrozd, so devices can't be registered.")
       : "";
+  // Edit mode: fields the user can't change are hidden (their saved values are still sent). HWIDs have their own permission.
+  const noneEditable = isEditing && !!hwidsDisabledReason
+    && ["client", "product", "seats", "migrationLimit", "expiry", "trial", "active", "version"].every(locked);
   const seatLimit = Math.max(1, Number(licenseData.licenseCount) || 1);
   const tooManyHwids = !hwidsDisabledReason && hwids.length > seatLimit;
 
@@ -361,13 +365,14 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
           hwidSalt: licenseData.hwidSalt.trim(),
           licenseCount: Number(licenseData.licenseCount) || 1,
           migrationLimit: Math.max(0, Number(licenseData.migrationLimit) || 0),
-          // Blank expiry = lifetime.
-          willExpire: !!licenseData.expiryDate,
-          expiryDate: licenseData.expiryDate ? new Date(licenseData.expiryDate).toISOString() : undefined,
+          // Blank expiry = lifetime. A locked expiry is sent back as saved, so re-formatting it doesn't count as a change.
+          ...(locked("expiry")
+            ? { willExpire: initialData.willExpire ?? !!initialData.expiryDate, expiryDate: initialData.expiryDate ?? undefined }
+            : { willExpire: !!licenseData.expiryDate, expiryDate: licenseData.expiryDate ? new Date(licenseData.expiryDate).toISOString() : undefined }),
           isTrial: licenseData.isTrial,
           isActive: licenseData.isActive,
           // An empty string clears it on the server. Serial and JanDrozd ID aren't sent, so they stay as issued.
-          version: licenseData.version.trim(),
+          version: locked("version") ? initialData.version : licenseData.version.trim(),
         };
         response = await putApiLicensesById({
           path: { id: initialData.id },
@@ -819,8 +824,12 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                     </div>
                   )}
 
+                  {noneEditable && (
+                    <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--text-muted)" }}>You don&apos;t have permission to edit any field here.</p>
+                  )}
+
                   {/* User Selection (edit mode) */}
-                  {isEditing && (
+                  {isEditing && !locked("client") && (
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label htmlFor="userId" className="form-label">Select User Account</label>
                     <select
@@ -829,7 +838,6 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                       value={licenseData.userId}
                       onChange={(e) => handleUserSelect(e.target.value)}
                       style={{ appearance: "auto" }}
-                      disabled={locked("client")}
                     >
                       <option value="">Choose an existing user (optional)...</option>
                       {users.map((u: any) => (
@@ -842,7 +850,7 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                   )}
 
                   {/* Name & Email. A new client's license uses the account's user name and email instead. */}
-                  {showLicenseEmail && (
+                  {showLicenseEmail && !locked("client") && (
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
                     <div className="form-group" style={{ marginBottom: 0 }}>
                       <label htmlFor="name" className="form-label">Client Name *</label>
@@ -854,7 +862,6 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                         value={licenseData.name}
                         onChange={(e) => setLicenseData(prev => ({ ...prev, name: e.target.value }))}
                         required
-                        disabled={locked("client")}
                       />
                     </div>
                     <div className="form-group" style={{ marginBottom: 0 }}>
@@ -866,7 +873,6 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                         placeholder="user@example.com"
                         value={licenseData.email}
                         onChange={(e) => setLicenseData(prev => ({ ...prev, email: e.target.value }))}
-                        disabled={locked("client")}
                       />
                     </div>
                   </div>
@@ -874,7 +880,7 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
 
                   {/* HWID salt = the client's username: required, no default; fixed once the license exists.
                       For a new client the account's User name is used, so the field is only shown for existing clients. */}
-                  {(isEditing || clientMode === "existing") && (
+                  {(isEditing || clientMode === "existing") && !locked("client") && (
                     <div className="form-group" style={{ marginBottom: 0 }}>
                       <label htmlFor="hwidSalt" className="form-label">Username (HWID salt) *</label>
                       <input
@@ -889,7 +895,6 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                         value={licenseData.hwidSalt}
                         onChange={(e) => setLicenseData(prev => ({ ...prev, hwidSalt: e.target.value }))}
                         style={{ fontFamily: "var(--font-mono)" }}
-                        disabled={locked("client")}
                       />
                     </div>
                   )}
@@ -932,7 +937,7 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                       )}
                       <p className="lf-note">One license is issued per item, each expiring after its own period. Seats, migrations and trial below apply to all of them.</p>
                     </div>
-                  ) : (
+                  ) : locked("product") ? null : (
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
                     <div className="form-group" style={{ marginBottom: 0 }}>
                       <label htmlFor="parentProductId" className="form-label">Product *</label>
@@ -943,7 +948,6 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                         onChange={(e) => handleParentChange(e.target.value)} 
                         required 
                         style={{ appearance: "auto" }}
-                        disabled={locked("product")}
                       >
                         <option value="">Select a product...</option>
                         {topLevelProducts.map((p: any) => (
@@ -960,7 +964,7 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                         value={licenseData.productId} 
                         onChange={(e) => handleVariantChange(e.target.value)} 
                         style={{ appearance: "auto" }}
-                        disabled={locked("product") || !selectedParentId || availableVariants.length === 0}
+                        disabled={!selectedParentId || availableVariants.length === 0}
                       >
                         {availableVariants.length === 0 ? (
                           <option value={selectedParentId || ""}>Parent product (no variant)</option>
@@ -975,7 +979,9 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                   )}
 
                   {/* License Count & Migration Limit */}
+                  {!(locked("seats") && locked("migrationLimit")) && (
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                    {!locked("seats") && (
                     <div className="form-group" style={{ marginBottom: 0 }}>
                       <label htmlFor="licenseCount" className="form-label">License Count (Seats) *</label>
                       <input
@@ -986,9 +992,10 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                         value={licenseData.licenseCount}
                         onChange={(e) => setLicenseData(prev => ({ ...prev, licenseCount: Number(e.target.value) }))}
                         required
-                        disabled={locked("seats")}
                       />
                     </div>
+                    )}
+                    {!locked("migrationLimit") && (
                     <div className="form-group" style={{ marginBottom: 0 }}>
                       <label htmlFor="migrationLimit" className="form-label">Migration Limit *</label>
                       <input
@@ -999,13 +1006,14 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                         value={licenseData.migrationLimit}
                         onChange={(e) => setLicenseData(prev => ({ ...prev, migrationLimit: Number(e.target.value) }))}
                         required
-                        disabled={locked("migrationLimit")}
                       />
                     </div>
+                    )}
                   </div>
+                  )}
 
                   {/* Expiry (a package's licenses use each item's period) */}
-                  {(isEditing || issueMode === "product") && (
+                  {(isEditing || issueMode === "product") && !locked("expiry") && (
                   <div>
                     <div className="form-group" style={{ marginBottom: 0 }}>
                       <label htmlFor="expiryDate" className="form-label">Expiry Date (Blank = Lifetime)</label>
@@ -1015,7 +1023,6 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                         className="form-input"
                         value={licenseData.expiryDate}
                         onChange={(e) => setLicenseData(prev => ({ ...prev, expiryDate: e.target.value }))}
-                        disabled={locked("expiry")}
                       />
                     </div>
                   </div>
@@ -1072,6 +1079,7 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                   )}
 
                   {/* Trial Toggle */}
+                  {!locked("trial") && (
                   <div style={{
                     display: "flex",
                     alignItems: "center",
@@ -1086,17 +1094,18 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                       type="checkbox"
                       checked={licenseData.isTrial}
                       onChange={(e) => setLicenseData(prev => ({ ...prev, isTrial: e.target.checked }))}
-                      disabled={locked("trial")}
                       style={{ width: "18px", height: "18px", accentColor: "var(--accent)", cursor: "pointer" }}
                     />
                     <label htmlFor="isTrialCheckbox" style={{ fontSize: "0.875rem", cursor: "pointer", color: "var(--text-primary)", fontWeight: 500 }}>
                       Mark as Trial License (Evaluation / Demo)
                     </label>
                   </div>
+                  )}
 
                   {isEditing && (
                     <>
                       {/* Active toggle: off = revoked */}
+                      {!locked("active") && (
                       <div style={{
                         display: "flex",
                         alignItems: "center",
@@ -1111,23 +1120,25 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                           type="checkbox"
                           checked={licenseData.isActive}
                           onChange={(e) => setLicenseData(prev => ({ ...prev, isActive: e.target.checked }))}
-                          disabled={locked("active")}
                           style={{ width: "18px", height: "18px", accentColor: "var(--accent)", cursor: "pointer" }}
                         />
                         <label htmlFor="isActiveCheckbox" style={{ fontSize: "0.875rem", cursor: "pointer", color: "var(--text-primary)", fontWeight: 500 }}>
                           License is active {licenseData.isActive ? "" : "(revoked — the client can't use it)"}
                         </label>
                       </div>
+                      )}
 
+                      {!locked("version") && (
                       <button type="button" className="btn-ghost" onClick={() => setShowAdvanced(v => !v)} style={{ alignSelf: "flex-start", fontSize: "0.8rem" }}>
                         {showAdvanced ? "Hide version" : "Show version"}
                       </button>
+                      )}
 
-                      {showAdvanced && (
+                      {showAdvanced && !locked("version") && (
                         <div className="form-group" style={{ marginBottom: 0, maxWidth: 220 }}>
                           <label htmlFor="version" className="form-label">Version</label>
                           <input id="version" type="text" className="form-input" maxLength={100} placeholder="e.g. 26"
-                            value={licenseData.version} onChange={(e) => setLicenseData(prev => ({ ...prev, version: e.target.value }))} disabled={locked("version")} />
+                            value={licenseData.version} onChange={(e) => setLicenseData(prev => ({ ...prev, version: e.target.value }))} />
                         </div>
                       )}
                     </>
@@ -1145,7 +1156,7 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                 type="submit"
                 form="licenseForm"
                 className="btn-primary"
-                disabled={saving}
+                disabled={saving || noneEditable}
                 style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
               >
                 {saving ? (
