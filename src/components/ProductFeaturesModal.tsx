@@ -1,5 +1,7 @@
 "use client";
 
+import { P } from "@/lib/permissions";
+import { usePermissions } from "@/components/AuthProvider";
 import { useState } from "react";
 import { ProductDto, ProductFeatureDto } from "@/client/types.gen";
 import { 
@@ -14,6 +16,9 @@ type ProductFeaturesModalProps = {
 };
 
 export default function ProductFeaturesModal({ product, onClose, onSuccess }: ProductFeaturesModalProps) {
+  const { can } = usePermissions();
+  const canCreate = can(P.products.create);
+  const canDelete = can(P.products.delete);
   const [featuresList, setFeaturesList] = useState<ProductFeatureDto[]>(product.features || []);
   const [isAddingFeature, setIsAddingFeature] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -106,7 +111,7 @@ export default function ProductFeaturesModal({ product, onClose, onSuccess }: Pr
           <div style={{ marginBottom: "1rem" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
               <h3 style={{ fontSize: "1.1rem", fontWeight: "600", margin: 0 }}>FEATURES</h3>
-              {!isAddingFeature && (
+              {canCreate && !isAddingFeature && (
                 <button className="btn-primary" onClick={() => setIsAddingFeature(true)}>
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                   Add Feature
@@ -174,9 +179,9 @@ export default function ProductFeaturesModal({ product, onClose, onSuccess }: Pr
                         <td className="mono">{feat.janDrozdFeatureId || "—"}</td>
                         <td>
                           <div className="table-actions">
-                            <button className="btn-danger-ghost" onClick={() => handleDeleteFeature(feat.id!)} disabled={loading}>
+                            {canDelete && <button className="btn-danger-ghost" onClick={() => handleDeleteFeature(feat.id!)} disabled={loading}>
                               Delete
-                            </button>
+                            </button>}
                           </div>
                         </td>
                       </tr>

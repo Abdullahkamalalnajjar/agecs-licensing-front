@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { postApiPromocodes, putApiPromocodesById, getApiProducts } from "@/client";
+import { postApiPromocodes, putApiPromocodesById, getApiProducts, getApiPackages } from "@/client";
 import type { ProductDto, PromocodeDiscountType, PromocodeDto } from "@/client/types.gen";
+import { usePermissions } from "@/components/AuthProvider";
 
 type PromocodeFormModalProps = {
   isOpen: boolean;
@@ -54,6 +55,9 @@ const errorText = (data: unknown, fallback: string) =>
     .join(", ") || fallback;
 
 export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promocode }: PromocodeFormModalProps) {
+  const { canField } = usePermissions();
+  // Edit mode only: fields the user can't change are disabled (the API rejects changing them).
+  const locked = (field: string) => !!promocode && !canField("promocodes", field);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -68,11 +72,21 @@ export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promoco
   const [productIds, setProductIds] = useState<string[]>([]);
   const [productSearch, setProductSearch] = useState("");
   const [products, setProducts] = useState<ProductDto[]>([]);
+  const [packageIds, setPackageIds] = useState<string[]>([]);
+  const [packages, setPackages] = useState<{ id: string; name: string }[]>([]);
+  // Who can use it: everyone, or accounts that verified one of these emails (OTP); plus academic / once-per-account limits.
+  const [specificEmails, setSpecificEmails] = useState(false);
+  const [emailsText, setEmailsText] = useState("");
+  const [academicOnly, setAcademicOnly] = useState(false);
+  const [oncePerUser, setOncePerUser] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
     getApiProducts({ query: { includeHidden: true }, throwOnError: false }).then((res) => {
       if (res.data?.value) setProducts(res.data.value);
+    });
+    getApiPackages({ query: { includeHidden: true }, throwOnError: false }).then((res) => {
+      if (res.data?.value) setPackages(res.data.value.filter((p) => p.id).map((p) => ({ id: p.id!, name: p.name || "Package" })));
     });
   }, [isOpen]);
 
@@ -86,7 +100,12 @@ export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promoco
       setDisabled(promocode.disabled || false);
       setWithTaxes(promocode.withTaxes ?? true);
       setProductIds(promocode.productIds ?? []);
-      setSpecificProducts((promocode.productIds?.length ?? 0) > 0);
+      setPackageIds(promocode.packageIds ?? []);
+      setSpecificProducts((promocode.productIds?.length ?? 0) + (promocode.packageIds?.length ?? 0) > 0);
+      setSpecificEmails((promocode.allowedEmails?.length ?? 0) > 0);
+      setEmailsText((promocode.allowedEmails ?? []).join("\n"));
+      setAcademicOnly(!!promocode.academicOnly);
+      setOncePerUser(!!promocode.oncePerUser);
     } else {
       setCode("");
       setDiscountType("Percentage");
@@ -96,7 +115,12 @@ export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promoco
       setDisabled(false);
       setWithTaxes(true);
       setProductIds([]);
+      setPackageIds([]);
       setSpecificProducts(false);
+      setSpecificEmails(false);
+      setEmailsText("");
+      setAcademicOnly(false);
+      setOncePerUser(false);
     }
     setProductSearch("");
     setError("");
@@ -118,14 +142,25 @@ export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promoco
   const visibleGroups = !search ? productGroups : productGroups
     .map((g) => g.name.toLowerCase().includes(search) ? g : { ...g, items: g.items.filter((i) => i.name.toLowerCase().includes(search)) })
     .filter((g) => g.items.length > 0);
-  const productsProblem = specificProducts && productIds.length === 0 ? "Pick at least one product, or apply the code to the whole cart." : null;
+  const productsProblem = specificProducts && productIds.length + packageIds.length === 0 ? "Pick at least one product or package, or apply the code to the whole cart." : null;
+  const visiblePackages = !search ? packages : packages.filter((p) => p.name.toLowerCase().includes(search));
+  const togglePackage = (id: string, on: boolean) =>
+    setPackageIds((prev) => on ? Array.from(new Set([...prev, id])) : prev.filter((x) => x !== id));
+
+  // One per line or comma-separated.
+  const allowedEmails = Array.from(new Set(emailsText.split(/[\s,;]+/).map((e) => e.trim().toLowerCase()).filter(Boolean)));
+  const badEmail = allowedEmails.find((e) => !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e));
+  const emailsProblem = !specificEmails ? null
+    : allowedEmails.length === 0 ? "Add at least one email, or let everyone use the code."
+    : badEmail ? `"${badEmail}" isn't a valid email.`
+    : null;
 
   const toggleProducts = (ids: string[], on: boolean) =>
     setProductIds((prev) => on ? Array.from(new Set([...prev, ...ids])) : prev.filter((id) => !ids.includes(id)));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!hasValue || valueProblem || productsProblem) return;
+    if (!hasValue || valueProblem || productsProblem || emailsProblem) return;
     setLoading(true);
     setError("");
 
@@ -135,10 +170,16 @@ export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promoco
       discountValue: value,
       disabled,
       withTaxes,
-      expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
+      // A locked field is sent back as saved, so re-formatting it doesn't count as a change.
+      expiresAt: locked("expiresAt") ? promocode?.expiresAt ?? null : expiresAt ? new Date(expiresAt).toISOString() : null,
       maxUses: maxUses ? Number(maxUses) : null,
       // Empty list = the code applies to the whole cart.
       productIds: specificProducts ? productIds : [],
+      packageIds: specificProducts ? packageIds : [],
+      // Empty list = anyone can use it.
+      allowedEmails: locked("allowedEmails") ? promocode?.allowedEmails ?? [] : specificEmails ? allowedEmails : [],
+      academicOnly,
+      oncePerUser,
     };
 
     try {
@@ -187,6 +228,7 @@ export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promoco
                   required
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
+                  disabled={locked("code")}
                   className="form-input"
                   style={{ fontFamily: "var(--font-mono)", letterSpacing: "0.05em", textTransform: "uppercase" }}
                   placeholder="e.g. SUMMER2026"
@@ -207,9 +249,10 @@ export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promoco
                         role="radio"
                         aria-checked={selected}
                         onClick={() => { setDiscountType(d.type); setDiscountValue(""); }}
+                        disabled={locked("discount")}
                         style={{
                           display: "flex", alignItems: "center", justifyContent: "center", gap: "0.45rem",
-                          padding: "0.6rem 0.5rem", borderRadius: "var(--radius-md)", cursor: "pointer",
+                          padding: "0.6rem 0.5rem", borderRadius: "var(--radius-md)", cursor: locked("discount") ? "not-allowed" : "pointer",
                           font: "inherit", fontSize: "0.85rem", fontWeight: 600,
                           border: `1px solid ${selected ? "var(--accent)" : "var(--border)"}`,
                           background: selected ? "var(--accent-dim)" : "var(--bg-surface)",
@@ -238,6 +281,7 @@ export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promoco
                       required
                       value={discountValue}
                       onChange={(e) => setDiscountValue(e.target.value)}
+                      disabled={locked("discount")}
                       className="form-input"
                       placeholder={active.placeholder}
                       style={{ paddingRight: "2.5rem", borderColor: valueProblem ? "var(--danger)" : undefined }}
@@ -264,7 +308,7 @@ export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promoco
                 <h3 style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>Applies to</h3>
 
                 <div role="radiogroup" aria-label="Applies to" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "0.5rem" }}>
-                  {[{ specific: false, label: "Whole cart" }, { specific: true, label: "Specific products" }].map((o) => {
+                  {[{ specific: false, label: "Whole cart" }, { specific: true, label: "Specific items" }].map((o) => {
                     const selected = o.specific === specificProducts;
                     return (
                       <button
@@ -273,8 +317,9 @@ export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promoco
                         role="radio"
                         aria-checked={selected}
                         onClick={() => setSpecificProducts(o.specific)}
+                        disabled={locked("items")}
                         style={{
-                          padding: "0.6rem 0.5rem", borderRadius: "var(--radius-md)", cursor: "pointer",
+                          padding: "0.6rem 0.5rem", borderRadius: "var(--radius-md)", cursor: locked("items") ? "not-allowed" : "pointer",
                           font: "inherit", fontSize: "0.85rem", fontWeight: 600,
                           border: `1px solid ${selected ? "var(--accent)" : "var(--border)"}`,
                           background: selected ? "var(--accent-dim)" : "var(--bg-surface)",
@@ -296,12 +341,26 @@ export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promoco
                       value={productSearch}
                       onChange={(e) => setProductSearch(e.target.value)}
                       className="form-input"
-                      placeholder="Search products…"
+                      placeholder="Search products and packages…"
                     />
                     <div style={{ maxHeight: "220px", overflowY: "auto", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", background: "var(--bg-surface)" }}>
-                      {visibleGroups.length === 0 ? (
+                      {visiblePackages.length > 0 && (
+                        <div style={{ borderBottom: "1px solid var(--border)" }}>
+                          <p style={{ margin: 0, padding: "0.5rem 0.75rem 0.25rem", fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-muted)" }}>Packages</p>
+                          {visiblePackages.map((p) => (
+                            <label key={p.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.4rem 0.75rem", fontSize: "0.85rem", fontWeight: 600, cursor: "pointer", color: "var(--text-primary)" }}>
+                              <input type="checkbox" checked={packageIds.includes(p.id)} onChange={(e) => togglePackage(p.id, e.target.checked)} disabled={locked("items")} style={{ width: "16px", height: "16px" }} />
+                              📦 {p.name}
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                      {visibleGroups.length > 0 && (
+                        <p style={{ margin: 0, padding: "0.5rem 0.75rem 0.25rem", fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-muted)" }}>Products</p>
+                      )}
+                      {visibleGroups.length === 0 && visiblePackages.length === 0 ? (
                         <p style={{ margin: 0, padding: "0.75rem", fontSize: "0.82rem", color: "var(--text-muted)" }}>
-                          {products.length === 0 ? "Loading products…" : "No products match."}
+                          {products.length === 0 ? "Loading products…" : "Nothing matches."}
                         </p>
                       ) : visibleGroups.map((g) => {
                         const ids = g.items.map((i) => i.id);
@@ -315,6 +374,7 @@ export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promoco
                                 checked={selectedCount === ids.length}
                                 ref={(el) => { if (el) el.indeterminate = selectedCount > 0 && selectedCount < ids.length; }}
                                 onChange={(e) => toggleProducts(ids, e.target.checked)}
+                                disabled={locked("items")}
                                 style={{ width: "16px", height: "16px" }}
                               />
                               {g.name}
@@ -322,7 +382,7 @@ export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promoco
                             </label>
                             {!standalone && g.items.map((i) => (
                               <label key={i.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.35rem 0.75rem 0.35rem 2.1rem", fontSize: "0.82rem", cursor: "pointer", color: "var(--text-secondary)" }}>
-                                <input type="checkbox" checked={productIds.includes(i.id)} onChange={(e) => toggleProducts([i.id], e.target.checked)} style={{ width: "15px", height: "15px" }} />
+                                <input type="checkbox" checked={productIds.includes(i.id)} onChange={(e) => toggleProducts([i.id], e.target.checked)} disabled={locked("items")} style={{ width: "15px", height: "15px" }} />
                                 {i.name}
                               </label>
                             ))}
@@ -331,30 +391,79 @@ export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promoco
                       })}
                     </div>
                     <p style={{ margin: 0, fontSize: "0.78rem", color: productsProblem ? "var(--danger)" : "var(--text-muted)" }}>
-                      {productsProblem ?? `${productIds.length} selected. Only these products get the discount; the rest of the cart (and packages) is charged in full.`}
+                      {productsProblem ?? `${productIds.length} product${productIds.length !== 1 ? "s" : ""} and ${packageIds.length} package${packageIds.length !== 1 ? "s" : ""} selected. Only these get the discount; the rest of the cart is charged in full.`}
                     </p>
                   </>
                 )}
               </div>
 
+              <div style={{ padding: "1rem", borderRadius: "var(--radius-lg)", border: "1px solid var(--border)", background: "var(--bg-elevated)", display: "flex", flexDirection: "column", gap: "0.85rem" }}>
+                <h3 style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>Who can use it</h3>
+
+                <div role="radiogroup" aria-label="Who can use it" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "0.5rem" }}>
+                  {[{ specific: false, label: "Everyone" }, { specific: true, label: "Specific emails" }].map((o) => {
+                    const selected = o.specific === specificEmails;
+                    return (
+                      <button key={o.label} type="button" role="radio" aria-checked={selected} onClick={() => setSpecificEmails(o.specific)}
+                        disabled={locked("allowedEmails")}
+                        style={{
+                          padding: "0.6rem 0.5rem", borderRadius: "var(--radius-md)", cursor: locked("allowedEmails") ? "not-allowed" : "pointer",
+                          font: "inherit", fontSize: "0.85rem", fontWeight: 600,
+                          border: `1px solid ${selected ? "var(--accent)" : "var(--border)"}`,
+                          background: selected ? "var(--accent-dim)" : "var(--bg-surface)",
+                          color: selected ? "var(--accent)" : "var(--text-secondary)",
+                        }}>
+                        {o.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {specificEmails && (
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <textarea
+                      value={emailsText}
+                      onChange={(e) => setEmailsText(e.target.value)}
+                      disabled={locked("allowedEmails")}
+                      className="form-input"
+                      rows={4}
+                      placeholder={"student1@cu.edu.eg\nstudent2@aun.edu.eg"}
+                      style={{ fontFamily: "var(--font-mono)", fontSize: "0.82rem", resize: "vertical", borderColor: emailsProblem ? "var(--danger)" : undefined }}
+                    />
+                    <p style={{ margin: "0.4rem 0 0", fontSize: "0.78rem", color: emailsProblem ? "var(--danger)" : "var(--text-muted)" }}>
+                      {emailsProblem ?? `${allowedEmails.length} email${allowedEmails.length !== 1 ? "s" : ""}. One per line. The account must have verified one of them with a code (Profile → Emails).`}
+                    </p>
+                  </div>
+                )}
+
+                <label style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", fontSize: "0.875rem", cursor: "pointer", color: "var(--text-primary)" }}>
+                  <input type="checkbox" checked={academicOnly} onChange={(e) => setAcademicOnly(e.target.checked)} disabled={locked("academicOnly")} style={{ width: "16px", height: "16px", marginTop: "2px" }} />
+                  <span>Academic accounts only<br /><span style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>Needs a verified university email whose domain is in the academic domains list.</span></span>
+                </label>
+                <label style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", fontSize: "0.875rem", cursor: "pointer", color: "var(--text-primary)" }}>
+                  <input type="checkbox" checked={oncePerUser} onChange={(e) => setOncePerUser(e.target.checked)} disabled={locked("oncePerUser")} style={{ width: "16px", height: "16px", marginTop: "2px" }} />
+                  <span>Once per account<br /><span style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>After paying with it once, the same account can&apos;t use it again.</span></span>
+                </label>
+              </div>
+
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Expires At</label>
-                  <input type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} className="form-input" />
+                  <input type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} className="form-input" disabled={locked("expiresAt")} />
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Max Uses</label>
-                  <input type="number" min={1} value={maxUses} onChange={(e) => setMaxUses(e.target.value)} className="form-input" placeholder="Leave empty for unlimited" />
+                  <input type="number" min={1} value={maxUses} onChange={(e) => setMaxUses(e.target.value)} className="form-input" disabled={locked("maxUses")} placeholder="Leave empty for unlimited" />
                 </div>
               </div>
 
               <div style={{ display: "flex", gap: "1.5rem", marginTop: "0.5rem" }}>
                 <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.875rem", cursor: "pointer", color: "var(--text-primary)" }}>
-                  <input type="checkbox" checked={disabled} onChange={(e) => setDisabled(e.target.checked)} style={{ width: "16px", height: "16px" }} />
+                  <input type="checkbox" checked={disabled} onChange={(e) => setDisabled(e.target.checked)} disabled={locked("disabled")} style={{ width: "16px", height: "16px" }} />
                   <span title="A disabled code is rejected at the cart until you enable it again.">Disabled</span>
                 </label>
                 <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.875rem", cursor: "pointer", color: "var(--text-primary)" }}>
-                  <input type="checkbox" checked={withTaxes} onChange={(e) => setWithTaxes(e.target.checked)} style={{ width: "16px", height: "16px" }} />
+                  <input type="checkbox" checked={withTaxes} onChange={(e) => setWithTaxes(e.target.checked)} disabled={locked("withTaxes")} style={{ width: "16px", height: "16px" }} />
                   With Taxes
                 </label>
               </div>

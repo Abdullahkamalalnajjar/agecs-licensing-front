@@ -2,12 +2,15 @@
 import Link from "next/link";
 import BrandLogo from "./BrandLogo";
 import { usePathname } from "next/navigation";
-import { useAuth } from "./AuthProvider";
+import { useAuth, usePermissions } from "./AuthProvider";
+import { P } from "@/lib/permissions";
 
 const navItems = [
   {
     name: "Dashboard",
     path: "/home",
+    // The dashboard (stats); accounts without it reach the site from the logo.
+    permission: P.dashboard.read,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
@@ -17,6 +20,7 @@ const navItems = [
   {
     name: "Licenses",
     path: "/licenses",
+    permission: P.licenses.read,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
@@ -26,6 +30,7 @@ const navItems = [
   {
     name: "Products",
     path: "/products",
+    permission: P.products.read,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
@@ -35,6 +40,7 @@ const navItems = [
   {
     name: "Partners",
     path: "/partners",
+    permission: P.partners.read,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
@@ -44,6 +50,7 @@ const navItems = [
   {
     name: "Promo Bars",
     path: "/promo-bars",
+    permission: P.promoBars.read,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/>
@@ -53,6 +60,7 @@ const navItems = [
   {
     name: "Hero Slides",
     path: "/hero-slides",
+    permission: P.heroSlides.read,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="2" y="4" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="18" x2="12" y2="21"/>
@@ -62,6 +70,7 @@ const navItems = [
   {
     name: "Families & Companies",
     path: "/catalog",
+    permission: P.catalog.read,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>
@@ -71,6 +80,7 @@ const navItems = [
   {
     name: "Packages",
     path: "/packages",
+    permission: P.packages.read,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="7.5 4.21 16.5 9.4"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
@@ -80,6 +90,7 @@ const navItems = [
   {
     name: "Offers",
     path: "/offers",
+    permission: P.offers.read,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line>
@@ -89,6 +100,7 @@ const navItems = [
   {
     name: "Promocodes",
     path: "/promocodes",
+    permission: P.promocodes.read,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>
@@ -98,6 +110,7 @@ const navItems = [
   {
     name: "Tickets",
     path: "/tickets",
+    permission: P.tickets.read,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
@@ -107,6 +120,7 @@ const navItems = [
   {
     name: "Categories",
     path: "/ticket-categories",
+    permission: P.ticketCategories.read,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
@@ -116,6 +130,7 @@ const navItems = [
   {
     name: "Users",
     path: "/users",
+    permission: P.users.read,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
@@ -125,6 +140,7 @@ const navItems = [
   {
     name: "Roles",
     path: "/roles",
+    permission: P.roles.read,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
@@ -145,12 +161,11 @@ const navItems = [
 import Image from "next/image";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 
-// Editors manage site content only (the backend gives them products.write and nothing admin-wide).
-const EDITOR_PATHS = new Set(["/home", "/products", "/catalog", "/hero-slides", "/promo-bars", "/partners", "/profile"]);
 
 export default function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const { can } = usePermissions();
 
   return (
     <aside className="sidebar">
@@ -163,7 +178,7 @@ export default function Sidebar() {
 
       {/* Navigation */}
       <nav className="sidebar-nav">
-        {navItems.filter((item) => user?.role !== "Editor" || EDITOR_PATHS.has(item.path)).map((item) => {
+        {navItems.filter((item) => !item.permission || can(item.permission)).map((item) => {
           const isActive = pathname.startsWith(item.path);
           return (
             <Link

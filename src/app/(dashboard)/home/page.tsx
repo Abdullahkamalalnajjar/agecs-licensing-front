@@ -5,7 +5,8 @@ import Link from "next/link";
 import { getStats, getApiProducts, getApiPackages } from "@/client";
 import { client } from "@/client/client.gen";
 import { DashboardStatsDto, ProductDto, PackageDto } from "@/client/types.gen";
-import { useAuth } from "@/components/AuthProvider";
+import { useAuth, usePermissions } from "@/components/AuthProvider";
+import { P } from "@/lib/permissions";
 import AdminDashboardView from "@/components/dashboard/AdminDashboardView";
 import HomeLandingView from "@/components/dashboard/HomeLandingView";
 
@@ -24,7 +25,9 @@ export default function DashboardPage() {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setSiteView(new URLSearchParams(window.location.search).get("view") === "site"); }, []);
 
-  const isAdminUser = user?.role === "Admin";
+  const { can } = usePermissions();
+  // The dashboard (stats and charts) is for accounts with dashboard:read; everyone else gets the site.
+  const isAdminUser = can(P.dashboard.read);
   const isAdmin = isAdminUser && !siteView;
 
   useEffect(() => {

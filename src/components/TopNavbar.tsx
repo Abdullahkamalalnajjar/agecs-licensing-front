@@ -3,7 +3,8 @@ import Link from "next/link";
 import BrandLogo from "./BrandLogo";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useAuth } from "./AuthProvider";
+import { useAuth, usePermissions } from "./AuthProvider";
+import { P } from "@/lib/permissions";
 import StudentUpgradeModal from "./StudentUpgradeModal";
 import CartSidebar from "./CartSidebar";
 import { getApiV1CartsMyCart, getApiProducts } from "@/client";
@@ -15,16 +16,17 @@ import { useCatalog } from "@/lib/catalog";
 import { usePromoBars } from "@/lib/promoBars";
 import PromoBarView from "./PromoBarView";
 
-const navItems = [
+// Staff see the sections their permissions allow; customers see Home, Products and Profile.
+const navItems: { name: string; path: string; permission?: string }[] = [
   { name: "Home", path: "/home" },
-  { name: "Licenses", path: "/licenses" },
+  { name: "Licenses", path: "/licenses", permission: P.licenses.read },
   { name: "Products", path: "/products" },
-  { name: "Packages", path: "/packages" },
-  { name: "Promocodes", path: "/promocodes" },
-  { name: "Tickets", path: "/tickets" },
-  { name: "Categories", path: "/ticket-categories" },
-  { name: "Users", path: "/users" },
-  { name: "Roles", path: "/roles" },
+  { name: "Packages", path: "/packages", permission: P.packages.read },
+  { name: "Promocodes", path: "/promocodes", permission: P.promocodes.read },
+  { name: "Tickets", path: "/tickets", permission: P.tickets.read },
+  { name: "Categories", path: "/ticket-categories", permission: P.ticketCategories.read },
+  { name: "Users", path: "/users", permission: P.users.read },
+  { name: "Roles", path: "/roles", permission: P.roles.read },
   { name: "Profile", path: "/profile" },
 ];
 
@@ -32,6 +34,7 @@ function TopNavbarInner() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();
+  const { can, isStaff: staff } = usePermissions();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -119,14 +122,11 @@ function TopNavbarInner() {
     if (!user) {
       return item.name === "Products";
     }
-    if (user?.role === "Student" || user?.role === "User") {
-      // Licenses and Tickets are tabs on the profile page for customers.
+    // Customers (no section permissions) get Licenses and Tickets as tabs on their profile page instead.
+    if (!staff) {
       return item.name === "Home" || item.name === "Products" || item.name === "Profile";
     }
-    if (user?.role === "Editor") {
-      return item.name === "Home" || item.name === "Products" || item.name === "Profile";
-    }
-    return true; // Admin sees all
+    return !item.permission || can(item.permission);
   });
 
   return (
@@ -443,14 +443,14 @@ function TopNavbarInner() {
                         zIndex: -1
                       }} />
 
-                      {user?.role !== "Admin" && (
+                      {!staff && (
                         <div style={{ padding: '0.65rem 0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderRadius: '8px', background: 'rgba(255,255,255,0.03)' }}>
                           <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#e2e8f0' }}>Appearance</span>
                           <ThemeSwitcher />
                         </div>
                       )}
                       
-                      {user?.role !== "Admin" && <div style={{ height: 1, background: 'rgba(255,255,255,0.1)', margin: '0.25rem 0' }} />}
+                      {!staff && <div style={{ height: 1, background: 'rgba(255,255,255,0.1)', margin: '0.25rem 0' }} />}
 
                       <button
                         onClick={() => { setIsProfileMenuOpen(false); handleLogout(); }}
@@ -579,7 +579,8 @@ function TopNavbarInner() {
             {user && user.role === "User" && (
               <div className="desktop-only" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <button
-                  onClick={() => setShowUpgradeModal(true)}
+                  onClick={() => router.push("/profile#emails")}
+                  title="Verify your university email for academic discounts"
                   style={{
                     padding: '0.38rem 1rem',
                     fontSize: '0.75rem', fontWeight: 700,
@@ -601,7 +602,7 @@ function TopNavbarInner() {
                     e.currentTarget.style.transform = 'none';
                   }}
                 >
-                  ✦ Upgrade
+                  🎓 Academic
                 </button>
               </div>
             )}
@@ -671,11 +672,11 @@ function TopNavbarInner() {
                   <button
                     onClick={() => {
                       setMobileMenuOpen(false);
-                      setShowUpgradeModal(true);
+                      router.push("/profile#emails");
                     }}
                     style={{ padding: '0.75rem', width: '100%', fontSize: '0.9rem', borderRadius: '8px', cursor: 'pointer', background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', color: 'white', border: 'none', fontWeight: 700, boxShadow: '0 2px 8px rgba(59,130,246,0.35)' }}
                   >
-                    ✦ Upgrade to Student
+                    🎓 Verify academic email
                   </button>
                 )}
               </div>

@@ -6,8 +6,16 @@ import { useRouter } from "next/navigation";
 import TicketCategoryFormModal from "@/components/TicketCategoryFormModal";
 import { TicketCategoryDto } from "@/client/types.gen";
 import "@/components/product-form.css";
+import { usePermissions } from "@/components/AuthProvider";
+import { P } from "@/lib/permissions";
 
 export default function TicketCategoriesPage() {
+  const { can, canField, canUpdateAny } = usePermissions();
+  const canCreate = can(P.ticketCategories.create);
+  const canUpdate = canUpdateAny("ticket-categories");
+  const canReorder = canField("ticket-categories", "order");
+  const canToggleActive = canField("ticket-categories", "active");
+  const canDelete = can(P.ticketCategories.delete);
   const [categories, setCategories] = useState<TicketCategoryDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -116,12 +124,12 @@ export default function TicketCategoriesPage() {
           <h1 className="page-title">Ticket Categories</h1>
           <p className="page-subtitle">{loading ? "Loading…" : `${categories.length} categor${categories.length !== 1 ? "ies" : "y"}`}</p>
         </div>
-        <button id="create-category-btn" className="btn-primary" onClick={openCreate}>
+        {canCreate && <button id="create-category-btn" className="btn-primary" onClick={openCreate}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
           </svg>
           New Category
-        </button>
+        </button>}
       </div>
 
       {error && (
@@ -173,8 +181,8 @@ export default function TicketCategoriesPage() {
                   <td style={{ color: "var(--text-secondary)" }}>{category.description || "—"}</td>
                   <td>
                     <div className="table-actions">
-                      <button type="button" className="btn-ghost" onClick={() => move(index, -1)} disabled={reordering || index === 0} aria-label="Move up" title="Move up">↑</button>
-                      <button type="button" className="btn-ghost" onClick={() => move(index, 1)} disabled={reordering || index === categories.length - 1} aria-label="Move down" title="Move down">↓</button>
+                      <button type="button" className="btn-ghost" onClick={() => move(index, -1)} disabled={!canReorder || reordering || index === 0} aria-label="Move up" title="Move up">↑</button>
+                      <button type="button" className="btn-ghost" onClick={() => move(index, 1)} disabled={!canReorder || reordering || index === categories.length - 1} aria-label="Move down" title="Move down">↓</button>
                     </div>
                   </td>
                   <td>
@@ -183,7 +191,7 @@ export default function TicketCategoriesPage() {
                       style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", opacity: togglingId === category.id ? 0.6 : 1 }}
                     >
                       <span className="pf-toggle-switch">
-                        <input type="checkbox" checked={!!category.isActive} disabled={togglingId === category.id} onChange={() => toggleActive(category)} aria-label={`${category.name} active`} />
+                        <input type="checkbox" checked={!!category.isActive} disabled={!canToggleActive || togglingId === category.id} onChange={() => toggleActive(category)} aria-label={`${category.name} active`} />
                         <span className="pf-toggle-track" />
                       </span>
                       <span style={{ fontSize: "0.85rem", color: category.isActive ? "var(--success)" : "var(--text-muted)" }}>
@@ -193,12 +201,12 @@ export default function TicketCategoriesPage() {
                   </td>
                   <td>
                     <div className="table-actions">
-                      <button className="btn-ghost" style={{ color: "var(--accent-light)", borderColor: "var(--accent-border)" }} onClick={() => openEdit(category)}>
+                      {canUpdate && <button className="btn-ghost" style={{ color: "var(--accent-light)", borderColor: "var(--accent-border)" }} onClick={() => openEdit(category)}>
                         Edit
-                      </button>
-                      <button className="btn-danger-ghost" onClick={() => handleDelete(category.id!)}>
+                      </button>}
+                      {canDelete && <button className="btn-danger-ghost" onClick={() => handleDelete(category.id!)}>
                         Delete
-                      </button>
+                      </button>}
                     </div>
                   </td>
                 </tr>

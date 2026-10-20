@@ -23,7 +23,8 @@ import DiagnosticModal from "@/components/DiagnosticModal";
 import PackageLicensesModal from "@/components/PackageLicensesModal";
 import PackageLicenseEditModal from "@/components/PackageLicenseEditModal";
 import type { LicenseDto, ProductDto } from "@/client/types.gen";
-import { useAuth } from "@/components/AuthProvider";
+import { useAuth, usePermissions } from "@/components/AuthProvider";
+import { P } from "@/lib/permissions";
 import { useToast } from "@/components/ToastProvider";
 import "@/app/(dashboard)/products/products.css";
 import "@/app/(dashboard)/licenses/licenses.css";
@@ -217,7 +218,14 @@ export default function LicensesView({ embedded = false }: { embedded?: boolean 
     try { localStorage.setItem(SORT_STORAGE_KEY, value); } catch { /* storage unavailable */ }
   };
 
-  const isStaff = user != null && user.role !== "Student" && user.role !== "User";
+  const { can, canField, canUpdateAny } = usePermissions();
+  // licenses:read shows every client's licenses (customers see only theirs); create / update / delete issue,
+  // edit and delete them; manage covers renew, revoke, migrate, devices and diagnostics.
+  const isStaff = can(P.licenses.read);
+  const canCreate = can(P.licenses.create);
+  const canUpdate = canUpdateAny("licenses");
+  const canDelete = can(P.licenses.delete);
+  const canManage = can(P.licenses.manage);
 
   const fetchLicenses = useCallback(async () => {
     if (!user) return;
@@ -363,7 +371,7 @@ export default function LicensesView({ embedded = false }: { embedded?: boolean 
   const clearFilters = () => { setSearch(""); setStatus("all"); setType("all"); };
 
   // ▲▼ need the full list in manual order, since the API reorders every license at once.
-  const canReorder = isStaff && sort === "manual" && !hasFilters;
+  const canReorder = canField("licenses", "order") && sort === "manual" && !hasFilters;
   const reorderHint = "Clear filters and sort by Manual order to reorder";
 
   // Moves a row (a license, or a package's licenses together) one step, saving the whole new order; rolls back if the save fails.
@@ -397,11 +405,15 @@ export default function LicensesView({ embedded = false }: { embedded?: boolean 
   const renderStaffActions = (l: License) => (
     <div className="pr-actions">
       <IconButton title="View details" onClick={() => setDetailsLicense(l)}>{Icon.view}</IconButton>
-      <IconButton title="Edit license" onClick={() => { setEditingLicense(l); setIsFormModalOpen(true); }}>{Icon.edit}</IconButton>
-      <IconButton title="Renew license" tone="green" onClick={() => setRenewLicenseId(l.id!)}>{Icon.renew}</IconButton>
-      <IconButton title="Migrate HWID" tone="purple" onClick={() => setMigrateLicenseId(l.id!)}>{Icon.migrate}</IconButton>
-      <IconButton title="Devices (HWIDs)" tone="purple" onClick={() => setHwidListLicenseId(l.id!)}>{Icon.chip}</IconButton>
-      <IconButton title="Diagnostic" tone="amber" onClick={() => setDiagnosticLicenseId(l.id!)}>{Icon.pulse}</IconButton>
+      {canUpdate && <IconButton title="Edit license" onClick={() => { setEditingLicense(l); setIsFormModalOpen(true); }}>{Icon.edit}</IconButton>}
+      {canManage && (
+        <>
+          <IconButton title="Renew license" tone="green" onClick={() => setRenewLicenseId(l.id!)}>{Icon.renew}</IconButton>
+          <IconButton title="Migrate HWID" tone="purple" onClick={() => setMigrateLicenseId(l.id!)}>{Icon.migrate}</IconButton>
+          <IconButton title="Devices (HWIDs)" tone="purple" onClick={() => setHwidListLicenseId(l.id!)}>{Icon.chip}</IconButton>
+          <IconButton title="Diagnostic" tone="amber" onClick={() => setDiagnosticLicenseId(l.id!)}>{Icon.pulse}</IconButton>
+        </>
+      )}
       {confirm && confirm.id === l.id ? (
         <span className="pr-confirm lc-confirm">
           <span className="lc-confirm-label">{confirm.action === "delete" ? "Delete?" : "Revoke?"}</span>
@@ -410,8 +422,8 @@ export default function LicensesView({ embedded = false }: { embedded?: boolean 
         </span>
       ) : (
         <>
-          {l.isActive && <IconButton title="Revoke license" tone="danger" onClick={() => setConfirm({ id: l.id!, action: "revoke" })}>{Icon.ban}</IconButton>}
-          <IconButton title="Delete license" tone="danger" onClick={() => setConfirm({ id: l.id!, action: "delete" })}>{Icon.trash}</IconButton>
+          {canManage && l.isActive && <IconButton title="Revoke license" tone="danger" onClick={() => setConfirm({ id: l.id!, action: "revoke" })}>{Icon.ban}</IconButton>}
+          {canDelete && <IconButton title="Delete license" tone="danger" onClick={() => setConfirm({ id: l.id!, action: "delete" })}>{Icon.trash}</IconButton>}
         </>
       )}
     </div>
@@ -424,11 +436,15 @@ export default function LicensesView({ embedded = false }: { embedded?: boolean 
     return (
       <div className="pr-actions">
         <IconButton title="View serials" onClick={() => setViewPackageKey(row.key)}>{Icon.view}</IconButton>
-        <IconButton title="Edit package" onClick={() => setEditPackageKey(row.key)}>{Icon.edit}</IconButton>
-        <IconButton title="Renew package" tone="green" onClick={() => setRenewPackageKey(row.key)}>{Icon.renew}</IconButton>
-        <IconButton title="Migrate HWID (pick a serial)" tone="purple" onClick={() => setViewPackageKey(row.key)}>{Icon.migrate}</IconButton>
-        <IconButton title="Devices (pick a serial)" tone="purple" onClick={() => setViewPackageKey(row.key)}>{Icon.chip}</IconButton>
-        <IconButton title="Diagnostic (pick a serial)" tone="amber" onClick={() => setViewPackageKey(row.key)}>{Icon.pulse}</IconButton>
+        {canUpdate && <IconButton title="Edit package" onClick={() => setEditPackageKey(row.key)}>{Icon.edit}</IconButton>}
+        {canManage && (
+          <>
+            <IconButton title="Renew package" tone="green" onClick={() => setRenewPackageKey(row.key)}>{Icon.renew}</IconButton>
+            <IconButton title="Migrate HWID (pick a serial)" tone="purple" onClick={() => setViewPackageKey(row.key)}>{Icon.migrate}</IconButton>
+            <IconButton title="Devices (pick a serial)" tone="purple" onClick={() => setViewPackageKey(row.key)}>{Icon.chip}</IconButton>
+            <IconButton title="Diagnostic (pick a serial)" tone="amber" onClick={() => setViewPackageKey(row.key)}>{Icon.pulse}</IconButton>
+          </>
+        )}
         {confirm && confirm.id === row.key ? (
           <span className="pr-confirm lc-confirm">
             <span className="lc-confirm-label">{confirm.action === "delete" ? "Delete all?" : "Revoke all?"}</span>
@@ -437,8 +453,8 @@ export default function LicensesView({ embedded = false }: { embedded?: boolean 
           </span>
         ) : (
           <>
-            {anyActive && <IconButton title="Revoke package" tone="danger" onClick={() => setConfirm({ id: row.key, action: "revoke" })}>{Icon.ban}</IconButton>}
-            <IconButton title="Delete package licenses" tone="danger" onClick={() => setConfirm({ id: row.key, action: "delete" })}>{Icon.trash}</IconButton>
+            {canManage && anyActive && <IconButton title="Revoke package" tone="danger" onClick={() => setConfirm({ id: row.key, action: "revoke" })}>{Icon.ban}</IconButton>}
+            {canDelete && <IconButton title="Delete package licenses" tone="danger" onClick={() => setConfirm({ id: row.key, action: "delete" })}>{Icon.trash}</IconButton>}
           </>
         )}
       </div>
@@ -468,7 +484,7 @@ export default function LicensesView({ embedded = false }: { embedded?: boolean 
                 : "Your serial numbers, activations and renewal dates."}
           </p>
         </div>
-        {isStaff && (
+        {canCreate && (
           <button className="btn-primary" onClick={() => { setEditingLicense(null); setIsFormModalOpen(true); }}>
             <Svg>{Icon.plus}</Svg>New license
           </button>
@@ -569,7 +585,7 @@ export default function LicensesView({ embedded = false }: { embedded?: boolean 
             <svg className="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">{Icon.lock}</svg>
             <p className="empty-state-title">No licenses yet</p>
             <p className="empty-state-sub">{isStaff ? "Create the first license to get started." : "Licenses you buy will appear here with their serial numbers."}</p>
-            {isStaff
+            {canCreate
               ? <button className="btn-primary" style={{ marginTop: "1rem" }} onClick={() => { setEditingLicense(null); setIsFormModalOpen(true); }}>New license</button>
               : <Link href="/products" className="btn-primary" style={{ marginTop: "1rem" }}>Browse software</Link>}
           </div>
@@ -827,6 +843,7 @@ export default function LicensesView({ embedded = false }: { embedded?: boolean 
             onHwids={(id) => setHwidListLicenseId(id)}
             onMigrate={(id) => setMigrateLicenseId(id)}
             onDiagnostic={(id) => setDiagnosticLicenseId(id)}
+            canManage={canManage}
           />
           <PackageLicenseEditModal
             isOpen={!!editPackage}

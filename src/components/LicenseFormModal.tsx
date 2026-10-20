@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { postApiLicenses, postApiLicensesPackage, getApiPackages, putApiLicensesById, postIdentityClients, postApiLicensesAdminByIdHwids, deleteApiLicensesAdminByIdHwidsByHwid } from "@/client";
-import { useAuth } from "./AuthProvider";
+import { usePermissions } from "./AuthProvider";
+import { P } from "@/lib/permissions";
 import { ClientDto, CreatePackageLicensesResponse, PackageDto, ProductDto } from "@/client/types.gen";
 import ClientPicker from "./ClientPicker";
 import "./client-picker.css";
@@ -18,8 +19,6 @@ const itemPeriodLabel = (item: NonNullable<PackageDto["items"]>[number]) =>
     ? `${item.periodValue} ${item.periodType}${item.periodValue === 1 ? "" : "s"}`
     : `${item.period ?? 0} days`;
 
-/** Only these roles may call the HWID endpoints (POST/DELETE /api/licenses/admin/{id}/hwids). */
-const HWID_ROLES = ["Admin"];
 const emptyNewClient = { email: "", userName: "", password: "" };
 
 type LicenseFormModalProps = {
@@ -70,8 +69,10 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
 
   // Devices (HWIDs). They live in JanDrozd, so they're added/removed through the HWID endpoints after the license
   // itself is saved; in edit mode only the difference from what the license already had is sent.
-  const { user } = useAuth();
-  const canManageHwids = !!user && HWID_ROLES.includes(user.role);
+  // The HWID endpoints (POST/DELETE /api/licenses/admin/{id}/hwids) need licenses:manage.
+  const { can, canField } = usePermissions();
+  const canManageHwids = can(P.licenses.manage);
+  const locked = (field: string) => isEditing && !canField("licenses", field);
   const [hwids, setHwids] = useState<string[]>([]);
   const [originalHwids, setOriginalHwids] = useState<string[]>([]);
   const [hwidInput, setHwidInput] = useState("");
@@ -209,7 +210,7 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
     return !!(parent ?? direct)?.janDrozdId;
   })();
   const hwidsDisabledReason = !canManageHwids
-    ? "Only admins can register devices."
+    ? "You don't have permission to register devices."
     : !productLinkedToJanDrozd
       ? (isEditing ? "This license isn't in JanDrozd, so devices can't be registered." : "This product isn't linked to JanDrozd, so devices can't be registered.")
       : "";
@@ -828,6 +829,7 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                       value={licenseData.userId}
                       onChange={(e) => handleUserSelect(e.target.value)}
                       style={{ appearance: "auto" }}
+                      disabled={locked("client")}
                     >
                       <option value="">Choose an existing user (optional)...</option>
                       {users.map((u: any) => (
@@ -852,6 +854,7 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                         value={licenseData.name}
                         onChange={(e) => setLicenseData(prev => ({ ...prev, name: e.target.value }))}
                         required
+                        disabled={locked("client")}
                       />
                     </div>
                     <div className="form-group" style={{ marginBottom: 0 }}>
@@ -863,6 +866,7 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                         placeholder="user@example.com"
                         value={licenseData.email}
                         onChange={(e) => setLicenseData(prev => ({ ...prev, email: e.target.value }))}
+                        disabled={locked("client")}
                       />
                     </div>
                   </div>
@@ -885,6 +889,7 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                         value={licenseData.hwidSalt}
                         onChange={(e) => setLicenseData(prev => ({ ...prev, hwidSalt: e.target.value }))}
                         style={{ fontFamily: "var(--font-mono)" }}
+                        disabled={locked("client")}
                       />
                     </div>
                   )}
@@ -938,6 +943,7 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                         onChange={(e) => handleParentChange(e.target.value)} 
                         required 
                         style={{ appearance: "auto" }}
+                        disabled={locked("product")}
                       >
                         <option value="">Select a product...</option>
                         {topLevelProducts.map((p: any) => (
@@ -954,7 +960,7 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                         value={licenseData.productId} 
                         onChange={(e) => handleVariantChange(e.target.value)} 
                         style={{ appearance: "auto" }}
-                        disabled={!selectedParentId || availableVariants.length === 0}
+                        disabled={locked("product") || !selectedParentId || availableVariants.length === 0}
                       >
                         {availableVariants.length === 0 ? (
                           <option value={selectedParentId || ""}>Parent product (no variant)</option>
@@ -980,6 +986,7 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                         value={licenseData.licenseCount}
                         onChange={(e) => setLicenseData(prev => ({ ...prev, licenseCount: Number(e.target.value) }))}
                         required
+                        disabled={locked("seats")}
                       />
                     </div>
                     <div className="form-group" style={{ marginBottom: 0 }}>
@@ -992,6 +999,7 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                         value={licenseData.migrationLimit}
                         onChange={(e) => setLicenseData(prev => ({ ...prev, migrationLimit: Number(e.target.value) }))}
                         required
+                        disabled={locked("migrationLimit")}
                       />
                     </div>
                   </div>
@@ -1007,6 +1015,7 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                         className="form-input"
                         value={licenseData.expiryDate}
                         onChange={(e) => setLicenseData(prev => ({ ...prev, expiryDate: e.target.value }))}
+                        disabled={locked("expiry")}
                       />
                     </div>
                   </div>
@@ -1077,6 +1086,7 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                       type="checkbox"
                       checked={licenseData.isTrial}
                       onChange={(e) => setLicenseData(prev => ({ ...prev, isTrial: e.target.checked }))}
+                      disabled={locked("trial")}
                       style={{ width: "18px", height: "18px", accentColor: "var(--accent)", cursor: "pointer" }}
                     />
                     <label htmlFor="isTrialCheckbox" style={{ fontSize: "0.875rem", cursor: "pointer", color: "var(--text-primary)", fontWeight: 500 }}>
@@ -1101,6 +1111,7 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                           type="checkbox"
                           checked={licenseData.isActive}
                           onChange={(e) => setLicenseData(prev => ({ ...prev, isActive: e.target.checked }))}
+                          disabled={locked("active")}
                           style={{ width: "18px", height: "18px", accentColor: "var(--accent)", cursor: "pointer" }}
                         />
                         <label htmlFor="isActiveCheckbox" style={{ fontSize: "0.875rem", cursor: "pointer", color: "var(--text-primary)", fontWeight: 500 }}>
@@ -1116,7 +1127,7 @@ export default function LicenseFormModal({ isOpen, initialData, products, users,
                         <div className="form-group" style={{ marginBottom: 0, maxWidth: 220 }}>
                           <label htmlFor="version" className="form-label">Version</label>
                           <input id="version" type="text" className="form-input" maxLength={100} placeholder="e.g. 26"
-                            value={licenseData.version} onChange={(e) => setLicenseData(prev => ({ ...prev, version: e.target.value }))} />
+                            value={licenseData.version} onChange={(e) => setLicenseData(prev => ({ ...prev, version: e.target.value }))} disabled={locked("version")} />
                         </div>
                       )}
                     </>

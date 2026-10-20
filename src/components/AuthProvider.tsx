@@ -4,7 +4,12 @@ import { createContext, useContext, useEffect, useState, useRef, ReactNode } fro
 import { jwtDecode } from "jwt-decode";
 import { useRouter, usePathname } from "next/navigation";
 import { client } from "@/client/client.gen";
-import { postIdentityTokenRefreshToken } from "@/client";
+import { postIdentityTokenRefreshToken, getIdentityMyPermissions } from "@/client";
+import { isStaff as hasStaffPermission } from "@/lib/permissions";
+
+// The generated client starts with a placeholder base URL; set the API's once for the whole app, so calls made
+// before a page configures the client (like loading the user's permissions) don't go to the wrong address.
+client.setConfig({ baseUrl: process.env.NEXT_PUBLIC_API_URL || "https://localhost:5003" });
 
 export type Role = "Admin" | "Sales" | "Student" | "User" | string;
 
@@ -12,6 +17,11 @@ export interface AuthUser {
   id: string;
   email: string;
   role: Role;
+  /**
+   * From GET /identity/my-permissions (the account's current permissions, the same ones the API checks);
+   * drives which sections and buttons are shown. Empty until loaded.
+   */
+  permissions: string[];
 }
 
 interface AuthContextType {
@@ -32,9 +42,34 @@ export function useAuth() {
   return useContext(AuthContext);
 }
 
+/** `can(P.heroSlides.update)`: whether the signed-in user has that permission. */
+export function usePermissions() {
+  const { user } = useAuth();
+  const permissions = user?.permissions ?? [];
+  // Admin has every permission on the API, so the UI never locks it out, even if the permissions list is
+  // missing or out of date (e.g. an older API, or the request failed).
+  const isAdmin = user?.role === "Admin";
+  const has = (permission: string) => isAdmin || permissions.includes(permission);
+  return {
+    permissions,
+    can: has,
+    /**
+     * Whether a field of a section can be edited: the section's full edit ("products:update") or that field's own
+     * permission ("products:update:description"). Field keys are the ones in the API's permission catalog.
+     */
+    canField: (section: string, field: string) => has(`${section}:update`) || has(`${section}:update:${field}`),
+    /** Whether anything in the section can be edited (full edit or at least one field), e.g. to show an Edit button. */
+    canUpdateAny: (section: string) => has(`${section}:update`) || permissions.some((p) => p.startsWith(`${section}:update:`)),
+    /** Has at least one dashboard section (Admin, Editor, Sales, or a role given section permissions). */
+    isStaff: isAdmin || hasStaffPermission(permissions),
+  };
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+  // The permissions of the signed-in user id they were loaded for (null until loaded).
+  const [loaded, setLoaded] = useState<{ userId: string; permissions: string[] } | null>(null);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -58,6 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           id: decoded.sub || decoded.nameid || "",
           email: email,
           role: role,
+          permissions: [],
         });
 
         // Set the client config globally
@@ -93,6 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         id: decoded.sub || decoded.nameid || "",
         email: email,
         role: role,
+        permissions: [],
       });
 
       // Set the client config globally
@@ -284,8 +321,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // Permissions come from the API rather than the token: the API recomputes them on every request, so a token
+  // issued under older permissions shows exactly what the account can do now.
+  const userId = user?.id ?? null;
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    getIdentityMyPermissions({ baseUrl: process.env.NEXT_PUBLIC_API_URL || "https://localhost:5003", throwOnError: false })
+      .then((res) => { if (!cancelled) setLoaded({ userId, permissions: res.data?.isSuccess ? res.data.value ?? [] : [] }); })
+      .catch(() => { if (!cancelled) setLoaded({ userId, permissions: [] }); });
+    return () => { cancelled = true; };
+  }, [userId]);
+
+  const permissionsPending = !!userId && loaded?.userId !== userId;
+  const userWithPermissions = user && loaded?.userId === user.id ? { ...user, permissions: loaded.permissions } : user;
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user: userWithPermissions, loading: loading || permissionsPending, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

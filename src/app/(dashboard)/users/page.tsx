@@ -13,6 +13,9 @@ import { useRouter } from "next/navigation";
 import { AppUserDto } from "@/client/types.gen";
 import UserLicensesModal from "@/components/UserLicensesModal";
 import CreateUserModal from "@/components/CreateUserModal";
+import UserPermissionsModal from "@/components/UserPermissionsModal";
+import { usePermissions } from "@/components/AuthProvider";
+import { P } from "@/lib/permissions";
 
 // ============================================================
 // CONSTANTS & ROLE DEFINITIONS
@@ -158,12 +161,21 @@ export default function UsersPage() {
   const [detailsModalUser, setDetailsModalUser] = useState<AppUserDto | null>(null);
   const [licensesModalUser, setLicensesModalUser] = useState<AppUserDto | null>(null);
   const [createUserOpen, setCreateUserOpen] = useState(false);
+  const [permissionsUser, setPermissionsUser] = useState<AppUserDto | null>(null);
   const [confirmBanUser, setConfirmBanUser] = useState<AppUserDto | null>(null);
   const [confirmRestoreUser, setConfirmRestoreUser] = useState<AppUserDto | null>(null);
   const [selectedNewRole, setSelectedNewRole] = useState<string>("");
   const [actionLoading, setActionLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [customRoles, setCustomRoles] = useState<string[]>([]);
+  // Viewing needs users:read (the route guard); create adds users, update (or its role/permissions/restore field) edits, delete bans.
+  const { can, canField } = usePermissions();
+  const canCreate = can(P.users.create);
+  const canEditRole = canField("users", "role");
+  const canRestore = canField("users", "restore");
+  const canEditPermissions = canField("users", "permissions");
+  const canDelete = can(P.users.delete);
+  const canReadRoles = can(P.roles.read);
 
   const showToast = (text: string, type: "success" | "error" = "success") => {
     setToastMessage({ text, type });
@@ -223,14 +235,14 @@ export default function UsersPage() {
 
   // Custom roles from the Roles page join the built-in ones in the filters and pickers.
   useEffect(() => {
-    if (!setupClient()) return;
+    if (!canReadRoles || !setupClient()) return;
     getIdentityRoles({ throwOnError: false })
       .then((res) => {
         const names = (res.data?.value ?? []).filter((r) => !r.isSystem && r.name).map((r) => r.name!);
         setCustomRoles(names.filter((n) => !ROLE_CONFIGS[n]));
       })
       .catch(() => { /* the built-in roles still work */ });
-  }, [setupClient]);
+  }, [setupClient, canReadRoles]);
 
   const allRoles = useMemo(() => [...ALL_ROLES, ...customRoles], [customRoles]);
   const roleConfigFor = useCallback(
@@ -423,10 +435,10 @@ export default function UsersPage() {
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
-          <button type="button" className="btn-primary" onClick={() => setCreateUserOpen(true)} style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
+          {canCreate && <button type="button" className="btn-primary" onClick={() => setCreateUserOpen(true)} style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><line x1="20" y1="8" x2="20" y2="14" /><line x1="23" y1="11" x2="17" y2="11" /></svg>
             New user
-          </button>
+          </button>}
           <button
             onClick={() => fetchAllUsers(true)}
             disabled={refreshing || loading}
@@ -1029,6 +1041,19 @@ export default function UsersPage() {
                           Licenses
                         </button>
                         <button
+                          onClick={() => setPermissionsUser(user)}
+                          title="Permissions"
+                          aria-label={`Permissions for ${user.email}`}
+                          style={{
+                            display: "inline-flex", alignItems: "center", justifyContent: "center",
+                            width: 34, height: 34, borderRadius: "var(--radius-md)",
+                            border: "1px solid var(--border-strong)", background: "var(--bg-elevated)",
+                            color: "var(--text-secondary)", cursor: "pointer",
+                          }}
+                        >
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="7.5" cy="15.5" r="5.5" /><path d="m21 2-9.6 9.6" /><path d="m15.5 7.5 3 3L22 7l-3-3" /></svg>
+                        </button>
+                        <button
                           onClick={() => setDetailsModalUser(user)}
                           title="View Full Profile Details"
                           style={{
@@ -1050,9 +1075,9 @@ export default function UsersPage() {
                           👁
                         </button>
 
-                        {viewMode === "active" ? (
+                        {(viewMode === "active" ? (
                           <>
-                            <button
+                            {canEditRole && <button
                               onClick={() => {
                                 setRoleModalUser(user);
                                 setSelectedNewRole(user.roles?.[0] || "User");
@@ -1076,9 +1101,9 @@ export default function UsersPage() {
                             >
                               <span>✏</span>
                               <span>Role</span>
-                            </button>
+                            </button>}
 
-                            <button
+                            {canDelete && <button
                               onClick={() => setConfirmBanUser(user)}
                               style={{
                                 display: "inline-flex",
@@ -1099,9 +1124,9 @@ export default function UsersPage() {
                             >
                               <span>⊘</span>
                               <span>Ban</span>
-                            </button>
+                            </button>}
                           </>
-                        ) : (
+                        ) : canRestore && (
                           <button
                             onClick={() => setConfirmRestoreUser(user)}
                             style={{
@@ -1125,7 +1150,7 @@ export default function UsersPage() {
                             <span>↩</span>
                             <span>Restore Access</span>
                           </button>
-                        )}
+                        ))}
                       </div>
                     </td>
                   </tr>
@@ -1282,6 +1307,10 @@ export default function UsersPage() {
       )}
 
       {/* ── MODAL: CREATE USER (admin, any role) ── */}
+      {permissionsUser && (
+        <UserPermissionsModal user={permissionsUser} canEdit={canEditPermissions} onClose={() => setPermissionsUser(null)} />
+      )}
+
       {createUserOpen && <CreateUserModal customRoles={customRoles} onClose={() => setCreateUserOpen(false)} onCreated={() => fetchAllUsers(true)} />}
 
       {/* ── MODAL: USER LICENSES ── */}

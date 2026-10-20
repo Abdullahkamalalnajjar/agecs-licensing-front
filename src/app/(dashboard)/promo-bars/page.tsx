@@ -5,7 +5,8 @@ import {
   patchApiPromoBarsByIdHidden, putApiPromoBarsReorder,
 } from "@/client";
 import type { PromoBarDto } from "@/client/types.gen";
-import { useAuth } from "@/components/AuthProvider";
+import { useAuth, usePermissions } from "@/components/AuthProvider";
+import { P } from "@/lib/permissions";
 import { useToast } from "@/components/ToastProvider";
 import PromoBarView from "@/components/PromoBarView";
 import "@/components/product-form.css";
@@ -49,7 +50,10 @@ function IconButton({ title, onClick, tone = "accent", disabled, children }: {
 
 export default function PromoBarsPage() {
   const { user } = useAuth();
-  const isAdmin = user != null && user.role !== "Student" && user.role !== "User";
+  const { can, canField, canUpdateAny } = usePermissions();
+  const isAdmin = can(P.promoBars.read);
+  const canCreate = can(P.promoBars.create);
+  const canDelete = can(P.promoBars.delete);
   const { success, error: toastError } = useToast();
 
   const [bars, setBars] = useState<PromoBarDto[]>([]);
@@ -146,9 +150,11 @@ export default function PromoBarsPage() {
               : `${visibleCount} shown above the site header${visibleCount > 1 ? ", rotating" : ""}`}
           </p>
         </div>
-        <button type="button" className="btn-primary" onClick={() => setCreating(true)}>
-          <Svg>{Icon.plus}</Svg>New promo bar
-        </button>
+        {canCreate && (
+          <button type="button" className="btn-primary" onClick={() => setCreating(true)}>
+            <Svg>{Icon.plus}</Svg>New promo bar
+          </button>
+        )}
       </div>
 
       {error && <div className="alert-error pr-alert">{error}</div>}
@@ -163,7 +169,7 @@ export default function PromoBarsPage() {
             <span className="ct-empty-icon"><Svg size={24}>{Icon.megaphone}</Svg></span>
             <p className="ct-empty-title">No promo bars</p>
             <p className="ct-empty-sub">Announce an offer at the top of every page.</p>
-            <button type="button" className="btn-primary" onClick={() => setCreating(true)}><Svg>{Icon.plus}</Svg>New promo bar</button>
+            {canCreate && <button type="button" className="btn-primary" onClick={() => setCreating(true)}><Svg>{Icon.plus}</Svg>New promo bar</button>}
           </div>
         ) : (
           bars.map((bar, index) => {
@@ -177,8 +183,8 @@ export default function PromoBarsPage() {
                   <div className="ct-order">
                     <span className="ct-order-num">{index + 1}</span>
                     <div className="ct-order-btns">
-                      <button type="button" className="pr-icon-btn" onClick={() => move(index, -1)} disabled={reordering || index === 0} aria-label="Move up" title="Move up"><Svg size={12}>{Icon.up}</Svg></button>
-                      <button type="button" className="pr-icon-btn" onClick={() => move(index, 1)} disabled={reordering || index === bars.length - 1} aria-label="Move down" title="Move down"><Svg size={12}>{Icon.down}</Svg></button>
+                      <button type="button" className="pr-icon-btn" onClick={() => move(index, -1)} disabled={!canField("promo-bars", "order") || reordering || index === 0} aria-label="Move up" title="Move up"><Svg size={12}>{Icon.up}</Svg></button>
+                      <button type="button" className="pr-icon-btn" onClick={() => move(index, 1)} disabled={!canField("promo-bars", "order") || reordering || index === bars.length - 1} aria-label="Move down" title="Move down"><Svg size={12}>{Icon.down}</Svg></button>
                     </div>
                   </div>
 
@@ -193,21 +199,21 @@ export default function PromoBarsPage() {
 
                   <label className="pr-visibility" title={bar.hidden ? "Hidden — click to show" : "Shown — click to hide"} style={{ opacity: busy ? 0.6 : 1 }}>
                     <span className="pf-toggle-switch">
-                      <input type="checkbox" checked={!bar.hidden} disabled={busy} onChange={() => toggleHidden(bar)} aria-label={`${bar.message} shown`} />
+                      <input type="checkbox" checked={!bar.hidden} disabled={!canField("promo-bars", "hidden") || busy} onChange={() => toggleHidden(bar)} aria-label={`${bar.message} shown`} />
                       <span className="pf-toggle-track" />
                     </span>
                     <span className={bar.hidden ? "pr-muted" : ""}>{bar.hidden ? "Hidden" : "Shown"}</span>
                   </label>
 
                   <div className="pr-actions" style={{ marginLeft: "auto" }}>
-                    <IconButton title="Edit" onClick={() => setEditing(bar)}>{Icon.edit}</IconButton>
+                    {canUpdateAny("promo-bars") && <IconButton title="Edit" onClick={() => setEditing(bar)}>{Icon.edit}</IconButton>}
                     {confirmDeleteId === bar.id ? (
                       <span className="pr-confirm">
                         <IconButton title="Confirm delete" tone="danger" onClick={() => remove(bar)} disabled={busy}>{Icon.check}</IconButton>
                         <IconButton title="Cancel" onClick={() => setConfirmDeleteId(null)}>{Icon.x}</IconButton>
                       </span>
                     ) : (
-                      <IconButton title="Delete" tone="danger" onClick={() => setConfirmDeleteId(bar.id!)}>{Icon.trash}</IconButton>
+                      canDelete && <IconButton title="Delete" tone="danger" onClick={() => setConfirmDeleteId(bar.id!)}>{Icon.trash}</IconButton>
                     )}
                   </div>
                 </div>
@@ -278,7 +284,7 @@ const toPickerValue = (hex: string) => {
   return /^#[0-9a-fA-F]{6}/.test(hex) ? hex.slice(0, 7) : "#000000";
 };
 
-function ColorField({ label, value, fallback, onChange }: { label: string; value: string; fallback: string; onChange: (v: string) => void }) {
+function ColorField({ label, value, fallback, onChange, disabled }: { label: string; value: string; fallback: string; onChange: (v: string) => void; disabled?: boolean }) {
   const effective = HEX.test(value) ? value : fallback;
   const invalid = value !== "" && !HEX.test(value);
   return (
@@ -289,6 +295,7 @@ function ColorField({ label, value, fallback, onChange }: { label: string; value
           <input
             type="color"
             value={toPickerValue(effective)}
+            disabled={disabled}
             // Keep any transparency suffix (#RRGGBBAA) the color already had.
             onChange={(e) => onChange(e.target.value.toUpperCase() + (/^#[0-9a-fA-F]{8}$/.test(value) ? value.slice(7) : ""))}
           />
@@ -300,6 +307,7 @@ function ColorField({ label, value, fallback, onChange }: { label: string; value
           placeholder={`${fallback} (default)`}
           maxLength={9}
           spellCheck={false}
+          disabled={disabled}
           onChange={(e) => onChange(e.target.value.trim())}
           aria-label={`${label} color`}
         />
@@ -314,6 +322,9 @@ function PromoBarModal({ bar, onClose, onSaved, onError }: {
   onSaved: (bar: PromoBarDto, isNew: boolean) => void;
   onError: (msg: string) => void;
 }) {
+  const { canField } = usePermissions();
+  const locked = (field: string) => !!bar && !canField("promo-bars", field);
+  const lockColors = locked("colors");
   const [badgeText, setBadgeText] = useState(bar?.badgeText ?? "");
   const [message, setMessage] = useState(bar?.message ?? "");
   const [buttonText, setButtonText] = useState(bar?.buttonText ?? "");
@@ -389,7 +400,7 @@ function PromoBarModal({ bar, onClose, onSaved, onError }: {
                 <div className="pb-row-2">
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label className="form-label" htmlFor="pbBadge">Badge</label>
-                    <input id="pbBadge" className="form-input" maxLength={30} value={badgeText} onChange={(e) => setBadgeText(e.target.value)} placeholder="e.g. 20% OFF" />
+                    <input id="pbBadge" className="form-input" maxLength={30} value={badgeText} disabled={locked("badge")} onChange={(e) => setBadgeText(e.target.value)} placeholder="e.g. 20% OFF" />
                   </div>
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label className="form-label" htmlFor="pbEndDate">Ends at (optional)</label>
@@ -398,6 +409,7 @@ function PromoBarModal({ bar, onClose, onSaved, onError }: {
                       type="datetime-local"
                       className="form-input"
                       value={endDate}
+                      disabled={locked("endDate")}
                       min={endDate && bar?.endDate && endDate === toLocalInputValue(new Date(bar.endDate)) ? undefined : toLocalInputValue(new Date())}
                       onChange={(e) => setEndDate(e.target.value)}
                     />
@@ -409,16 +421,16 @@ function PromoBarModal({ bar, onClose, onSaved, onError }: {
                     <label className="form-label" htmlFor="pbMessage">Message *</label>
                     <span className="ct-char-count">{message.length}/200</span>
                   </div>
-                  <input id="pbMessage" className="form-input" required autoFocus maxLength={200} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="e.g. Your First Year License for nanoCAD 26" />
+                  <input id="pbMessage" className="form-input" required autoFocus maxLength={200} value={message} disabled={locked("message")} onChange={(e) => setMessage(e.target.value)} placeholder="e.g. Your First Year License for nanoCAD 26" />
                 </div>
                 <div className="pb-row-2">
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label className="form-label" htmlFor="pbButtonText">Button text</label>
-                    <input id="pbButtonText" className="form-input" maxLength={40} value={buttonText} onChange={(e) => setButtonText(e.target.value)} placeholder="e.g. Buy Now" />
+                    <input id="pbButtonText" className="form-input" maxLength={40} value={buttonText} disabled={locked("button")} onChange={(e) => setButtonText(e.target.value)} placeholder="e.g. Buy Now" />
                   </div>
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label className="form-label" htmlFor="pbButtonUrl">Button link</label>
-                    <input id="pbButtonUrl" className="form-input" maxLength={500} value={buttonUrl} onChange={(e) => setButtonUrl(e.target.value)} placeholder="/products, #contact or www.site.com" />
+                    <input id="pbButtonUrl" className="form-input" maxLength={500} value={buttonUrl} disabled={locked("button")} onChange={(e) => setButtonUrl(e.target.value)} placeholder="/products, #contact or www.site.com" />
                   </div>
                 </div>
                 {buttonHalf && <p className="pb-warning">The button needs both a text and a link (or leave both empty for no button).</p>}
@@ -436,13 +448,13 @@ function PromoBarModal({ bar, onClose, onSaved, onError }: {
               <div className="ct-fields">
                 <div className="ct-label-row">
                   <span className="ct-section-label">Colors</span>
-                  <button type="button" className="pb-link-btn" onClick={() => setColors({ backgroundColor: "", textColor: "", badgeBackgroundColor: "", badgeTextColor: "", buttonBackgroundColor: "", buttonTextColor: "" })}>
+                  <button type="button" className="pb-link-btn" disabled={lockColors} onClick={() => setColors({ backgroundColor: "", textColor: "", badgeBackgroundColor: "", badgeTextColor: "", buttonBackgroundColor: "", buttonTextColor: "" })}>
                     Use site defaults
                   </button>
                 </div>
                 <div className="pb-presets" role="group" aria-label="Color presets">
                   {PRESETS.map((preset) => (
-                    <button key={preset.name} type="button" className="pb-preset" onClick={() => setColors(preset.colors)} title={preset.name}>
+                    <button key={preset.name} type="button" className="pb-preset" disabled={lockColors} onClick={() => setColors(preset.colors)} title={preset.name}>
                       <span className="pb-preset-swatch" style={{ background: preset.colors.backgroundColor }}>
                         <span style={{ background: preset.colors.buttonBackgroundColor }} />
                       </span>
@@ -452,7 +464,7 @@ function PromoBarModal({ bar, onClose, onSaved, onError }: {
                 </div>
                 <div className="pb-colors">
                   {COLOR_FIELDS.map(({ key, label }) => (
-                    <ColorField key={key} label={label} value={colors[key]} fallback={DEFAULT_COLORS[key]} onChange={(v) => setColor(key, v)} />
+                    <ColorField key={key} label={label} value={colors[key]} fallback={DEFAULT_COLORS[key]} disabled={lockColors} onChange={(v) => setColor(key, v)} />
                   ))}
                 </div>
                 <p className="ct-hint" style={{ margin: 0 }}>Hex codes like #22C55E. Add two digits for transparency, e.g. #22C55E26.</p>

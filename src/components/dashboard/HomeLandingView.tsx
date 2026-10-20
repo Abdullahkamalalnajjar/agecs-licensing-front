@@ -1,7 +1,13 @@
 "use client";
 import React, { useEffect, useState, useRef } from "react";
 import Link from "next/link";
-import { ProductDto, PackageDto } from "@/client/types.gen";
+import { useRouter } from "next/navigation";
+import { ProductDto, PackageDto, PayablePriceDto } from "@/client/types.gen";
+import { postApiV1CartsMyCartItems } from "@/client";
+import { useAuth } from "@/components/AuthProvider";
+import { useToast } from "@/components/ToastProvider";
+import PromoEndCountdown from "@/components/PromoEndCountdown";
+import { CURRENCIES, useCurrency, type SupportedCurrency } from "@/context/CurrencyContext";
 import { resolveMediaUrl } from "@/lib/mediaUrl";
 import { useCatalog } from "@/lib/catalog";
 import { HeroIcon } from "@/lib/heroIcons";
@@ -12,6 +18,42 @@ import PartnersCarousel from "@/components/PartnersCarousel";
 interface HomeLandingViewProps {
   products: ProductDto[];
   packages: PackageDto[];
+}
+
+const priceFmt = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 });
+
+const money = (n: number, country?: string | null) => {
+  const symbol = CURRENCIES.find((c) => c.code === country)?.symbol ?? "$";
+  return symbol === "$" ? `$${priceFmt.format(n)}` : `${priceFmt.format(n)} ${symbol}`;
+};
+
+/** Cheapest active price across a product and its variations, in the visitor's currency when there is one. */
+function startingPrice(product: ProductDto, currency: SupportedCurrency): PayablePriceDto | null {
+  const all = [...(product.prices || []), ...(product.children || []).flatMap((c) => c.prices || [])]
+    .filter((p) => p.active !== false && p.price != null);
+  if (all.length === 0) return null;
+  const pick = (code: string) => all.filter((p) => p.country === code);
+  const pool = pick(currency).length ? pick(currency) : pick("II").length ? pick("II") : all;
+  return pool.reduce((min, p) => ((p.price ?? 0) < (min.price ?? 0) ? p : min));
+}
+
+/** "From $80 <s>$100</s> −20%" plus a countdown while an offer runs. */
+function PriceTag({ price, original, country, endsAt, from = true, dark = false }: {
+  price: number; original?: number | null; country?: string | null; endsAt?: string | null; from?: boolean; dark?: boolean;
+}) {
+  const onSale = original != null && original > price;
+  const pct = onSale ? Math.round((1 - price / original!) * 100) : 0;
+  return (
+    <div className={`hl-price ${dark ? "is-dark" : ""}`}>
+      <div className="hl-price-row">
+        {from && <span className="hl-price-from">From</span>}
+        <strong>{money(price, country)}</strong>
+        {onSale && <s>{money(original!, country)}</s>}
+        {onSale && pct > 0 && <span className="hl-sale-badge">−{pct}%</span>}
+      </div>
+      {onSale && endsAt && <div className="hl-price-ends"><PromoEndCountdown endDate={endsAt} /></div>}
+    </div>
+  );
 }
 
 function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: string }) {
@@ -47,6 +89,38 @@ function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: str
 }
 
 export default function HomeLandingView({ products, packages }: HomeLandingViewProps) {
+  const router = useRouter();
+  const { user } = useAuth();
+  const { success, error: toastError } = useToast();
+  const { currency } = useCurrency();
+  const [addingPackageId, setAddingPackageId] = useState<string | null>(null);
+
+  // Packages are bought from here: added to the cart at their (offer) price, the same as a product.
+  const addPackageToCart = async (pkg: PackageDto) => {
+    if (!pkg.id) return;
+    if (!user) { router.push("/login"); return; }
+    setAddingPackageId(pkg.id);
+    try {
+      const res = await postApiV1CartsMyCartItems({ body: { itemType: "Package", itemId: pkg.id, quantity: 1 }, throwOnError: false });
+      const data = res.data as { isError?: boolean; errors?: { description?: string }[] } | undefined;
+      if (res.error || data?.isError) {
+        toastError(data?.errors?.map((e) => e.description).filter(Boolean).join(", ") || "Couldn't add the package to your cart.");
+      } else {
+        success(`${pkg.name} added to your cart.`);
+        window.dispatchEvent(new Event("cartUpdated"));
+      }
+    } catch (e) {
+      toastError((e instanceof Error && e.message) || "Couldn't add the package to your cart.");
+    } finally {
+      setAddingPackageId(null);
+    }
+  };
+
+  const renderProductPrice = (product: ProductDto, dark = false) => {
+    const p = startingPrice(product, currency);
+    if (!p) return null;
+    return <PriceTag price={p.price ?? 0} original={p.originalPrice} country={p.country} endsAt={product.offerEndsAt} dark={dark} />;
+  };
   const { partners } = usePartners();
   const { slides: heroSlides, current: currentSlide, setCurrent: setCurrentSlide } = useHeroSlides();
   const totalSlides = heroSlides.length;
@@ -549,6 +623,23 @@ export default function HomeLandingView({ products, packages }: HomeLandingViewP
             margin-bottom: 16px; box-shadow: 0 3px 10px rgba(254,192,16,0.25);
         }
 
+        /* ─── Prices & offers ─── */
+        .hl-price { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+        .hl-price-row { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+        .hl-price-from { font-size: 12px; color: var(--muted); font-weight: 600; }
+        .hl-price strong { font-size: 20px; font-weight: 900; color: var(--ink); }
+        .hl-price s { font-size: 14px; color: var(--muted); }
+        .hl-sale-badge { background: #dc2626; color: #fff; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px; }
+        .hl-price-ends { font-size: 12px; color: #dc2626; }
+        .hl-price.is-dark .hl-price-from, .hl-price.is-dark s { color: rgba(255,255,255,0.6); }
+        .hl-price.is-dark strong { color: #fff; }
+        .hl-price.is-dark .hl-price-ends { color: #fecaca; }
+        .hl-package-offer { position: absolute; top: 14px; right: 14px; margin: 0; z-index: 1; }
+        .hl-package-items { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+        .hl-package-items li { font-size: 12px; font-weight: 600; color: var(--ink); background: var(--surface-elevated, rgba(0,0,0,0.04)); border: 1px solid var(--hairline); border-radius: 999px; padding: 3px 10px; }
+        .package { display: flex; flex-direction: column; }
+        .package button.hl-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
         /* ─── Partners & Workflow ─── */
         .workflow-section { background: transparent; }
         .workflow-panel {
@@ -817,15 +908,25 @@ export default function HomeLandingView({ products, packages }: HomeLandingViewP
                 )}
                 <strong>{pkg.name}</strong>
                 <p>{pkg.description || "Package bundle"}</p>
+                {pkg.offerPrice != null && <span className="package-discount hl-package-offer">Limited offer</span>}
+                {(pkg.items?.length ?? 0) > 0 && (
+                  <ul className="hl-package-items">
+                    {pkg.items!.map((item) => <li key={item.id}>{item.itemName || "Product"}</li>)}
+                  </ul>
+                )}
                 <div style={{ marginTop: "1rem" }}>
-                  <span className="package-discount" style={{ background: "var(--surface-elevated)", color: "var(--ink)", border: "1px solid var(--border)", boxShadow: "none" }}>
-                    Starting at ${pkg.price}
-                  </span>
+                  <PriceTag
+                    price={pkg.offerPrice ?? pkg.price ?? 0}
+                    original={pkg.offerPrice != null ? pkg.price : null}
+                    endsAt={pkg.offerEndsAt}
+                    from={false}
+                  />
                 </div>
                 <div style={{ marginTop: "auto", paddingTop: "1rem" }}>
-                  <Link href={`/packages`} className="hl-btn btn-light-outline" style={{ minHeight: "38px", fontSize: "12px", padding: "0 18px" }}>
-                    View Package →
-                  </Link>
+                  <button type="button" className="hl-btn btn-blue" style={{ minHeight: "38px", fontSize: "12px", padding: "0 18px" }}
+                    onClick={() => addPackageToCart(pkg)} disabled={pkg.comingSoon || addingPackageId === pkg.id}>
+                    {pkg.comingSoon ? "Coming soon" : addingPackageId === pkg.id ? "Adding…" : "Add to cart"}
+                  </button>
                 </div>
               </article>
             ))}
@@ -834,8 +935,8 @@ export default function HomeLandingView({ products, packages }: HomeLandingViewP
             )}
           </div>
           <div className="section-actions reveal">
-            <a href="#" className="hl-btn btn-blue">Explore Packages</a>
-            <a href="#" className="hl-btn btn-light-outline">Company Licenses</a>
+            <Link href="/products" className="hl-btn btn-blue">Browse all software</Link>
+            <a href="#contact" className="hl-btn btn-light-outline">Company Licenses</a>
           </div>
         </div>
       </section>
@@ -870,6 +971,7 @@ export default function HomeLandingView({ products, packages }: HomeLandingViewP
                       <small style={{ color: 'var(--green)' }}>{product.family || name}</small>
                       <h3 style={{ color: '#fff' }}>{product.name}</h3>
                       <p style={{ color: 'rgba(255,255,255,0.7)' }}>{product.miniDescription || "Professional engineering software module."}</p>
+                      {renderProductPrice(product, true)}
                       <div style={{ marginTop: "auto", paddingTop: "1rem" }}>
                         <Link href={`/products/${product.id}`} className="hl-btn btn-outline" style={{ minHeight: "38px", fontSize: "12px", padding: "0 18px", color: '#fff', borderColor: 'rgba(255,255,255,0.3)' }}>
                           Learn More →
@@ -909,6 +1011,7 @@ export default function HomeLandingView({ products, packages }: HomeLandingViewP
                       <small>{product.family || `${name} Ecosystem`}</small>
                       <h3>{product.name}</h3>
                       <p>{product.miniDescription || "Professional engineering software module for advanced structural workflows."}</p>
+                      {renderProductPrice(product)}
                       <div style={{ marginTop: "auto", paddingTop: "1rem" }}>
                         <Link href={`/products/${product.id}`} className="hl-btn btn-light-outline" style={{ minHeight: "38px", fontSize: "12px", padding: "0 18px" }}>
                           Learn More →

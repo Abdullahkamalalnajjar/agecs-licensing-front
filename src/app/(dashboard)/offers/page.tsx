@@ -3,14 +3,20 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   getApiProducts,
+  getApiPackages,
+  getApiPackagesByIdOffers,
+  postApiPackagesByIdOffers,
+  patchApiProductsOffersByOfferIdActive,
+  patchApiPackagesOffersByOfferIdActive,
   getApiProductsByProductIdOffers,
   postApiProductsByProductIdOffers,
-  putApiProductsOffersByOfferId,
   deleteApiProductsOffersByOfferId,
 } from "@/client";
 import { client } from "@/client/client.gen";
-import type { OfferDto, ProductDto } from "@/client/types.gen";
+import type { OfferDto, PackageDto, ProductDto } from "@/client/types.gen";
 import { useToast } from "@/components/ToastProvider";
+import { usePermissions } from "@/components/AuthProvider";
+import { P } from "@/lib/permissions";
 import { CURRENCIES } from "@/context/CurrencyContext";
 import "./offers.css";
 
@@ -84,7 +90,17 @@ const formatDate = (iso?: string | null) => (iso ? dateFmt.format(new Date(iso))
 const discountLabel = (offer: { discountType?: number; discountValue?: number }) =>
   offer.discountType === 0 ? `${priceFmt.format(offer.discountValue ?? 0)}%` : priceFmt.format(offer.discountValue ?? 0);
 
+/** A package's price after an offer (0 = percentage, otherwise an amount off). */
+const offerPrice = (offer: OfferDto, price: number) =>
+  offer.discountType === 0
+    ? price - price * (offer.discountValue ?? 0) / 100
+    : Math.max(0, price - (offer.discountValue ?? 0));
+
 export default function OffersPage() {
+  const { can, canField } = usePermissions();
+  const canCreate = can(P.offers.create);
+  const canToggleActive = canField("offers", "active");
+  const canDelete = can(P.offers.delete);
   const router = useRouter();
   const { success, error: toastError } = useToast();
 
@@ -92,6 +108,10 @@ export default function OffersPage() {
   const [productsLoading, setProductsLoading] = useState(true);
   const [selectedParentId, setSelectedParentId] = useState("");
   const [selectedVariationId, setSelectedVariationId] = useState("");
+  // Offers are on a product (or variation) or on a package.
+  const [target, setTarget] = useState<"product" | "package">("product");
+  const [packages, setPackages] = useState<PackageDto[]>([]);
+  const [selectedPackageId, setSelectedPackageId] = useState("");
 
   const [offers, setOffers] = useState<OfferDto[]>([]);
   const [loading, setLoading] = useState(false);
@@ -121,6 +141,11 @@ export default function OffersPage() {
 
     (async () => {
       try {
+        getApiPackages({ query: { includeHidden: true }, throwOnError: false }).then((r) => {
+          const list = r.data?.value ?? [];
+          setPackages(list);
+          if (list.length > 0) setSelectedPackageId(list[0].id!);
+        });
         const res = await getApiProducts({ query: { includeHidden: true }, throwOnError: false });
         if (res.data?.isSuccess && res.data.value) {
           const parents = res.data.value.filter((p) => !p.parentProductId);
@@ -137,18 +162,23 @@ export default function OffersPage() {
     })();
   }, [router]);
 
-  const activeProductId = selectedVariationId || selectedParentId;
   const selectedParent = products.find((p) => p.id === selectedParentId);
   const variations = selectedParent?.children || [];
-  const activeProductName =
-    variations.find((v) => v.id === selectedVariationId)?.name || selectedParent?.name || "";
+  const selectedPackage = packages.find((p) => p.id === selectedPackageId);
+  // The product, variation or package whose offers are shown (its id doubles as the list's key).
+  const activeProductId = target === "package" ? selectedPackageId : selectedVariationId || selectedParentId;
+  const activeProductName = target === "package"
+    ? selectedPackage?.name || ""
+    : variations.find((v) => v.id === selectedVariationId)?.name || selectedParent?.name || "";
 
   const fetchOffers = async (productId = activeProductId) => {
     if (!productId) return;
     setLoading(true);
     setError("");
     try {
-      const res = await getApiProductsByProductIdOffers({ path: { productId }, throwOnError: false });
+      const res = target === "package"
+        ? await getApiPackagesByIdOffers({ path: { id: productId }, throwOnError: false })
+        : await getApiProductsByProductIdOffers({ path: { productId }, throwOnError: false });
       if (res.data?.isSuccess) {
         setOffers(res.data.value || []);
       } else {
@@ -193,18 +223,10 @@ export default function OffersPage() {
     const next = !offer.isActive;
     setOffers((list) => list.map((o) => (o.id === offer.id ? { ...o, isActive: next } : o)));
     try {
-      const res = await putApiProductsOffersByOfferId({
-        path: { offerId: offer.id },
-        body: {
-          id: offer.id,
-          discountType: offer.discountType,
-          discountValue: offer.discountValue,
-          startDate: offer.startDate,
-          endDate: offer.endDate,
-          isActive: next,
-        },
-        throwOnError: false,
-      });
+      // Only the active flag changes, so the switch uses the PATCH endpoint for the offer's kind.
+      const res = offer.packageId
+        ? await patchApiPackagesOffersByOfferIdActive({ path: { offerId: offer.id }, body: { isActive: next }, throwOnError: false })
+        : await patchApiProductsOffersByOfferIdActive({ path: { offerId: offer.id }, body: { isActive: next }, throwOnError: false });
       if (res.data?.isSuccess) {
         success(next ? "Offer activated." : "Offer paused.");
       } else {
@@ -262,18 +284,20 @@ export default function OffersPage() {
     setSaving(true);
     setFormError("");
     try {
-      const res = await postApiProductsByProductIdOffers({
-        path: { productId: activeProductId },
-        body: {
-          productId: activeProductId,
-          discountType: form.discountType,
-          discountValue: value,
-          startDate: new Date(form.startDate).toISOString(),
-          endDate: new Date(form.endDate).toISOString(),
-          isActive: form.isActive,
-        },
-        throwOnError: false,
-      });
+      const offerBody = {
+        discountType: form.discountType,
+        discountValue: value,
+        startDate: new Date(form.startDate).toISOString(),
+        endDate: new Date(form.endDate).toISOString(),
+        isActive: form.isActive,
+      };
+      const res = target === "package"
+        ? await postApiPackagesByIdOffers({ path: { id: activeProductId }, body: offerBody, throwOnError: false })
+        : await postApiProductsByProductIdOffers({
+            path: { productId: activeProductId },
+            body: { productId: activeProductId, ...offerBody },
+            throwOnError: false,
+          });
       if (res.data?.isSuccess) {
         setIsModalOpen(false);
         setFilter("all");
@@ -296,18 +320,44 @@ export default function OffersPage() {
       <div className="page-header">
         <div className="page-header-left">
           <h1 className="page-title">Offers</h1>
-          <p className="page-subtitle">Schedule time-limited discounts for products and their variations.</p>
+          <p className="page-subtitle">Schedule time-limited discounts for products, their variations and packages.</p>
         </div>
-        <button className="btn-primary" onClick={openModal} disabled={!activeProductId}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          New Offer
-        </button>
+        {canCreate && (
+          <button className="btn-primary" onClick={openModal} disabled={!activeProductId}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            New Offer
+          </button>
+        )}
       </div>
 
       {/* ---------- Product picker ---------- */}
       <section className="of-panel of-picker">
+        <div className="of-picker-field">
+          <span className="form-label">Offer on</span>
+          <div className="of-chips" role="radiogroup" aria-label="Offer on">
+            {(["product", "package"] as const).map((t) => (
+              <button key={t} type="button" role="radio" aria-checked={target === t}
+                className={`of-chip ${target === t ? "is-active" : ""}`}
+                onClick={() => { setTarget(t); setOffers([]); setConfirmDeleteId(null); }}>
+                {t === "product" ? "Product" : "Package"}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {target === "package" ? (
+          <div className="of-picker-field">
+            <label className="form-label" htmlFor="of-package">Package</label>
+            <select id="of-package" className="form-input of-select" value={selectedPackageId}
+              onChange={(e) => { setSelectedPackageId(e.target.value); setConfirmDeleteId(null); }} disabled={packages.length === 0}>
+              {packages.length === 0 && <option value="">No packages</option>}
+              {packages.map((p) => <option key={p.id} value={p.id}>{p.name}{p.hidden ? " (hidden)" : ""}</option>)}
+            </select>
+          </div>
+        ) : (
+        <>
         <div className="of-picker-field">
           <label className="form-label" htmlFor="of-product">Product</label>
           {productsLoading ? (
@@ -353,6 +403,8 @@ export default function OffersPage() {
               ))}
             </div>
           </div>
+        )}
+        </>
         )}
       </section>
 
@@ -414,7 +466,7 @@ export default function OffersPage() {
                     : "Try a different filter."}
                 </p>
                 {filter === "all" ? (
-                  <button className="btn-primary" style={{ marginTop: "1rem" }} onClick={openModal}>Create offer</button>
+                  canCreate && <button className="btn-primary" style={{ marginTop: "1rem" }} onClick={openModal}>Create offer</button>
                 ) : (
                   <button className="btn-ghost" style={{ marginTop: "1rem" }} onClick={() => setFilter("all")}>Show all offers</button>
                 )}
@@ -435,7 +487,7 @@ export default function OffersPage() {
                         <input
                           type="checkbox"
                           checked={!!offer.isActive}
-                          disabled={busy}
+                          disabled={!canToggleActive || busy}
                           onChange={() => handleToggleActive(offer)}
                           aria-label={offer.isActive ? "Pause offer" : "Activate offer"}
                         />
@@ -462,7 +514,15 @@ export default function OffersPage() {
                     </div>
 
                     <div className="of-prices">
-                      {offer.appliedPrices && offer.appliedPrices.length > 0 ? (
+                      {target === "package" && selectedPackage ? (
+                        <div className="of-price">
+                          <span className="of-price-country">Package price</span>
+                          <span className="of-price-values">
+                            <s>{priceFmt.format(selectedPackage.price ?? 0)}</s>
+                            <strong>{priceFmt.format(offerPrice(offer, selectedPackage.price ?? 0))}</strong>
+                          </span>
+                        </div>
+                      ) : offer.appliedPrices && offer.appliedPrices.length > 0 ? (
                         offer.appliedPrices.map((p, idx) => {
                           const cur = currencyFor(p.country);
                           return (
@@ -496,7 +556,7 @@ export default function OffersPage() {
                             </button>
                           </div>
                         </>
-                      ) : (
+                      ) : canDelete && (
                         <button className="of-link-danger" onClick={() => setConfirmDeleteId(offer.id!)} disabled={busy}>
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />

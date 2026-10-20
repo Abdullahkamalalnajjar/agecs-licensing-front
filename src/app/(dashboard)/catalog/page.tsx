@@ -5,7 +5,8 @@ import {
   putApiCompaniesById, deleteApiCompaniesById, putApiCompaniesReorder,
 } from "@/client";
 import type { CompanyDto, FamilyDto } from "@/client/types.gen";
-import { useAuth } from "@/components/AuthProvider";
+import { useAuth, usePermissions } from "@/components/AuthProvider";
+import { P } from "@/lib/permissions";
 import { useToast } from "@/components/ToastProvider";
 import { createCompany, createFamily, setCatalogLists, useCatalog } from "@/lib/catalog";
 import "../products/products.css";
@@ -51,7 +52,9 @@ function IconButton({ title, onClick, tone = "accent", disabled, children }: {
 
 export default function CatalogPage() {
   const { user } = useAuth();
-  const isAdmin = user != null && user.role !== "Student" && user.role !== "User";
+  const { can } = usePermissions();
+  const isAdmin = can(P.catalog.read);
+  const canCreate = can(P.catalog.create);
   const { families, companies, loaded, error } = useCatalog();
   const [tab, setTab] = useState<Tab>("companies");
   const [creating, setCreating] = useState(false);
@@ -111,10 +114,12 @@ export default function CatalogPage() {
             Families<span className="ct-tab-count">{families.length}</span>
           </button>
         </div>
-        <button type="button" className="btn-primary" onClick={() => setCreating(true)}>
-          <Svg>{Icon.plus}</Svg>
-          {tab === "companies" ? "New company" : "New family"}
-        </button>
+        {canCreate && (
+          <button type="button" className="btn-primary" onClick={() => setCreating(true)}>
+            <Svg>{Icon.plus}</Svg>
+            {tab === "companies" ? "New company" : "New family"}
+          </button>
+        )}
       </div>
 
       {tab === "companies" ? (
@@ -163,14 +168,16 @@ function useReorder<T extends { id?: string }>(
 }
 
 function OrderControl({ index, count, busy, onMove, label }: { index: number; count: number; busy: boolean; onMove: (i: number, d: -1 | 1) => void; label: string }) {
+  const { canField } = usePermissions();
+  const locked = busy || !canField("catalog", "order");
   return (
     <div className="ct-order">
       <span className="ct-order-num">{index + 1}</span>
       <div className="ct-order-btns">
-        <button type="button" className="pr-icon-btn" onClick={() => onMove(index, -1)} disabled={busy || index === 0} aria-label={`Move ${label} up`} title="Move up">
+        <button type="button" className="pr-icon-btn" onClick={() => onMove(index, -1)} disabled={locked || index === 0} aria-label={`Move ${label} up`} title="Move up">
           <Svg size={12}>{Icon.up}</Svg>
         </button>
-        <button type="button" className="pr-icon-btn" onClick={() => onMove(index, 1)} disabled={busy || index === count - 1} aria-label={`Move ${label} down`} title="Move down">
+        <button type="button" className="pr-icon-btn" onClick={() => onMove(index, 1)} disabled={locked || index === count - 1} aria-label={`Move ${label} down`} title="Move down">
           <Svg size={12}>{Icon.down}</Svg>
         </button>
       </div>
@@ -182,7 +189,10 @@ function OrderControl({ index, count, busy, onMove, label }: { index: number; co
 function DeleteControl({ label, productCount, onDelete }: { label: string; productCount: number; onDelete: () => Promise<void> }) {
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const canDelete = usePermissions().can(P.catalog.delete);
   const inUse = productCount > 0;
+
+  if (!canDelete) return null;
 
   if (confirming) {
     return (
@@ -213,12 +223,15 @@ function CountPill({ count }: { count: number }) {
 }
 
 function EmptyState({ icon, title, sub, action, onAction }: { icon: React.ReactNode; title: string; sub: string; action: string; onAction: () => void }) {
+  const canCreate = usePermissions().can(P.catalog.create);
   return (
     <div className="ct-empty">
       <span className="ct-empty-icon"><Svg size={24}>{icon}</Svg></span>
       <p className="ct-empty-title">{title}</p>
       <p className="ct-empty-sub">{sub}</p>
-      <button type="button" className="btn-primary" onClick={onAction}><Svg>{Icon.plus}</Svg>{action}</button>
+      {canCreate && (
+        <button type="button" className="btn-primary" onClick={onAction}><Svg>{Icon.plus}</Svg>{action}</button>
+      )}
     </div>
   );
 }
@@ -250,6 +263,7 @@ function CompaniesList({ companies, loaded, creating, onCloseCreate, onCreate }:
   companies: CompanyDto[]; loaded: boolean; creating: boolean; onCloseCreate: () => void; onCreate: () => void;
 }) {
   const { success, error: toastError } = useToast();
+  const canEdit = usePermissions().canUpdateAny("catalog");
   const [editing, setEditing] = useState<CompanyDto | null>(null);
   const { move, busy } = useReorder(
     companies,
@@ -303,7 +317,7 @@ function CompaniesList({ companies, loaded, creating, onCloseCreate, onCreate }:
               </div>
               <CountPill count={company.productCount ?? 0} />
               <div className="pr-actions">
-                <IconButton title={`Edit ${company.name}`} onClick={() => setEditing(company)}>{Icon.edit}</IconButton>
+                {canEdit && <IconButton title={`Edit ${company.name}`} onClick={() => setEditing(company)}>{Icon.edit}</IconButton>}
                 <DeleteControl label={company.name || ""} productCount={company.productCount ?? 0} onDelete={() => remove(company)} />
               </div>
             </div>
@@ -335,6 +349,8 @@ function CharCount({ value, max }: { value: string; max: number }) {
 function CompanyModal({ company, onClose, onSave, onError }: {
   company: CompanyDto | null; onClose: () => void; onSave: (form: CompanyForm) => Promise<void>; onError: (msg: string) => void;
 }) {
+  const { canField } = usePermissions();
+  const locked = (field: keyof CompanyForm) => !!company && !canField("catalog", field);
   const [form, setForm] = useState<CompanyForm>(company ? {
     name: company.name || "",
     icon: company.icon || "",
@@ -382,7 +398,7 @@ function CompanyModal({ company, onClose, onSave, onError }: {
                 <legend className="ct-section-label">Basics</legend>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label" htmlFor="companyName">Name</label>
-                  <input id="companyName" className="form-input" required autoFocus maxLength={100} value={form.name} onChange={(e) => set({ name: e.target.value })} placeholder="e.g. NanoCAD" />
+                  <input id="companyName" className="form-input" required autoFocus maxLength={100} value={form.name} disabled={locked("name")} onChange={(e) => set({ name: e.target.value })} placeholder="e.g. NanoCAD" />
                 </div>
 
                 <div className="form-group" style={{ marginBottom: 0 }}>
@@ -397,6 +413,7 @@ function CompanyModal({ company, onClose, onSave, onError }: {
                           role="radio"
                           aria-checked={selected}
                           className={`ct-icon-choice ${selected ? "is-selected" : ""}`}
+                          disabled={locked("icon")}
                           onClick={() => set({ icon: choice })}
                         >
                           {choice}
@@ -407,6 +424,7 @@ function CompanyModal({ company, onClose, onSave, onError }: {
                       className={`form-input ct-icon-custom ${customIcon ? "is-selected" : ""}`}
                       maxLength={16}
                       value={customIcon ? form.icon : ""}
+                      disabled={locked("icon")}
                       onChange={(e) => set({ icon: e.target.value })}
                       placeholder="Other"
                       aria-label="Custom icon (any emoji)"
@@ -423,21 +441,21 @@ function CompanyModal({ company, onClose, onSave, onError }: {
                     <label className="form-label" htmlFor="companyTagline">Tagline</label>
                     <CharCount value={form.tagline} max={200} />
                   </div>
-                  <input id="companyTagline" className="form-input" maxLength={200} value={form.tagline} onChange={(e) => set({ tagline: e.target.value })} placeholder="Small label above the headline" />
+                  <input id="companyTagline" className="form-input" maxLength={200} value={form.tagline} disabled={locked("tagline")} onChange={(e) => set({ tagline: e.target.value })} placeholder="Small label above the headline" />
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <div className="ct-label-row">
                     <label className="form-label" htmlFor="companyHeadline">Headline</label>
                     <CharCount value={form.headline} max={300} />
                   </div>
-                  <input id="companyHeadline" className="form-input" maxLength={300} value={form.headline} onChange={(e) => set({ headline: e.target.value })} placeholder={`${name} Products`} />
+                  <input id="companyHeadline" className="form-input" maxLength={300} value={form.headline} disabled={locked("headline")} onChange={(e) => set({ headline: e.target.value })} placeholder={`${name} Products`} />
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <div className="ct-label-row">
                     <label className="form-label" htmlFor="companyDescription">Description</label>
                     <CharCount value={form.description} max={2000} />
                   </div>
-                  <textarea id="companyDescription" className="form-input" rows={4} maxLength={2000} value={form.description} onChange={(e) => set({ description: e.target.value })} placeholder="A sentence or two about what this company offers" style={{ resize: "vertical" }} />
+                  <textarea id="companyDescription" className="form-input" rows={4} maxLength={2000} value={form.description} disabled={locked("description")} onChange={(e) => set({ description: e.target.value })} placeholder="A sentence or two about what this company offers" style={{ resize: "vertical" }} />
                 </div>
               </fieldset>
             </div>
@@ -498,6 +516,7 @@ function FamiliesList({ families, loaded, creating, onCloseCreate, onCreate }: {
   families: FamilyDto[]; loaded: boolean; creating: boolean; onCloseCreate: () => void; onCreate: () => void;
 }) {
   const { success, error: toastError } = useToast();
+  const canRename = usePermissions().canField("catalog", "name");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const { move, busy } = useReorder(
@@ -559,7 +578,7 @@ function FamiliesList({ families, loaded, creating, onCloseCreate, onCreate }: {
                   <div className="ct-main"><span className="ct-name">{family.name}</span></div>
                   <CountPill count={family.productCount ?? 0} />
                   <div className="pr-actions">
-                    <IconButton title={`Rename ${family.name}`} onClick={() => { setEditingId(family.id!); setEditName(family.name || ""); }}>{Icon.edit}</IconButton>
+                    {canRename && <IconButton title={`Rename ${family.name}`} onClick={() => { setEditingId(family.id!); setEditName(family.name || ""); }}>{Icon.edit}</IconButton>}
                     <DeleteControl label={family.name || ""} productCount={family.productCount ?? 0} onDelete={() => remove(family)} />
                   </div>
                 </>

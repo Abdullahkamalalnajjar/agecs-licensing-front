@@ -11,7 +11,8 @@ import ProductFormModal from "@/components/ProductFormModal";
 import ProductMediaModal from "@/components/ProductMediaModal";
 import ChildProductsModal from "@/components/ChildProductsModal";
 import ProductVersionsModal from "@/components/ProductVersionsModal";
-import { useAuth } from "@/components/AuthProvider";
+import { useAuth, usePermissions } from "@/components/AuthProvider";
+import { P } from "@/lib/permissions";
 import { useToast } from "@/components/ToastProvider";
 import { CURRENCIES, useCurrency, type SupportedCurrency } from "@/context/CurrencyContext";
 import "@/components/product-form.css";
@@ -117,7 +118,15 @@ export default function ProductsPage() {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setView(readViewMode()); }, []);
 
-  const isAdmin = user != null && user.role !== "Student" && user.role !== "User";
+  const { can, canField, canUpdateAny } = usePermissions();
+  // Staff with products:read get the management view; changing anything needs products:write.
+  const isAdmin = can(P.products.read);
+  const canCreate = can(P.products.create);
+  const canUpdate = canUpdateAny("products");
+  const canDelete = can(P.products.delete);
+  const canEditHidden = canField("products", "hidden");
+  // The media and versions windows hold add / edit / remove buttons for their parts.
+  const canManageParts = canCreate || canDelete || canField("products", "media") || canField("products", "versions");
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
@@ -227,7 +236,7 @@ export default function ProductsPage() {
 
   const hasFilters = !!search || company !== "all" || family !== "all" || status !== "all";
   // Reordering needs the full, unfiltered list in display order, since the API reorders all top-level products at once.
-  const canReorder = !hasFilters && sort === "order";
+  const canReorder = canField("products", "order") && !hasFilters && sort === "order";
 
   // Moves a product one step, saving the whole new order; rolls back if the save fails.
   // Flips a product's visibility right away, rolling back if the save fails.
@@ -330,10 +339,14 @@ export default function ProductsPage() {
       >
         {Icon.variations}
       </IconButton>
-      <IconButton title="Media" tone="purple" onClick={() => setMediaProduct(product)}>{Icon.media}</IconButton>
-      <IconButton title="Versions" tone="amber" onClick={() => setVersionsProduct(product)}>{Icon.versions}</IconButton>
-      <IconButton title="Edit product" onClick={() => setEditProduct(product)}>{Icon.edit}</IconButton>
-      {deleteConfirmId === product.id ? (
+      {canManageParts && (
+        <>
+          <IconButton title="Media" tone="purple" onClick={() => setMediaProduct(product)}>{Icon.media}</IconButton>
+          <IconButton title="Versions" tone="amber" onClick={() => setVersionsProduct(product)}>{Icon.versions}</IconButton>
+        </>
+      )}
+      {canUpdate && <IconButton title="Edit product" onClick={() => setEditProduct(product)}>{Icon.edit}</IconButton>}
+      {!canDelete ? null : deleteConfirmId === product.id ? (
         <span className="pr-confirm">
           <IconButton title="Confirm delete" tone="danger" onClick={() => handleDelete(product.id!)} disabled={deletingId === product.id}>{Icon.check}</IconButton>
           <IconButton title="Cancel" onClick={() => setDeleteConfirmId(null)}>{Icon.close}</IconButton>
@@ -359,7 +372,7 @@ export default function ProductsPage() {
                 : "Engineering software licenses for structural design, CAD and documentation."}
           </p>
         </div>
-        {isAdmin && (
+        {canCreate && (
           <button id="create-product-btn" className="btn-primary" onClick={() => setIsCreateModalOpen(true)}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -496,7 +509,7 @@ export default function ProductsPage() {
             </svg>
             <p className="empty-state-title">No products yet</p>
             <p className="empty-state-sub">{isAdmin ? "Create your first product to get started." : "Check back soon for new software."}</p>
-            {isAdmin && <button className="btn-primary" style={{ marginTop: "1rem" }} onClick={() => setIsCreateModalOpen(true)}>New Product</button>}
+            {canCreate && <button className="btn-primary" style={{ marginTop: "1rem" }} onClick={() => setIsCreateModalOpen(true)}>New Product</button>}
           </div>
         </div>
       ) : filtered.length === 0 ? (
@@ -582,13 +595,13 @@ export default function ProductsPage() {
                       <label
                         className="pr-visibility"
                         title={product.hidden ? "Hidden from customers — click to show" : "Visible to customers — click to hide"}
-                        style={{ cursor: hiddenBusyId === product.id ? "wait" : "pointer", opacity: hiddenBusyId === product.id ? 0.6 : 1 }}
+                        style={{ cursor: !canEditHidden ? "default" : hiddenBusyId === product.id ? "wait" : "pointer", opacity: hiddenBusyId === product.id ? 0.6 : 1 }}
                       >
                         <span className="pf-toggle-switch">
                           <input
                             type="checkbox"
                             checked={!product.hidden}
-                            disabled={hiddenBusyId === product.id}
+                            disabled={!canEditHidden || hiddenBusyId === product.id}
                             onChange={() => handleToggleHidden(product)}
                             aria-label={`${product.name} visible`}
                           />

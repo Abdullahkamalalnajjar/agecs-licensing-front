@@ -52,6 +52,10 @@ export type AppUserDto = {
      * False for accounts created with Google that never set a password; changing the password then needs no current password.
      */
     hasPassword?: boolean;
+    /**
+     * Has a verified academic email (the academic badge). Filled on the current-user response.
+     */
+    isAcademic?: boolean;
 };
 
 export type AppUserDtoPaginatedList = {
@@ -227,6 +231,25 @@ export type CreateLicenseCommand = {
     willExpire?: boolean;
 };
 
+export type SetOfferActiveRequest = { isActive?: boolean };
+export type PatchApiProductsOffersByOfferIdActiveData = { body?: SetOfferActiveRequest; path: { offerId: string }; query?: never; url: '/api/products/offers/{offerId}/active' };
+export type PatchApiProductsOffersByOfferIdActiveResponses = { 200: UpdatedResult };
+export type PatchApiPackagesOffersByOfferIdActiveData = { body?: SetOfferActiveRequest; path: { offerId: string }; query?: never; url: '/api/packages/offers/{offerId}/active' };
+export type PatchApiPackagesOffersByOfferIdActiveResponses = { 200: UpdatedResult };
+
+export type PackageOfferRequest = {
+    discountType?: DiscountType;
+    discountValue?: number;
+    startDate?: string | null;
+    endDate?: string;
+    isActive?: boolean;
+};
+
+export type GetApiPackagesByIdOffersData = { body?: never; path: { id: string }; query?: never; url: '/api/packages/{id}/offers' };
+export type GetApiPackagesByIdOffersResponses = { 200: OfferDtoListResult };
+export type PostApiPackagesByIdOffersData = { body?: PackageOfferRequest; path: { id: string }; query?: never; url: '/api/packages/{id}/offers' };
+export type PostApiPackagesByIdOffersResponses = { 201: OfferDtoResult };
+
 export type CreateOfferCommand = {
     productId?: string;
     discountType?: DiscountType;
@@ -283,6 +306,22 @@ export type CreatePromocodeCommand = {
     expiresAt?: string | null;
     maxUses?: number | null;
     productIds?: Array<string> | null;
+    /**
+     * Packages the code is limited to (with productIds; both empty = whole cart).
+     */
+    packageIds?: Array<string> | null;
+    /**
+     * Only accounts that verified (OTP) one of these emails can use it; empty = everyone.
+     */
+    allowedEmails?: Array<string> | null;
+    /**
+     * Only accounts with a verified academic email.
+     */
+    academicOnly?: boolean;
+    /**
+     * Each account can pay with it once.
+     */
+    oncePerUser?: boolean;
 };
 
 export type CreateRoleRequest = {
@@ -557,7 +596,14 @@ export type ObjectResult = {
 
 export type OfferDto = {
     id?: string;
-    productId?: string;
+    /**
+     * Set for a product's offer.
+     */
+    productId?: string | null;
+    /**
+     * Set for a package's offer.
+     */
+    packageId?: string | null;
     discountType?: DiscountType;
     discountValue?: number;
     startDate?: string | null;
@@ -616,6 +662,11 @@ export type PackageDto = {
     lastModifiedUtc?: string;
     items?: Array<PackageItemDto> | null;
     images?: Array<PackageImageDto> | null;
+    /**
+     * What a buyer pays while an offer runs (null when none does).
+     */
+    offerPrice?: number | null;
+    offerEndsAt?: string | null;
 };
 
 export type PackageDtoListResult = {
@@ -805,6 +856,10 @@ export type ProductDto = {
     startingPrice?: number | null;
     startingPeriod?: number | null;
     startingPeriodType?: PeriodType;
+    /**
+     * When the running offer ends (the product's own, or the soonest among its variations'); null without one.
+     */
+    offerEndsAt?: string | null;
 };
 
 export type ProductDtoListResult = {
@@ -977,6 +1032,22 @@ export type PromocodeDto = {
     useCount?: number;
     productIds?: Array<string> | null;
     isActive?: boolean;
+    /**
+     * Packages the code is limited to (with productIds; both empty = whole cart).
+     */
+    packageIds?: Array<string> | null;
+    /**
+     * Only accounts that verified (OTP) one of these emails can use it; empty = everyone.
+     */
+    allowedEmails?: Array<string> | null;
+    /**
+     * Only accounts with a verified academic email.
+     */
+    academicOnly?: boolean;
+    /**
+     * Each account can pay with it once.
+     */
+    oncePerUser?: boolean;
 };
 
 export type PromocodeDtoListResult = {
@@ -1236,6 +1307,22 @@ export type UpdatePromocodeCommand = {
     expiresAt?: string | null;
     maxUses?: number | null;
     productIds?: Array<string> | null;
+    /**
+     * Packages the code is limited to (with productIds; both empty = whole cart).
+     */
+    packageIds?: Array<string> | null;
+    /**
+     * Only accounts that verified (OTP) one of these emails can use it; empty = everyone.
+     */
+    allowedEmails?: Array<string> | null;
+    /**
+     * Only accounts with a verified academic email.
+     */
+    academicOnly?: boolean;
+    /**
+     * Each account can pay with it once.
+     */
+    oncePerUser?: boolean;
 };
 
 export type UpdateRoleRequest = {
@@ -1810,6 +1897,77 @@ export type GetIdentityUsersByUserIdPermissionsResponses = {
 };
 
 export type GetIdentityUsersByUserIdPermissionsResponse = GetIdentityUsersByUserIdPermissionsResponses[keyof GetIdentityUsersByUserIdPermissionsResponses];
+
+/**
+ * Where a user's permissions come from: their roles (fixed in code) and the extra ones granted to this user.
+ */
+export type UserPermissionDetails = {
+    roles?: Array<string> | null;
+    /**
+     * Admin always has every permission and can't be customized.
+     */
+    isAdmin?: boolean;
+    /**
+     * An admin set this user's permissions; they replace the role's defaults.
+     */
+    isCustom?: boolean;
+    rolePermissions?: Array<string> | null;
+    /**
+     * What the user has now.
+     */
+    permissions?: Array<string> | null;
+};
+
+export type UserPermissionDetailsResult = {
+    readonly isSuccess?: boolean;
+    readonly isError?: boolean;
+    value?: UserPermissionDetails;
+    readonly errors?: Array<Error> | null;
+};
+
+export type PermissionItem = {
+    key?: string | null;
+    label?: string | null;
+    permission?: string | null;
+};
+
+/**
+ * A dashboard section: its actions (View / Create / Edit / Delete...) and the fields that can be edited on their own.
+ */
+export type PermissionSection = {
+    key?: string | null;
+    label?: string | null;
+    actions?: Array<PermissionItem> | null;
+    fields?: Array<PermissionItem> | null;
+};
+
+export type PermissionSectionListResult = {
+    readonly isSuccess?: boolean;
+    readonly isError?: boolean;
+    value?: Array<PermissionSection> | null;
+    readonly errors?: Array<Error> | null;
+};
+
+export type GetIdentityPermissionCatalogData = { body?: never; path?: never; query?: never; url: '/identity/permission-catalog' };
+export type GetIdentityPermissionCatalogResponses = { 200: PermissionSectionListResult };
+
+export type GetIdentityUsersByUserIdPermissionDetailsData = {
+    body?: never;
+    path: { userId: string };
+    query?: never;
+    url: '/identity/users/{userId}/permission-details';
+};
+
+export type GetIdentityUsersByUserIdPermissionDetailsResponses = { 200: UserPermissionDetailsResult };
+
+export type DeleteIdentityUsersByUserIdPermissionsData = {
+    body?: never;
+    path: { userId: string };
+    query?: never;
+    url: '/identity/users/{userId}/permissions';
+};
+
+export type DeleteIdentityUsersByUserIdPermissionsResponses = { 200: UpdatedResult };
 
 export type PutIdentityUsersByUserIdPermissionsData = {
     body?: Array<string>;
@@ -3149,6 +3307,59 @@ export type DeleteApiLicensesPackageGroupsByPackageGroupIdData = {
 };
 
 export type DeleteApiLicensesPackageGroupsByPackageGroupIdResponses = { 200: PackageLicenseGroupResultResult };
+
+/**
+ * An extra email on the signed-in account; isAcademic when verified and its domain is in the academic domains list.
+ */
+export type UserEmailDto = {
+    id?: string;
+    email?: string | null;
+    isVerified?: boolean;
+    verifiedAtUtc?: string | null;
+    isAcademic?: boolean;
+    /**
+     * When another code can be requested (null if one can be now).
+     */
+    resendAvailableAtUtc?: string | null;
+};
+
+export type UserEmailDtoResult = {
+    readonly isSuccess?: boolean;
+    readonly isError?: boolean;
+    value?: UserEmailDto;
+    readonly errors?: Array<Error> | null;
+};
+
+/**
+ * The account's extra emails and whether it has the academic badge.
+ */
+export type UserEmailsResponse = {
+    isAcademic?: boolean;
+    emails?: Array<UserEmailDto> | null;
+};
+
+export type UserEmailsResponseResult = {
+    readonly isSuccess?: boolean;
+    readonly isError?: boolean;
+    value?: UserEmailsResponse;
+    readonly errors?: Array<Error> | null;
+};
+
+export type GetIdentityEmailsData = { body?: never; path?: never; query?: never; url: '/identity/emails' };
+export type GetIdentityEmailsResponses = { 200: UserEmailsResponseResult };
+export type PostIdentityEmailsData = { body?: { email?: string | null }; path?: never; query?: never; url: '/identity/emails' };
+export type PostIdentityEmailsResponses = { 200: UserEmailDtoResult };
+export type PostIdentityEmailsByEmailIdResendData = { body?: never; path: { emailId: string }; query?: never; url: '/identity/emails/{emailId}/resend' };
+export type PostIdentityEmailsByEmailIdResendResponses = { 200: UserEmailDtoResult };
+export type PostIdentityEmailsByEmailIdVerifyData = { body?: { code?: string | null }; path: { emailId: string }; query?: never; url: '/identity/emails/{emailId}/verify' };
+export type PostIdentityEmailsByEmailIdVerifyResponses = { 200: UserEmailDtoResult };
+export type DeleteIdentityEmailsByEmailIdData = { body?: never; path: { emailId: string }; query?: never; url: '/identity/emails/{emailId}' };
+export type DeleteIdentityEmailsByEmailIdResponses = { 200: DeletedResult };
+
+export type GetApiAcademicDomainsData = { body?: never; path?: never; query?: never; url: '/api/academic-domains' };
+export type GetApiAcademicDomainsResponses = { 200: StringListResult };
+export type PutApiAcademicDomainsData = { body?: { domains?: Array<string> | null }; path?: never; query?: never; url: '/api/academic-domains' };
+export type PutApiAcademicDomainsResponses = { 200: StringListResult };
 
 export type PostApiLicensesPackageData = {
     body?: CreatePackageLicensesCommand;

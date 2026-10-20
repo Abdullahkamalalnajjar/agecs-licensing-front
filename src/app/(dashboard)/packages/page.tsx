@@ -1,5 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
+import { usePermissions } from "@/components/AuthProvider";
+import { P } from "@/lib/permissions";
 import { getApiPackages, deleteApiPackagesById, patchApiPackagesByIdHidden, putApiPackagesReorder } from "@/client";
 import { client } from "@/client/client.gen";
 import { useRouter } from "next/navigation";
@@ -11,6 +13,14 @@ import type { PackageDto, PackageImageDto } from "@/client/types.gen";
 import "@/components/product-form.css";
 
 export default function PackagesPage() {
+  // Viewing needs packages:read (the route guard); the buttons follow packages:create / update / delete.
+  const { can, canField, canUpdateAny } = usePermissions();
+  const canCreate = can(P.packages.create);
+  const canUpdate = canUpdateAny("packages");
+  const canReorder = canField("packages", "order");
+  const canToggleHidden = canField("packages", "hidden");
+  const canManageImages = canField("packages", "images") || canCreate;
+  const canDelete = can(P.packages.delete);
   const [packages, setPackages] = useState<PackageDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -127,12 +137,14 @@ export default function PackagesPage() {
           <h1 className="page-title">Packages</h1>
           <p className="page-subtitle">{loading ? "Loading…" : `${packages.length} package${packages.length !== 1 ? "s" : ""}`}</p>
         </div>
-        <button className="btn-primary" onClick={() => { setSelectedPackage(null); setIsModalOpen(true); }}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
-          New Package
-        </button>
+        {canCreate && (
+          <button className="btn-primary" onClick={() => { setSelectedPackage(null); setIsModalOpen(true); }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            New Package
+          </button>
+        )}
       </div>
 
       {error && (
@@ -192,7 +204,7 @@ export default function PackagesPage() {
                           type="button"
                           style={{ padding: "6px 4px", minHeight: "28px", minWidth: "28px", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)", background: "transparent", border: "none", borderBottom: "1px solid var(--border)", cursor: (reordering || index === 0) ? "not-allowed" : "pointer", opacity: (reordering || index === 0) ? 0.3 : 1 }}
                           onClick={() => handleMove(index, -1)}
-                          disabled={reordering || index === 0}
+                          disabled={!canReorder || reordering || index === 0}
                           title="Move up"
                           aria-label={`Move ${pkg.name} up`}
                           onMouseEnter={(e) => e.currentTarget.style.color = "var(--text-primary)"}
@@ -207,7 +219,7 @@ export default function PackagesPage() {
                           type="button"
                           style={{ padding: "6px 4px", minHeight: "28px", minWidth: "28px", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)", background: "transparent", border: "none", cursor: (reordering || index === packages.length - 1) ? "not-allowed" : "pointer", opacity: (reordering || index === packages.length - 1) ? 0.3 : 1 }}
                           onClick={() => handleMove(index, 1)}
-                          disabled={reordering || index === packages.length - 1}
+                          disabled={!canReorder || reordering || index === packages.length - 1}
                           title="Move down"
                           aria-label={`Move ${pkg.name} down`}
                           onMouseEnter={(e) => e.currentTarget.style.color = "var(--text-primary)"}
@@ -270,7 +282,7 @@ export default function PackagesPage() {
                           <input
                             type="checkbox"
                             checked={!pkg.hidden}
-                            disabled={hiddenBusyId === pkg.id}
+                            disabled={!canToggleHidden || hiddenBusyId === pkg.id}
                             onChange={() => handleToggleHidden(pkg)}
                           />
                           <span className="pf-toggle-track" />
@@ -284,16 +296,22 @@ export default function PackagesPage() {
                   </td>
                   <td>
                     <div className="table-actions">
-                      <button className="btn-ghost" onClick={() => setImagesPackageId(pkg.id ?? null)} title="Manage the package images">
-                        Images ({pkg.images?.length ?? 0})
-                      </button>
-                      <button className="btn-ghost" style={{ color: "var(--accent-light)", borderColor: "var(--accent-border)" }}
-                        onClick={() => { setSelectedPackage(pkg); setIsModalOpen(true); }}>
-                        Edit
-                      </button>
-                      <button className="btn-danger-ghost" onClick={() => pkg.id && handleDelete(pkg.id)}>
-                        Delete
-                      </button>
+                      {(canManageImages || canDelete) && (
+                        <button className="btn-ghost" onClick={() => setImagesPackageId(pkg.id ?? null)} title="Manage the package images">
+                          Images ({pkg.images?.length ?? 0})
+                        </button>
+                      )}
+                      {canUpdate && (
+                        <button className="btn-ghost" style={{ color: "var(--accent-light)", borderColor: "var(--accent-border)" }}
+                          onClick={() => { setSelectedPackage(pkg); setIsModalOpen(true); }}>
+                          Edit
+                        </button>
+                      )}
+                      {canDelete && (
+                        <button className="btn-danger-ghost" onClick={() => pkg.id && handleDelete(pkg.id)}>
+                          Delete
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

@@ -1,5 +1,7 @@
 "use client";
 
+import { P } from "@/lib/permissions";
+import { usePermissions } from "@/components/AuthProvider";
 import { useState } from "react";
 import { ProductDto } from "@/client/types.gen";
 import { postApiProductsByParentIdChildren, putApiProductsById, deleteApiProductsById, putApiProductsReorder } from "@/client";
@@ -12,6 +14,11 @@ type ChildProductsModalProps = {
 };
 
 export default function ChildProductsModal({ product, onClose, onSuccess, onOpenFeatures }: ChildProductsModalProps) {
+  const { can, canField, canUpdateAny } = usePermissions();
+  const canCreate = can(P.products.create);
+  const canUpdate = canUpdateAny("products");
+  const canDelete = can(P.products.delete);
+  const canReorder = canField("products", "order");
   const [childrenList, setChildrenList] = useState<ProductDto[]>(product.children || []);
   const [isAddingChild, setIsAddingChild] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -35,6 +42,9 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
   const [prices, setPrices] = useState<{ id?: string, period: number, periodType: string, price: number, country: string, active: boolean }[]>([
     { period: 1, periodType: "Day", price: 0, country: "II", active: true }
   ]);
+
+  // Field-level edit rights only apply when editing an existing variant.
+  const locked = (field: string) => !!newChild.id && !canField("products", field);
 
   const handleEditClick = (child: ProductDto) => {
     setNewChild({
@@ -210,7 +220,7 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
           )}
 
           {/* Add Variant Button */}
-          {!isAddingChild && (
+          {canCreate && !isAddingChild && (
             <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "1.25rem" }}>
               <button className="btn-primary" style={{ padding: "0.55rem 1.1rem", fontSize: "0.85rem" }} onClick={() => { setNewChild({ id: "", name: "", fullName: "", janDrozdId: "", description: "", miniDescription: "", version: "", comingSoon: false, hidden: false, withTaxes: true }); setIsAddingChild(true); }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -236,46 +246,46 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.85rem", marginBottom: "1.25rem" }}>
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label className="form-label" style={{ fontSize: "0.72rem" }}>Name</label>
-                    <input required type="text" className="form-input" placeholder="e.g. BASIC" value={newChild.name} onChange={e => setNewChild({...newChild, name: e.target.value})} style={{ fontSize: "0.85rem", padding: "0.6rem 0.85rem" }} />
+                    <input required type="text" className="form-input" placeholder="e.g. BASIC" value={newChild.name} onChange={e => setNewChild({...newChild, name: e.target.value})} disabled={locked("name")} style={{ fontSize: "0.85rem", padding: "0.6rem 0.85rem" }} />
                   </div>
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label className="form-label" style={{ fontSize: "0.72rem" }}>Full Name</label>
-                    <input type="text" className="form-input" placeholder="e.g. AGECS_RCD_BASIC" value={newChild.fullName} onChange={e => setNewChild({...newChild, fullName: e.target.value})} style={{ fontSize: "0.85rem", padding: "0.6rem 0.85rem" }} />
+                    <input type="text" className="form-input" placeholder="e.g. AGECS_RCD_BASIC" value={newChild.fullName} onChange={e => setNewChild({...newChild, fullName: e.target.value})} disabled={locked("fullName")} style={{ fontSize: "0.85rem", padding: "0.6rem 0.85rem" }} />
                   </div>
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label className="form-label" style={{ fontSize: "0.72rem" }}>JanDrozd ID</label>
-                    <input type="text" className="form-input" placeholder="e.g. 11" value={newChild.janDrozdId} onChange={e => setNewChild({...newChild, janDrozdId: e.target.value})} style={{ fontSize: "0.85rem", padding: "0.6rem 0.85rem" }} />
+                    <input type="text" className="form-input" placeholder="e.g. 11" value={newChild.janDrozdId} onChange={e => setNewChild({...newChild, janDrozdId: e.target.value})} disabled={locked("janDrozdId")} style={{ fontSize: "0.85rem", padding: "0.6rem 0.85rem" }} />
                   </div>
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label className="form-label" style={{ fontSize: "0.72rem" }}>Version</label>
-                    <input type="text" className="form-input" placeholder="e.g. 1.0.0" value={newChild.version} onChange={e => setNewChild({...newChild, version: e.target.value})} style={{ fontSize: "0.85rem", padding: "0.6rem 0.85rem" }} />
+                    <input type="text" className="form-input" placeholder="e.g. 1.0.0" value={newChild.version} onChange={e => setNewChild({...newChild, version: e.target.value})} disabled={locked("version")} style={{ fontSize: "0.85rem", padding: "0.6rem 0.85rem" }} />
                   </div>
                   <div className="form-group" style={{ marginBottom: 0, display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "1rem" }}>
                     <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.75rem" }}>
-                      <input type="checkbox" checked={newChild.comingSoon} onChange={e => setNewChild({...newChild, comingSoon: e.target.checked})} />
+                      <input type="checkbox" checked={newChild.comingSoon} onChange={e => setNewChild({...newChild, comingSoon: e.target.checked})} disabled={locked("comingSoon")} />
                       Coming Soon
                     </label>
                     <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.75rem" }}>
-                      <input type="checkbox" checked={newChild.hidden} onChange={e => setNewChild({...newChild, hidden: e.target.checked})} />
+                      <input type="checkbox" checked={newChild.hidden} onChange={e => setNewChild({...newChild, hidden: e.target.checked})} disabled={locked("hidden")} />
                       Hidden
                     </label>
                     <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.75rem" }}>
-                      <input type="checkbox" checked={newChild.withTaxes} onChange={e => setNewChild({...newChild, withTaxes: e.target.checked})} />
+                      <input type="checkbox" checked={newChild.withTaxes} onChange={e => setNewChild({...newChild, withTaxes: e.target.checked})} disabled={locked("withTaxes")} />
                       With Taxes
                     </label>
                   </div>
                   <div className="form-group" style={{ marginBottom: 0, gridColumn: "1 / -1" }}>
                     <label className="form-label" style={{ fontSize: "0.72rem" }}>Mini Description</label>
-                    <textarea className="form-input" rows={2} value={newChild.miniDescription} onChange={e => setNewChild({...newChild, miniDescription: e.target.value})} style={{ fontSize: "0.85rem", padding: "0.6rem 0.85rem", resize: "vertical" }} />
+                    <textarea className="form-input" rows={2} value={newChild.miniDescription} onChange={e => setNewChild({...newChild, miniDescription: e.target.value})} disabled={locked("miniDescription")} style={{ fontSize: "0.85rem", padding: "0.6rem 0.85rem", resize: "vertical" }} />
                   </div>
                   <div className="form-group" style={{ marginBottom: 0, gridColumn: "1 / -1" }}>
                     <label className="form-label" style={{ fontSize: "0.72rem" }}>Description</label>
-                    <textarea className="form-input" rows={3} value={newChild.description} onChange={e => setNewChild({...newChild, description: e.target.value})} style={{ fontSize: "0.85rem", padding: "0.6rem 0.85rem", resize: "vertical" }} />
+                    <textarea className="form-input" rows={3} value={newChild.description} onChange={e => setNewChild({...newChild, description: e.target.value})} disabled={locked("description")} style={{ fontSize: "0.85rem", padding: "0.6rem 0.85rem", resize: "vertical" }} />
                   </div>
                 </div>
 
                 {/* Dynamic Prices Section */}
-                <div style={{ padding: "1rem", background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", marginBottom: "1.25rem" }}>
+                <fieldset disabled={locked("prices")} style={{ minWidth: 0, margin: 0, padding: "1rem", background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", marginBottom: "1.25rem" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
                     <label className="form-label" style={{ margin: 0, fontSize: "0.85rem", color: "var(--accent-light)" }}>Pricing Tiers</label>
                     <button type="button" className="btn-ghost" style={{ padding: "0.2rem 0.4rem", fontSize: "0.75rem" }} onClick={() => setPrices([...prices, { period: 1, periodType: "Day", price: 0, country: "II", active: true }])}>
@@ -339,7 +349,7 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
                       </div>
                     ))}
                   </div>
-                </div>
+                </fieldset>
 
                 <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
                   <button type="button" className="btn-ghost" style={{ fontSize: "0.85rem" }} onClick={() => { setIsAddingChild(false); setNewChild({ id: "", name: "", fullName: "", janDrozdId: "", description: "", miniDescription: "", version: "", comingSoon: false, hidden: false, withTaxes: true }); setPrices([{ period: 1, periodType: "Day", price: 0, country: "II", active: true }]); }}>Cancel</button>
@@ -412,34 +422,38 @@ export default function ChildProductsModal({ product, onClose, onSuccess, onOpen
                   <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", flexShrink: 0 }}>
                     <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
                       <button type="button" className="btn-ghost" style={{ padding: "0 6px", minHeight: "16px", lineHeight: 1, fontSize: "0.65rem" }}
-                        onClick={() => handleMove(index, -1)} disabled={reordering || index === 0}
+                        onClick={() => handleMove(index, -1)} disabled={!canReorder || reordering || index === 0}
                         title="Move up" aria-label={`Move ${child.name} up`}>▲</button>
                       <button type="button" className="btn-ghost" style={{ padding: "0 6px", minHeight: "16px", lineHeight: 1, fontSize: "0.65rem" }}
-                        onClick={() => handleMove(index, 1)} disabled={reordering || index === childrenList.length - 1}
+                        onClick={() => handleMove(index, 1)} disabled={!canReorder || reordering || index === childrenList.length - 1}
                         title="Move down" aria-label={`Move ${child.name} down`}>▼</button>
                     </div>
-                    <button type="button" title="Edit Variant" onClick={() => handleEditClick(child)} style={{
-                      width: "32px", height: "32px", borderRadius: "8px",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      background: "transparent", border: "1px solid transparent",
-                      color: "var(--text-muted)", cursor: "pointer", transition: "all 0.15s ease",
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.background = "var(--accent-dim)"; e.currentTarget.style.color = "var(--accent)"; e.currentTarget.style.borderColor = "var(--accent-border)"; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.borderColor = "transparent"; }}
-                    >
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                    </button>
-                    <button type="button" title="Delete Variant" onClick={() => handleDeleteChild(child.id!)} style={{
-                      width: "32px", height: "32px", borderRadius: "8px",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      background: "transparent", border: "1px solid transparent",
-                      color: "var(--text-muted)", cursor: "pointer", transition: "all 0.15s ease",
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.background = "var(--danger-dim)"; e.currentTarget.style.color = "var(--danger)"; e.currentTarget.style.borderColor = "rgba(239,68,68,0.25)"; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.borderColor = "transparent"; }}
-                    >
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                    </button>
+                    {canUpdate && (
+                      <button type="button" title="Edit Variant" onClick={() => handleEditClick(child)} style={{
+                        width: "32px", height: "32px", borderRadius: "8px",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        background: "transparent", border: "1px solid transparent",
+                        color: "var(--text-muted)", cursor: "pointer", transition: "all 0.15s ease",
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = "var(--accent-dim)"; e.currentTarget.style.color = "var(--accent)"; e.currentTarget.style.borderColor = "var(--accent-border)"; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.borderColor = "transparent"; }}
+                      >
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button type="button" title="Delete Variant" onClick={() => handleDeleteChild(child.id!)} style={{
+                        width: "32px", height: "32px", borderRadius: "8px",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        background: "transparent", border: "1px solid transparent",
+                        color: "var(--text-muted)", cursor: "pointer", transition: "all 0.15s ease",
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = "var(--danger-dim)"; e.currentTarget.style.color = "var(--danger)"; e.currentTarget.style.borderColor = "rgba(239,68,68,0.25)"; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.borderColor = "transparent"; }}
+                      >
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}

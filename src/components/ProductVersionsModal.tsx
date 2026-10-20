@@ -1,5 +1,7 @@
 "use client";
 
+import { P } from "@/lib/permissions";
+import { usePermissions } from "@/components/AuthProvider";
 import { useState, useEffect, useCallback } from "react";
 import { 
   getApiProductsByIdVersions, 
@@ -18,6 +20,10 @@ type ProductVersionsModalProps = {
 };
 
 export default function ProductVersionsModal({ product, onClose, onSuccess }: ProductVersionsModalProps) {
+  const { can, canField } = usePermissions();
+  const canCreate = can(P.products.create);
+  const canUpdate = canField("products", "versions");
+  const canDelete = can(P.products.delete);
   const [versions, setVersions] = useState<ProductVersionDto[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [versionNumber, setVersionNumber] = useState<string>("");
@@ -180,67 +186,69 @@ export default function ProductVersionsModal({ product, onClose, onSuccess }: Pr
             </div>
           )}
 
-          <div style={{ marginBottom: "2.5rem", background: "var(--bg-surface)", padding: "1.5rem", borderRadius: "var(--radius-lg)", border: "1px solid var(--border)" }}>
-            <h3 style={{ fontSize: "1rem", fontWeight: "600", marginBottom: "1rem" }}>Upload New Version</h3>
-            <form onSubmit={handleAddVersion} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-              <div style={{ display: "flex", gap: "1rem" }}>
-                <div className="form-group" style={{ marginBottom: 0, flex: 2 }}>
-                  <label className="form-label" htmlFor="versionFile">Program File (up to 500 MB)</label>
-                  <input 
-                    id="versionFile"
-                    type="file" 
-                    onChange={(e) => setSelectedFile(e.target.files?.[0] || null)} 
-                    required 
-                    className="form-input"
-                    style={{ padding: "0.5rem" }}
-                  />
-                </div>
-                <div className="form-group" style={{ marginBottom: 0, flex: 1 }}>
-                  <label className="form-label">Version Number (e.g. 1.0.0)</label>
-                  <input
-                    type="text"
-                    required
-                    className="form-input"
-                    value={versionNumber}
-                    onChange={(e) => setVersionNumber(e.target.value)}
-                    placeholder="1.0.0"
-                  />
-                </div>
-              </div>
-              
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">Release Notes (Optional)</label>
-                <textarea
-                  className="form-input"
-                  value={releaseNotes}
-                  onChange={(e) => setReleaseNotes(e.target.value)}
-                  placeholder="What's new in this version..."
-                  rows={2}
-                />
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginTop: "0.5rem" }}>
-                {loading && (
-                  <div style={{ width: "100%", background: "var(--bg-elevated)", borderRadius: "var(--radius-sm)", height: "8px", overflow: "hidden" }}>
-                    <div style={{ width: `${uploadProgress}%`, height: "100%", background: "var(--accent)", transition: "width 0.4s ease" }}></div>
+          {canCreate && (
+            <div style={{ marginBottom: "2.5rem", background: "var(--bg-surface)", padding: "1.5rem", borderRadius: "var(--radius-lg)", border: "1px solid var(--border)" }}>
+              <h3 style={{ fontSize: "1rem", fontWeight: "600", marginBottom: "1rem" }}>Upload New Version</h3>
+              <form onSubmit={handleAddVersion} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                <div style={{ display: "flex", gap: "1rem" }}>
+                  <div className="form-group" style={{ marginBottom: 0, flex: 2 }}>
+                    <label className="form-label" htmlFor="versionFile">Program File (up to 500 MB)</label>
+                    <input 
+                      id="versionFile"
+                      type="file" 
+                      onChange={(e) => setSelectedFile(e.target.files?.[0] || null)} 
+                      required 
+                      className="form-input"
+                      style={{ padding: "0.5rem" }}
+                    />
                   </div>
-                )}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
-                    {loading ? `Uploading... ${Math.round(uploadProgress)}%` : ""}
-                  </span>
-                  <button 
-                    type="submit" 
-                    className="btn-primary"
-                    disabled={loading || !selectedFile || !versionNumber} 
-                    style={{ opacity: loading || !selectedFile || !versionNumber ? 0.6 : 1 }}
-                  >
-                    {loading ? "Uploading..." : "Upload Version"}
-                  </button>
+                  <div className="form-group" style={{ marginBottom: 0, flex: 1 }}>
+                    <label className="form-label">Version Number (e.g. 1.0.0)</label>
+                    <input
+                      type="text"
+                      required
+                      className="form-input"
+                      value={versionNumber}
+                      onChange={(e) => setVersionNumber(e.target.value)}
+                      placeholder="1.0.0"
+                    />
+                  </div>
                 </div>
-              </div>
-            </form>
-          </div>
+                
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Release Notes (Optional)</label>
+                  <textarea
+                    className="form-input"
+                    value={releaseNotes}
+                    onChange={(e) => setReleaseNotes(e.target.value)}
+                    placeholder="What's new in this version..."
+                    rows={2}
+                  />
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginTop: "0.5rem" }}>
+                  {loading && (
+                    <div style={{ width: "100%", background: "var(--bg-elevated)", borderRadius: "var(--radius-sm)", height: "8px", overflow: "hidden" }}>
+                      <div style={{ width: `${uploadProgress}%`, height: "100%", background: "var(--accent)", transition: "width 0.4s ease" }}></div>
+                    </div>
+                  )}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
+                      {loading ? `Uploading... ${Math.round(uploadProgress)}%` : ""}
+                    </span>
+                    <button 
+                      type="submit" 
+                      className="btn-primary"
+                      disabled={loading || !selectedFile || !versionNumber} 
+                      style={{ opacity: loading || !selectedFile || !versionNumber ? 0.6 : 1 }}
+                    >
+                      {loading ? "Uploading..." : "Upload Version"}
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          )}
 
           <div>
             <h3 style={{ fontSize: "0.9rem", fontWeight: "600", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "1rem" }}>Existing Versions</h3>
@@ -293,22 +301,22 @@ export default function ProductVersionsModal({ product, onClose, onSuccess }: Pr
                             Download
                           </a>
                         )}
-                        <button 
+                        {canUpdate && <button 
                           onClick={() => handleToggleStatus(version.id!)}
                           disabled={loading}
                           className="btn-secondary"
                           style={{ padding: "0.4rem 0.75rem", fontSize: "0.85rem" }}
                         >
                           {version.isActive ? "Hide" : "Make Active"}
-                        </button>
-                        <button 
+                        </button>}
+                        {canDelete && <button 
                           onClick={() => handleDelete(version.id!)}
                           disabled={loading}
                           className="btn-danger-ghost"
                           style={{ padding: "0.4rem 0.75rem", fontSize: "0.85rem" }}
                         >
                           Delete
-                        </button>
+                        </button>}
                       </div>
                     </div>
                     

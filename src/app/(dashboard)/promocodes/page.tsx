@@ -1,6 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
-import { getApiPromocodes, deleteApiPromocodesById, putApiPromocodesById, getApiProducts } from "@/client";
+import { getApiPromocodes, deleteApiPromocodesById, putApiPromocodesById, getApiProducts, getApiPackages } from "@/client";
+import AcademicDomainsCard from "@/components/AcademicDomainsCard";
+import { usePermissions } from "@/components/AuthProvider";
+import { P } from "@/lib/permissions";
 import type { ProductDto } from "@/client/types.gen";
 import { client } from "@/client/client.gen";
 import { useRouter } from "next/navigation";
@@ -29,6 +32,14 @@ export default function PromocodesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPromocode, setSelectedPromocode] = useState<any>(null);
   const [productNames, setProductNames] = useState<Record<string, string>>({});
+  const [packageNames, setPackageNames] = useState<Record<string, string>>({});
+  // Viewing needs promocodes:read (the route guard); changing codes and academic domains needs promocodes:write.
+  const { can, canField, canUpdateAny } = usePermissions();
+  const canCreate = can(P.promocodes.create);
+  const canUpdate = canUpdateAny("promocodes");
+  const canToggleDisabled = canField("promocodes", "disabled");
+  const canEditDomains = canField("promocodes", "academicDomains");
+  const canDelete = can(P.promocodes.delete);
   const router = useRouter();
   const { success, error: toastError } = useToast();
 
@@ -44,11 +55,15 @@ export default function PromocodesPage() {
       });
 
       // Admins see every code, disabled ones included, so they can be edited and re-enabled.
-      const [response, productsResponse] = await Promise.all([
+      const [response, productsResponse, packagesResponse] = await Promise.all([
         getApiPromocodes({ query: { includeDisabled: true }, throwOnError: false }),
         getApiProducts({ query: { includeHidden: true }, throwOnError: false }),
+        getApiPackages({ query: { includeHidden: true }, throwOnError: false }),
       ]);
       if (productsResponse.data?.value) setProductNames(toProductNames(productsResponse.data.value));
+      if (packagesResponse.data?.value) {
+        setPackageNames(Object.fromEntries(packagesResponse.data.value.filter((p) => p.id).map((p) => [p.id!, p.name || "Package"])));
+      }
       if (response.data?.isSuccess) {
         setPromocodes(response.data.value || []);
       } else if (response.error || response.data?.isError) {
@@ -93,6 +108,10 @@ export default function PromocodesPage() {
           expiresAt: promo.expiresAt,
           maxUses: promo.maxUses,
           productIds: promo.productIds ?? [],
+          packageIds: promo.packageIds ?? [],
+          allowedEmails: promo.allowedEmails ?? [],
+          academicOnly: !!promo.academicOnly,
+          oncePerUser: !!promo.oncePerUser,
         },
         throwOnError: false,
       });
@@ -119,12 +138,12 @@ export default function PromocodesPage() {
           <h1 className="page-title">Promocodes</h1>
           <p className="page-subtitle">{loading ? "Loading…" : `${promocodes.length} code${promocodes.length !== 1 ? "s" : ""}`}</p>
         </div>
-        <button id="create-promocode-btn" className="btn-primary" onClick={() => { setSelectedPromocode(null); setIsModalOpen(true); }}>
+        {canCreate && <button id="create-promocode-btn" className="btn-primary" onClick={() => { setSelectedPromocode(null); setIsModalOpen(true); }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
           </svg>
           New Promocode
-        </button>
+        </button>}
       </div>
 
       {error && (
@@ -212,12 +231,24 @@ export default function PromocodesPage() {
                       ? `−${promo.discountValue} off`
                       : `Cart = ${promo.discountValue}`}
                     <div style={{ fontFamily: "inherit", fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>
-                      {promo.productIds?.length ? (() => {
-                        const names: string[] = promo.productIds.map((id: string) => productNames[id] ?? (Object.keys(productNames).length ? "Deleted product" : "Unknown product"));
+                      {(promo.productIds?.length || promo.packageIds?.length) ? (() => {
+                        const names: string[] = [
+                          ...(promo.packageIds ?? []).map((id: string) => `📦 ${packageNames[id] ?? (Object.keys(packageNames).length ? "Deleted package" : "Package")}`),
+                          ...(promo.productIds ?? []).map((id: string) => productNames[id] ?? (Object.keys(productNames).length ? "Deleted product" : "Unknown product")),
+                        ];
                         const shown = names.slice(0, 2).join(", ");
                         return <span title={names.join("\n")}>Only: {shown}{names.length > 2 && ` +${names.length - 2} more`}</span>;
                       })() : "Whole cart"}
                     </div>
+                    {(promo.allowedEmails?.length > 0 || promo.academicOnly || promo.oncePerUser) && (
+                      <div style={{ display: "flex", gap: "0.3rem", flexWrap: "wrap", marginTop: "0.35rem", fontFamily: "var(--font-sans, inherit)" }}>
+                        {promo.allowedEmails?.length > 0 && (
+                          <span className="badge badge-neutral" title={promo.allowedEmails.join("\n")}>{promo.allowedEmails.length} email{promo.allowedEmails.length !== 1 ? "s" : ""}</span>
+                        )}
+                        {promo.academicOnly && <span className="badge badge-warning">Academic</span>}
+                        {promo.oncePerUser && <span className="badge badge-neutral">Once / account</span>}
+                      </div>
+                    )}
                   </td>
                   <td style={{ color: "var(--text-secondary)" }}>
                     {promo.useCount || 0} / {promo.maxUses || "∞"}
@@ -235,16 +266,16 @@ export default function PromocodesPage() {
                   </td>
                   <td>
                     <div className="table-actions">
-                      <button className="btn-ghost" style={{ color: "var(--accent-light)", borderColor: "var(--accent-border)" }}
+                      {canUpdate && <button className="btn-ghost" style={{ color: "var(--accent-light)", borderColor: "var(--accent-border)" }}
                         onClick={() => { setSelectedPromocode(promo); setIsModalOpen(true); }}>
                         Edit
-                      </button>
-                      <button className="btn-ghost" onClick={() => handleToggleDisabled(promo)}>
+                      </button>}
+                      {canToggleDisabled && <button className="btn-ghost" onClick={() => handleToggleDisabled(promo)}>
                         {promo.disabled ? "Enable" : "Disable"}
-                      </button>
-                      <button className="btn-danger-ghost" onClick={() => handleDelete(promo.id)}>
+                      </button>}
+                      {canDelete && <button className="btn-danger-ghost" onClick={() => handleDelete(promo.id)}>
                         Delete
-                      </button>
+                      </button>}
                     </div>
                   </td>
                 </tr>
@@ -253,6 +284,8 @@ export default function PromocodesPage() {
           </tbody>
         </table>
       </div>
+
+      {canEditDomains && <AcademicDomainsCard />}
 
       <PromocodeFormModal
         isOpen={isModalOpen}

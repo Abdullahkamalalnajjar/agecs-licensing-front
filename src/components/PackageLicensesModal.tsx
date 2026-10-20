@@ -13,6 +13,8 @@ type Props = {
   onHwids: (licenseId: string) => void;
   onMigrate: (licenseId: string) => void;
   onDiagnostic: (licenseId: string) => void;
+  /** licenses:manage — devices, migration and diagnostics. */
+  canManage?: boolean;
 };
 
 const fmtDate = (iso?: string | null) =>
@@ -23,7 +25,7 @@ const fmtDate = (iso?: string | null) =>
  * JanDrozd customer), so those actions are here per license; edits, renewals, revoke and delete apply to the
  * whole package from the licenses table.
  */
-export default function PackageLicensesModal({ isOpen, name, licenses, productName, onClose, onDetails, onHwids, onMigrate, onDiagnostic }: Props) {
+export default function PackageLicensesModal({ isOpen, name, licenses, productName, onClose, onDetails, onHwids, onMigrate, onDiagnostic, canManage = true }: Props) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   if (!isOpen) return null;
 
@@ -65,9 +67,13 @@ export default function PackageLicensesModal({ isOpen, name, licenses, productNa
               </div>
               <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
                 <button type="button" className="btn-ghost pr-btn-sm" onClick={() => onDetails(l)}>Details</button>
-                <button type="button" className="btn-ghost pr-btn-sm" onClick={() => onHwids(l.id!)}>Devices (HWIDs)</button>
-                <button type="button" className="btn-ghost pr-btn-sm" onClick={() => onMigrate(l.id!)}>Migrate HWID</button>
-                <button type="button" className="btn-ghost pr-btn-sm" onClick={() => onDiagnostic(l.id!)}>Diagnostic</button>
+                {canManage && (
+                  <>
+                    <button type="button" className="btn-ghost pr-btn-sm" onClick={() => onHwids(l.id!)}>Devices (HWIDs)</button>
+                    <button type="button" className="btn-ghost pr-btn-sm" onClick={() => onMigrate(l.id!)}>Migrate HWID</button>
+                    <button type="button" className="btn-ghost pr-btn-sm" onClick={() => onDiagnostic(l.id!)}>Diagnostic</button>
+                  </>
+                )}
               </div>
             </div>
           ))}

@@ -1,5 +1,7 @@
 "use client";
 
+import { P } from "@/lib/permissions";
+import { usePermissions } from "@/components/AuthProvider";
 import { useState } from "react";
 import { 
   postApiProductsByProductIdMedia, 
@@ -16,6 +18,10 @@ type ProductMediaModalProps = {
 };
 
 export default function ProductMediaModal({ product, onClose, onSuccess }: ProductMediaModalProps) {
+  const { can, canField } = usePermissions();
+  const canCreate = can(P.products.create);
+  const canUpdate = canField("products", "media");
+  const canDelete = can(P.products.delete);
   const [mediaList, setMediaList] = useState(product.media || []);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -140,7 +146,7 @@ export default function ProductMediaModal({ product, onClose, onSuccess }: Produ
             </div>
           )}
 
-          <div style={{ marginBottom: "2rem" }}>
+          {canCreate && <div style={{ marginBottom: "2rem" }}>
             <form onSubmit={handleAddMedia} style={{ display: "flex", gap: "1rem", alignItems: "flex-end" }}>
               <div className="form-group" style={{ marginBottom: 0, flex: 1 }}>
                 <label className="form-label" htmlFor="mediaFile">Upload File</label>
@@ -163,7 +169,7 @@ export default function ProductMediaModal({ product, onClose, onSuccess }: Produ
                 {loading ? "Adding..." : "Upload"}
               </button>
             </form>
-          </div>
+          </div>}
 
           <div>
             <h3 style={{ fontSize: "0.9rem", fontWeight: "600", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "1rem" }}>Existing Media</h3>
@@ -226,22 +232,22 @@ export default function ProductMediaModal({ product, onClose, onSuccess }: Produ
                             </span>
                           </div>
                           <div style={{ display: "flex", gap: "0.5rem" }}>
-                            <button 
+                            {canUpdate && <button 
                               onClick={() => startEdit(media)}
                               disabled={loading}
                               className="btn-ghost"
                               style={{ padding: "0.3rem 0.6rem" }}
                             >
                               Edit
-                            </button>
-                            <button 
+                            </button>}
+                            {canDelete && <button 
                               onClick={() => handleDelete(media.id!)}
                               disabled={loading}
                               className="btn-danger-ghost"
                               style={{ padding: "0.3rem 0.6rem" }}
                             >
                               Delete
-                            </button>
+                            </button>}
                           </div>
                         </>
                       )}

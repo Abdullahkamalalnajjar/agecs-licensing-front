@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { putApiLicensesPackageGroupsByPackageGroupId } from "@/client";
 import type { LicenseDto } from "@/client/types.gen";
+import { usePermissions } from "@/components/AuthProvider";
 
 type Props = {
   isOpen: boolean;
@@ -22,6 +23,8 @@ export default function PackageLicenseEditModal({ isOpen, packageLicense, name, 
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const serials = packageLicense?.licenses ?? [];
   const [error, setError] = useState("");
+  const { canField } = usePermissions();
+  const canClient = canField("licenses", "client");
 
   useEffect(() => {
     if (!isOpen || !packageLicense) return;
@@ -100,34 +103,34 @@ export default function PackageLicenseEditModal({ isOpen, packageLicense, name, 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label" htmlFor="plName">Client Name *</label>
-                <input id="plName" className="form-input" required value={form.name} onChange={(e) => set({ name: e.target.value })} />
+                <input id="plName" className="form-input" required value={form.name} onChange={(e) => set({ name: e.target.value })} disabled={!canClient} />
               </div>
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label" htmlFor="plEmail">License Email</label>
-                <input id="plEmail" type="email" className="form-input" value={form.email} onChange={(e) => set({ email: e.target.value })} />
+                <input id="plEmail" type="email" className="form-input" value={form.email} onChange={(e) => set({ email: e.target.value })} disabled={!canClient} />
               </div>
             </div>
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label" htmlFor="plSalt">Username (HWID salt) *</label>
               <input id="plSalt" className="form-input" required maxLength={500} spellCheck={false} style={{ fontFamily: "var(--font-mono)" }}
-                value={form.hwidSalt} onChange={(e) => set({ hwidSalt: e.target.value })} />
+                value={form.hwidSalt} onChange={(e) => set({ hwidSalt: e.target.value })} disabled={!canClient} />
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label" htmlFor="plSeats">License Count (Seats) *</label>
-                <input id="plSeats" type="number" min={1} className="form-input" required value={form.licenseCount} onChange={(e) => set({ licenseCount: Number(e.target.value) })} />
+                <input id="plSeats" type="number" min={1} className="form-input" required value={form.licenseCount} onChange={(e) => set({ licenseCount: Number(e.target.value) })} disabled={!canField("licenses", "seats")} />
               </div>
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label" htmlFor="plMig">Migration Limit *</label>
-                <input id="plMig" type="number" min={0} className="form-input" required value={form.migrationLimit} onChange={(e) => set({ migrationLimit: Number(e.target.value) })} />
+                <input id="plMig" type="number" min={0} className="form-input" required value={form.migrationLimit} onChange={(e) => set({ migrationLimit: Number(e.target.value) })} disabled={!canField("licenses", "migrationLimit")} />
               </div>
             </div>
             <label style={{ display: "flex", alignItems: "center", gap: "0.6rem", fontSize: "0.875rem", cursor: "pointer" }}>
-              <input type="checkbox" checked={form.isTrial} onChange={(e) => set({ isTrial: e.target.checked })} style={{ width: 18, height: 18 }} />
+              <input type="checkbox" checked={form.isTrial} onChange={(e) => set({ isTrial: e.target.checked })} disabled={!canField("licenses", "trial")} style={{ width: 18, height: 18 }} />
               Trial licenses (Evaluation / Demo)
             </label>
             <label style={{ display: "flex", alignItems: "center", gap: "0.6rem", fontSize: "0.875rem", cursor: "pointer" }}>
-              <input type="checkbox" checked={form.isActive} onChange={(e) => set({ isActive: e.target.checked })} style={{ width: 18, height: 18 }} />
+              <input type="checkbox" checked={form.isActive} onChange={(e) => set({ isActive: e.target.checked })} disabled={!canField("licenses", "active")} style={{ width: 18, height: 18 }} />
               Licenses are active {form.isActive ? "" : "(revoked — the client can't use them)"}
             </label>
             <div>

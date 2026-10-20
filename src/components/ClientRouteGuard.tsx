@@ -2,32 +2,34 @@
 
 import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { useAuth } from "./AuthProvider";
+import { useAuth, usePermissions } from "./AuthProvider";
+import { permissionForPath } from "@/lib/permissions";
 
+// Pages customers can open (their licenses and tickets are tabs on their profile, but the pages still work).
+const CUSTOMER_PATHS = ["/home", "/tickets", "/products", "/profile", "/checkout", "/licenses"];
+
+/**
+ * Keeps people on the pages they're allowed: customers on the customer pages, staff on the dashboard sections
+ * their permissions include (the API enforces the same permissions on every request).
+ */
 export function ClientRouteGuard({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
+  const { can, isStaff } = usePermissions();
   const router = useRouter();
   const pathname = usePathname();
 
+  const isPublic = pathname.startsWith("/products") || pathname === "/home";
+  const needed = permissionForPath(pathname);
+  const allowed = !user ? isPublic
+    : !isStaff ? CUSTOMER_PATHS.some((p) => pathname.startsWith(p))
+    // Customers open /licenses and /tickets for their own items; staff need the section's permission.
+    : !needed || can(needed);
+
   useEffect(() => {
-    if (loading) return;
-
-    // Allow public routes without auth (public browsing)
-    if (pathname.startsWith("/products") || pathname === "/home") return;
-
-    if (!user) {
-      router.push("/login");
-      return;
-    }
-
-    if ((user.role === "Student" || user.role === "User")) {
-      // Students can access home, tickets, products, profile, their own licenses, and the checkout result pages
-      if (!pathname.startsWith("/home") && !pathname.startsWith("/tickets") && !pathname.startsWith("/products") && !pathname.startsWith("/profile") && !pathname.startsWith("/checkout") && !pathname.startsWith("/licenses")) {
-        router.push("/home");
-      }
-    }
-    // Admin can access everything, no redirect needed
-  }, [user, loading, pathname, router]);
+    if (loading || isPublic) return;
+    if (!user) { router.push("/login"); return; }
+    if (!allowed) router.push("/home");
+  }, [user, loading, pathname, router, isPublic, allowed]);
 
   if (loading) {
     return (
@@ -37,19 +39,9 @@ export function ClientRouteGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Allow public pages for everyone (including unauthenticated)
-  if (pathname.startsWith("/products") || pathname === "/home") {
-    return <>{children}</>;
-  }
-
-  if (!user) {
-    return null; // Don't flash protected pages while redirecting
-  }
-
-  // Prevent flash of unauthorized content for normal users
-  if ((user.role === "Student" || user.role === "User") && !pathname.startsWith("/home") && !pathname.startsWith("/tickets") && !pathname.startsWith("/products") && !pathname.startsWith("/profile") && !pathname.startsWith("/checkout") && !pathname.startsWith("/licenses")) {
-    return null;
-  }
+  if (isPublic) return <>{children}</>;
+  // Don't flash a page while redirecting away from it.
+  if (!user || !allowed) return null;
 
   return <>{children}</>;
 }

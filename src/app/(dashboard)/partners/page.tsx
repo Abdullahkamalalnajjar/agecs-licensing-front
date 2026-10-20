@@ -5,7 +5,8 @@ import {
   patchApiPartnersByIdHidden, putApiPartnersReorder, putApiPartnersByIdLogo, deleteApiPartnersByIdLogo,
 } from "@/client";
 import type { PartnerDto } from "@/client/types.gen";
-import { useAuth } from "@/components/AuthProvider";
+import { useAuth, usePermissions } from "@/components/AuthProvider";
+import { P } from "@/lib/permissions";
 import { useToast } from "@/components/ToastProvider";
 import PartnersCarousel from "@/components/PartnersCarousel";
 import { resolveMediaUrl } from "@/lib/mediaUrl";
@@ -66,7 +67,10 @@ function IconButton({ title, onClick, tone = "accent", disabled, children }: {
 
 export default function PartnersPage() {
   const { user } = useAuth();
-  const isAdmin = user != null && user.role !== "Student" && user.role !== "User";
+  const { can, canField, canUpdateAny } = usePermissions();
+  const isAdmin = can(P.partners.read);
+  const canCreate = can(P.partners.create);
+  const canDelete = can(P.partners.delete);
   const { success, error: toastError } = useToast();
 
   const [partners, setPartners] = useState<PartnerDto[]>([]);
@@ -189,9 +193,11 @@ export default function PartnersPage() {
             {loading ? "Loading…" : `${partners.length} partner${partners.length === 1 ? "" : "s"} · ${onSite.length} shown in "Trusted Partners"`}
           </p>
         </div>
-        <button type="button" className="btn-primary" onClick={() => setCreating(true)}>
-          <Svg>{Icon.plus}</Svg>New partner
-        </button>
+        {canCreate && (
+          <button type="button" className="btn-primary" onClick={() => setCreating(true)}>
+            <Svg>{Icon.plus}</Svg>New partner
+          </button>
+        )}
       </div>
 
       {error && <div className="alert-error pr-alert">{error}</div>}
@@ -218,7 +224,7 @@ export default function PartnersPage() {
             <span className="ct-empty-icon"><Svg size={24}>{Icon.handshake}</Svg></span>
             <p className="ct-empty-title">No partners yet</p>
             <p className="ct-empty-sub">Add partner companies and their logos for the &quot;Trusted Partners&quot; section.</p>
-            <button type="button" className="btn-primary" onClick={() => setCreating(true)}><Svg>{Icon.plus}</Svg>New partner</button>
+            {canCreate && <button type="button" className="btn-primary" onClick={() => setCreating(true)}><Svg>{Icon.plus}</Svg>New partner</button>}
           </div>
         ) : (
           partners.map((partner, index) => {
@@ -229,8 +235,8 @@ export default function PartnersPage() {
                 <div className="ct-order">
                   <span className="ct-order-num">{index + 1}</span>
                   <div className="ct-order-btns">
-                    <button type="button" className="pr-icon-btn" onClick={() => move(index, -1)} disabled={reordering || index === 0} aria-label={`Move ${partnerLabel(partner)} up`} title="Move up"><Svg size={12}>{Icon.up}</Svg></button>
-                    <button type="button" className="pr-icon-btn" onClick={() => move(index, 1)} disabled={reordering || index === partners.length - 1} aria-label={`Move ${partnerLabel(partner)} down`} title="Move down"><Svg size={12}>{Icon.down}</Svg></button>
+                    <button type="button" className="pr-icon-btn" onClick={() => move(index, -1)} disabled={!canField("partners", "order") || reordering || index === 0} aria-label={`Move ${partnerLabel(partner)} up`} title="Move up"><Svg size={12}>{Icon.up}</Svg></button>
+                    <button type="button" className="pr-icon-btn" onClick={() => move(index, 1)} disabled={!canField("partners", "order") || reordering || index === partners.length - 1} aria-label={`Move ${partnerLabel(partner)} down`} title="Move down"><Svg size={12}>{Icon.down}</Svg></button>
                   </div>
                 </div>
 
@@ -251,26 +257,28 @@ export default function PartnersPage() {
 
                 <label className="pr-visibility" title={partner.hidden ? "Hidden — click to show" : "Shown — click to hide"} style={{ opacity: busy ? 0.6 : 1 }}>
                   <span className="pf-toggle-switch">
-                    <input type="checkbox" checked={!partner.hidden} disabled={busy} onChange={() => toggleHidden(partner)} aria-label={`${partnerLabel(partner)} shown`} />
+                    <input type="checkbox" checked={!partner.hidden} disabled={!canField("partners", "hidden") || busy} onChange={() => toggleHidden(partner)} aria-label={`${partnerLabel(partner)} shown`} />
                     <span className="pf-toggle-track" />
                   </span>
                   <span className={partner.hidden ? "pr-muted" : ""}>{partner.hidden ? "Hidden" : "Shown"}</span>
                 </label>
 
                 <div className="pr-actions">
-                  <label className={`pr-icon-btn pr-tone-green ${busy ? "is-disabled" : ""}`} title={partner.logoUrl ? "Replace logo" : "Upload logo"}>
-                    <Svg>{Icon.image}</Svg>
-                    <input type="file" accept={LOGO_ACCEPT} hidden disabled={busy} onChange={(e) => { uploadLogo(partner, e.target.files?.[0]); e.target.value = ""; }} />
-                  </label>
-                  {partner.logoUrl && <IconButton title="Remove logo" onClick={() => removeLogo(partner)} disabled={busy}>{Icon.x}</IconButton>}
-                  <IconButton title={`Edit ${partnerLabel(partner)}`} onClick={() => setEditing(partner)}>{Icon.edit}</IconButton>
+                  {canField("partners", "logo") && (
+                    <label className={`pr-icon-btn pr-tone-green ${busy ? "is-disabled" : ""}`} title={partner.logoUrl ? "Replace logo" : "Upload logo"}>
+                      <Svg>{Icon.image}</Svg>
+                      <input type="file" accept={LOGO_ACCEPT} hidden disabled={busy} onChange={(e) => { uploadLogo(partner, e.target.files?.[0]); e.target.value = ""; }} />
+                    </label>
+                  )}
+                  {canDelete && partner.logoUrl && <IconButton title="Remove logo" onClick={() => removeLogo(partner)} disabled={busy}>{Icon.x}</IconButton>}
+                  {canUpdateAny("partners") && <IconButton title={`Edit ${partnerLabel(partner)}`} onClick={() => setEditing(partner)}>{Icon.edit}</IconButton>}
                   {confirmDeleteId === partner.id ? (
                     <span className="pr-confirm">
                       <IconButton title="Confirm delete" tone="danger" onClick={() => remove(partner)} disabled={busy}>{Icon.check}</IconButton>
                       <IconButton title="Cancel" onClick={() => setConfirmDeleteId(null)}>{Icon.x}</IconButton>
                     </span>
                   ) : (
-                    <IconButton title={`Delete ${partnerLabel(partner)}`} tone="danger" onClick={() => setConfirmDeleteId(partner.id!)}>{Icon.trash}</IconButton>
+                    canDelete && <IconButton title={`Delete ${partnerLabel(partner)}`} tone="danger" onClick={() => setConfirmDeleteId(partner.id!)}>{Icon.trash}</IconButton>
                   )}
                 </div>
               </div>
@@ -302,9 +310,11 @@ function PartnerModal({ partner, onClose, onSaved, onError }: {
   onSaved: (partner: PartnerDto, isNew: boolean) => void;
   onError: (msg: string) => void;
 }) {
+  const { canField } = usePermissions();
+  const locked = (field: string) => !!partner && !canField("partners", field);
   const [name, setName] = useState(partner?.name ?? "");
   const [websiteUrl, setWebsiteUrl] = useState(partner?.websiteUrl ?? "");
-  const [hidden, setHidden] = useState(false);
+  const [hidden, setHidden] = useState(partner?.hidden ?? false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState(partner?.logoUrl ? resolveMediaUrl(partner.logoUrl) : "");
   const [saving, setSaving] = useState(false);
@@ -366,9 +376,9 @@ function PartnerModal({ partner, onClose, onSaved, onError }: {
                   : <span className="pt-logo-empty" style={{ gap: "0.5rem" }}><Svg size={28}>{Icon.image}</Svg>No logo</span>}
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", alignItems: "flex-start" }}>
-                <label className="btn-ghost" style={{ cursor: "pointer" }}>
+                <label className="btn-ghost" style={{ cursor: locked("logo") ? "not-allowed" : "pointer", opacity: locked("logo") ? 0.6 : 1 }}>
                   {logoPreview ? "Change logo" : "Choose logo"}
-                  <input type="file" accept={LOGO_ACCEPT} hidden onChange={(e) => { pickLogo(e.target.files?.[0]); e.target.value = ""; }} />
+                  <input type="file" accept={LOGO_ACCEPT} hidden disabled={locked("logo")} onChange={(e) => { pickLogo(e.target.files?.[0]); e.target.value = ""; }} />
                 </label>
                 <span className="ct-hint" style={{ margin: 0 }}>
                   PNG, JPG, WebP or GIF, up to 5 MB. A transparent PNG/WebP looks best.{logoFile ? " Uploads when you save." : ""}
@@ -378,11 +388,11 @@ function PartnerModal({ partner, onClose, onSaved, onError }: {
 
             <div className="form-group" style={{ marginBottom: "0.5rem" }}>
               <label className="pt-form-label" htmlFor="partnerName">NAME</label>
-              <input id="partnerName" className="form-input" autoFocus maxLength={150} value={name} onChange={(e) => setName(e.target.value)} placeholder="Optional, e.g. EDGES Consulting" />
+              <input id="partnerName" className="form-input" autoFocus maxLength={150} value={name} disabled={locked("name")} onChange={(e) => setName(e.target.value)} placeholder="Optional, e.g. EDGES Consulting" />
             </div>
             <div className="form-group" style={{ marginBottom: "0.5rem" }}>
               <label className="pt-form-label" htmlFor="partnerSite">WEBSITE</label>
-              <input id="partnerSite" className="form-input" maxLength={500} value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} placeholder="Optional, e.g. www.edges.com" />
+              <input id="partnerSite" className="form-input" maxLength={500} value={websiteUrl} disabled={locked("website")} onChange={(e) => setWebsiteUrl(e.target.value)} placeholder="Optional, e.g. www.edges.com" />
             </div>
 
             {!partner && (

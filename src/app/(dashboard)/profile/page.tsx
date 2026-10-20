@@ -9,6 +9,7 @@ import type { AppUserDto, LicenseDto } from "@/client/types.gen";
 import { useAuth } from "@/components/AuthProvider";
 import StudentUpgradeModal from "@/components/StudentUpgradeModal";
 import ChangePasswordModal from "@/components/ChangePasswordModal";
+import ProfileEmailsCard from "@/components/ProfileEmailsCard";
 import { useToast } from "@/components/ToastProvider";
 import LicensesView from "@/components/LicensesView";
 import TicketsView from "@/components/TicketsView";
@@ -125,6 +126,7 @@ function ProfileContent() {
   const searchParams = useSearchParams();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [isAcademic, setIsAcademic] = useState(false);
   const [details, setDetails] = useState<AppUserDto | null>(null);
   const [licenses, setLicenses] = useState<LicenseDto[] | null>(null);
   const [sendingReset, setSendingReset] = useState(false);
@@ -214,6 +216,11 @@ function ProfileContent() {
                 <Svg size={12}>{user.role === "Student" ? Icon.cap : isCustomer ? Icon.user : Icon.shield}</Svg>
                 {rc.label}
               </span>
+              {(isAcademic || details?.isAcademic) && (
+                <span className="pf-role pf-tone-green" title="Verified university email">
+                  <Svg size={12}>{Icon.cap}</Svg>Academic
+                </span>
+              )}
             </div>
             <p className="pf-email">{user.email}</p>
           </div>
@@ -418,17 +425,8 @@ function ProfileContent() {
               </section>
             )}
 
-            {/* ---------- Student upgrade ---------- */}
-            {user.role === "User" && (
-              <section className="pf-card pf-upgrade">
-                <span className="pf-upgrade-icon"><Svg size={22}>{Icon.cap}</Svg></span>
-                <h2 className="pf-card-title">Are you a student?</h2>
-                <p className="pf-hint">Verify your <strong>.edu</strong> email to unlock student discounts and special license pricing.</p>
-                <button type="button" className="btn-primary" onClick={() => setShowUpgradeModal(true)}>
-                  Verify student status <Svg size={14}>{Icon.arrow}</Svg>
-                </button>
-              </section>
-            )}
+            {/* ---------- Extra emails & academic badge (verified by code) ---------- */}
+            <ProfileEmailsCard onAcademicChange={setIsAcademic} />
           </div>
         </div>
       )}

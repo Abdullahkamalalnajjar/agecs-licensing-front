@@ -5,13 +5,15 @@ import { client } from "@/client/client.gen";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import ProductFormModal from "@/components/ProductFormModal";
+import PromoEndCountdown from "@/components/PromoEndCountdown";
 import ProductMediaModal from "@/components/ProductMediaModal";
 import ChildProductsModal from "@/components/ChildProductsModal";
 import ProductFeaturesModal from "@/components/ProductFeaturesModal";
 import ProductVersionsModal from "@/components/ProductVersionsModal";
 import type { PayablePriceDto, ProductDto, ProductVersionDto } from "@/client/types.gen";
 import { resolveMediaUrl } from "@/lib/mediaUrl";
-import { useAuth } from "@/components/AuthProvider";
+import { useAuth, usePermissions } from "@/components/AuthProvider";
+import { P } from "@/lib/permissions";
 import { useCurrency, type SupportedCurrency } from "@/context/CurrencyContext";
 import { useToast } from "@/components/ToastProvider";
 import "../products.css";
@@ -134,7 +136,12 @@ export default function ProductDetailsPage() {
   const [isFeaturesModalOpen, setIsFeaturesModalOpen] = useState(false);
   const [isVersionsModalOpen, setIsVersionsModalOpen] = useState(false);
 
-  const isAdmin = user != null && user.role !== "Student" && user.role !== "User";
+  const { can, canField, canUpdateAny } = usePermissions();
+  const isAdmin = can(P.products.read);
+  const canUpdate = canUpdateAny("products");
+  // The manage tiles open windows with add / edit / remove buttons for the product's parts.
+  const canManageParts = can(P.products.create) || can(P.products.delete) || canUpdate
+    || canField("products", "media") || canField("products", "versions");
 
   const editions = product?.children || [];
   const target = (selectedEditionId && editions.find((c) => c.id === selectedEditionId)) || product || undefined;
@@ -394,6 +401,11 @@ export default function ProductDetailsPage() {
                     for {periodText(currentPrice.period, currentPrice.periodType)}
                     {product.withTaxes === false ? " · excl. taxes" : product.withTaxes ? " · incl. taxes" : ""}
                   </small>
+                  {onSale && (target?.offerEndsAt || product.offerEndsAt) && (
+                    <span style={{ display: "block", marginTop: "0.4rem", color: "#dc2626" }}>
+                      <PromoEndCountdown endDate={(target?.offerEndsAt || product.offerEndsAt)!} />
+                    </span>
+                  )}
                 </>
               ) : (
                 <span className="pr-muted">{product.comingSoon ? "Pricing announced at launch" : "Pricing not available"}</span>
@@ -403,10 +415,12 @@ export default function ProductDetailsPage() {
             <div className="pd-actions">
               {isAdmin ? (
                 <>
-                  <button type="button" className="btn-primary" onClick={() => setIsFormModalOpen(true)}>
-                    <Svg size={15}>{Icon.edit}</Svg>Edit product
-                  </button>
-                  {confirmDelete ? (
+                  {canUpdate && (
+                    <button type="button" className="btn-primary" onClick={() => setIsFormModalOpen(true)}>
+                      <Svg size={15}>{Icon.edit}</Svg>Edit product
+                    </button>
+                  )}
+                  {!can(P.products.delete) ? null : confirmDelete ? (
                     <span className="pd-confirm">
                       <span className="pr-muted">Delete this product?</span>
                       <button type="button" className="pd-btn pd-btn-danger" onClick={handleDelete} disabled={isDeleting}>
@@ -446,7 +460,7 @@ export default function ProductDetailsPage() {
       </section>
 
       {/* ---------- Admin management ---------- */}
-      {isAdmin && (
+      {canManageParts && (
         <section className="pd-manage" aria-label="Manage product">
           {[
             { label: "Variations", count: editions.length, tone: "green", icon: Icon.variations, onClick: () => setIsChildrenModalOpen(true) },

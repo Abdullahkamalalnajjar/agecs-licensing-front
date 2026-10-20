@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import { getApiTicketsById, postApiTicketsByIdComments, putApiTicketsByIdStatus } from "@/client";
 import { client } from "@/client/client.gen";
 import { useRouter, useParams } from "next/navigation";
-import { useAuth } from "@/components/AuthProvider";
+import { useAuth, usePermissions } from "@/components/AuthProvider";
 import { useToast } from "@/components/ToastProvider";
 import Link from "next/link";
 
@@ -11,6 +11,7 @@ export default function TicketDetailsPage() {
   const params = useParams();
   const ticketId = params.id as string;
   const { user } = useAuth();
+  const { canField } = usePermissions();
   // Customers reach their tickets from the profile page's Tickets tab.
   const ticketsHref = user?.role === "Student" || user?.role === "User" ? "/profile?tab=tickets" : "/tickets";
   
@@ -157,7 +158,7 @@ export default function TicketDetailsPage() {
           </p>
         </div>
 
-        {(user?.role !== "Student" && user?.role !== "User") && (
+        {canField("tickets", "status") && (
           <div style={{ marginTop: "24px", display: "flex", gap: "12px", alignItems: "center" }}>
             <span style={{ fontSize: "0.85rem", fontWeight: "600", color: "#4b5563" }}>Change Status:</span>
             <select 
@@ -201,6 +202,8 @@ export default function TicketDetailsPage() {
           )}
         </div>
 
+        {/* The ticket's owner can always reply; anyone else replies as staff. */}
+        {(ticket.userId === user?.id || canField("tickets", "reply")) && (
         <form onSubmit={handleAddComment} style={{ marginTop: "24px" }}>
           <textarea
             value={commentText}
@@ -219,6 +222,7 @@ export default function TicketDetailsPage() {
             </button>
           </div>
         </form>
+        )}
       </div>
     </div>
   );

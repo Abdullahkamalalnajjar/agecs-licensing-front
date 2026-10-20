@@ -1,5 +1,7 @@
 "use client";
 
+import { P } from "@/lib/permissions";
+import { usePermissions } from "@/components/AuthProvider";
 import { useState } from "react";
 import { postApiPackagesByIdImages, deleteApiPackagesByIdImagesByImageId, putApiPackagesByIdImagesReorder } from "@/client";
 import type { PackageDto, PackageImageDto } from "@/client/types.gen";
@@ -20,6 +22,10 @@ const errorText = (data: unknown, fallback: string) =>
     .join(", ") || fallback;
 
 export default function PackageImagesModal({ pkg, onClose, onChange }: PackageImagesModalProps) {
+  const { can, canField } = usePermissions();
+  const canCreate = can(P.packages.create);
+  const canReorder = canField("packages", "images");
+  const canDelete = can(P.packages.delete);
   const [busy, setBusy] = useState(false);
   const { success, error: toastError } = useToast();
 
@@ -147,20 +153,22 @@ export default function PackageImagesModal({ pkg, onClose, onChange }: PackageIm
                     )}
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", padding: "0.45rem" }}>
-                    <button type="button" style={{ ...iconButton, opacity: index === 0 ? 0.35 : 1 }} disabled={busy || index === 0} onClick={() => move(index, -1)} title="Move earlier" aria-label="Move earlier">
+                    <button type="button" style={{ ...iconButton, opacity: index === 0 ? 0.35 : 1 }} disabled={!canReorder || busy || index === 0} onClick={() => move(index, -1)} title="Move earlier" aria-label="Move earlier">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
                     </button>
-                    <button type="button" style={{ ...iconButton, opacity: index === images.length - 1 ? 0.35 : 1 }} disabled={busy || index === images.length - 1} onClick={() => move(index, 1)} title="Move later" aria-label="Move later">
+                    <button type="button" style={{ ...iconButton, opacity: index === images.length - 1 ? 0.35 : 1 }} disabled={!canReorder || busy || index === images.length - 1} onClick={() => move(index, 1)} title="Move later" aria-label="Move later">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
                     </button>
-                    {index !== 0 && (
+                    {canReorder && index !== 0 && (
                       <button type="button" className="btn-ghost" style={{ padding: "0.2rem 0.5rem", fontSize: "0.75rem" }} disabled={busy} onClick={() => makeCover(index)}>
                         Make cover
                       </button>
                     )}
-                    <button type="button" style={{ ...iconButton, marginLeft: "auto", color: "var(--danger)" }} disabled={busy} onClick={() => handleDelete(image)} title="Remove image" aria-label="Remove image">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" /></svg>
-                    </button>
+                    {canDelete && (
+                      <button type="button" style={{ ...iconButton, marginLeft: "auto", color: "var(--danger)" }} disabled={busy} onClick={() => handleDelete(image)} title="Remove image" aria-label="Remove image">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" /></svg>
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -170,10 +178,12 @@ export default function PackageImagesModal({ pkg, onClose, onChange }: PackageIm
 
         <div className="modal-footer">
           <button type="button" className="btn-ghost" onClick={onClose}>Done</button>
-          <label className="btn-primary" style={{ cursor: busy ? "wait" : "pointer", opacity: busy ? 0.6 : 1 }}>
-            {busy ? "Working…" : "Upload images"}
-            <input type="file" accept="image/*" multiple disabled={busy} onChange={handleUpload} style={{ display: "none" }} />
-          </label>
+          {canCreate && (
+            <label className="btn-primary" style={{ cursor: busy ? "wait" : "pointer", opacity: busy ? 0.6 : 1 }}>
+              {busy ? "Working…" : "Upload images"}
+              <input type="file" accept="image/*" multiple disabled={busy} onChange={handleUpload} style={{ display: "none" }} />
+            </label>
+          )}
         </div>
       </div>
     </div>

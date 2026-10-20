@@ -5,7 +5,8 @@ import {
   patchApiHeroSlidesByIdHidden, putApiHeroSlidesReorder, putApiHeroSlidesByIdImage, deleteApiHeroSlidesByIdImage,
 } from "@/client";
 import type { HeroSlideButtonRequest, HeroSlideDto } from "@/client/types.gen";
-import { useAuth } from "@/components/AuthProvider";
+import { useAuth, usePermissions } from "@/components/AuthProvider";
+import { P } from "@/lib/permissions";
 import { useToast } from "@/components/ToastProvider";
 import { resolveMediaUrl } from "@/lib/mediaUrl";
 import { HERO_ICONS, HeroIcon } from "@/lib/heroIcons";
@@ -51,7 +52,10 @@ function IconButton({ title, onClick, tone = "accent", disabled, children }: {
 
 export default function HeroSlidesPage() {
   const { user } = useAuth();
-  const isAdmin = user != null && user.role !== "Student" && user.role !== "User";
+  const { can, canField, canUpdateAny } = usePermissions();
+  const isAdmin = can(P.heroSlides.read);
+  const canCreate = can(P.heroSlides.create);
+  const canDelete = can(P.heroSlides.delete);
   const { success, error: toastError } = useToast();
 
   const [slides, setSlides] = useState<HeroSlideDto[]>([]);
@@ -176,9 +180,11 @@ export default function HeroSlidesPage() {
           <a href="/home?view=site" className="btn-ghost" style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem" }}>
             <Svg><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></Svg>View on site
           </a>
-          <button type="button" className="btn-primary" onClick={() => setCreating(true)}>
-            <Svg>{Icon.plus}</Svg>New slide
-          </button>
+          {canCreate && (
+            <button type="button" className="btn-primary" onClick={() => setCreating(true)}>
+              <Svg>{Icon.plus}</Svg>New slide
+            </button>
+          )}
         </div>
       </div>
 
@@ -202,7 +208,7 @@ export default function HeroSlidesPage() {
             <span className="ct-empty-icon"><Svg size={24}>{Icon.slides}</Svg></span>
             <p className="ct-empty-title">No slides yet</p>
             <p className="ct-empty-sub">The home page slider is empty until you add one.</p>
-            <button type="button" className="btn-primary" onClick={() => setCreating(true)}><Svg>{Icon.plus}</Svg>New slide</button>
+            {canCreate && <button type="button" className="btn-primary" onClick={() => setCreating(true)}><Svg>{Icon.plus}</Svg>New slide</button>}
           </div>
         ) : (
           slides.map((slide, index) => {
@@ -212,10 +218,10 @@ export default function HeroSlidesPage() {
                 <div className="ct-order">
                   <span className="ct-order-num">{index + 1}</span>
                   <div className="ct-order-btns">
-                    <button type="button" className="pr-icon-btn" onClick={() => move(index, -1)} disabled={reordering || index === 0} aria-label={`Move ${slide.title} up`} title="Move up">
+                    <button type="button" className="pr-icon-btn" onClick={() => move(index, -1)} disabled={!canField("hero-slides", "order") || reordering || index === 0} aria-label={`Move ${slide.title} up`} title="Move up">
                       <Svg size={12}>{Icon.up}</Svg>
                     </button>
-                    <button type="button" className="pr-icon-btn" onClick={() => move(index, 1)} disabled={reordering || index === slides.length - 1} aria-label={`Move ${slide.title} down`} title="Move down">
+                    <button type="button" className="pr-icon-btn" onClick={() => move(index, 1)} disabled={!canField("hero-slides", "order") || reordering || index === slides.length - 1} aria-label={`Move ${slide.title} down`} title="Move down">
                       <Svg size={12}>{Icon.down}</Svg>
                     </button>
                   </div>
@@ -248,26 +254,28 @@ export default function HeroSlidesPage() {
 
                 <label className="pr-visibility" title={slide.hidden ? "Hidden — click to show" : "Shown — click to hide"} style={{ opacity: busy ? 0.6 : 1 }}>
                   <span className="pf-toggle-switch">
-                    <input type="checkbox" checked={!slide.hidden} disabled={busy} onChange={() => toggleHidden(slide)} aria-label={`${slide.title} shown`} />
+                    <input type="checkbox" checked={!slide.hidden} disabled={!canField("hero-slides", "hidden") || busy} onChange={() => toggleHidden(slide)} aria-label={`${slide.title} shown`} />
                     <span className="pf-toggle-track" />
                   </span>
                   <span className={slide.hidden ? "pr-muted" : ""}>{slide.hidden ? "Hidden" : "Shown"}</span>
                 </label>
 
                 <div className="pr-actions">
-                  <label className={`pr-icon-btn pr-tone-green ${busy ? "is-disabled" : ""}`} title={slide.imageUrl ? "Replace image" : "Upload image"}>
-                    <Svg>{Icon.image}</Svg>
-                    <input type="file" accept="image/*" hidden disabled={busy} onChange={(e) => { uploadImage(slide, e.target.files?.[0]); e.target.value = ""; }} />
-                  </label>
-                  {slide.imageUrl && <IconButton title="Remove image" onClick={() => removeImage(slide)} disabled={busy}>{Icon.x}</IconButton>}
-                  <IconButton title={`Edit ${slide.title}`} onClick={() => setEditing(slide)}>{Icon.edit}</IconButton>
+                  {canField("hero-slides", "image") && (
+                    <label className={`pr-icon-btn pr-tone-green ${busy ? "is-disabled" : ""}`} title={slide.imageUrl ? "Replace image" : "Upload image"}>
+                      <Svg>{Icon.image}</Svg>
+                      <input type="file" accept="image/*" hidden disabled={busy} onChange={(e) => { uploadImage(slide, e.target.files?.[0]); e.target.value = ""; }} />
+                    </label>
+                  )}
+                  {canDelete && slide.imageUrl && <IconButton title="Remove image" onClick={() => removeImage(slide)} disabled={busy}>{Icon.x}</IconButton>}
+                  {canUpdateAny("hero-slides") && <IconButton title={`Edit ${slide.title}`} onClick={() => setEditing(slide)}>{Icon.edit}</IconButton>}
                   {confirmDeleteId === slide.id ? (
                     <span className="pr-confirm">
                       <IconButton title="Confirm delete" tone="danger" onClick={() => remove(slide)} disabled={busy}>{Icon.check}</IconButton>
                       <IconButton title="Cancel" onClick={() => setConfirmDeleteId(null)}>{Icon.x}</IconButton>
                     </span>
                   ) : (
-                    <IconButton title={`Delete ${slide.title}`} tone="danger" onClick={() => setConfirmDeleteId(slide.id!)}>{Icon.trash}</IconButton>
+                    canDelete && <IconButton title={`Delete ${slide.title}`} tone="danger" onClick={() => setConfirmDeleteId(slide.id!)}>{Icon.trash}</IconButton>
                   )}
                 </div>
               </div>
@@ -302,6 +310,9 @@ function SlideModal({ slide, onClose, onSaved, onError }: {
   onSaved: (slide: HeroSlideDto, isNew: boolean) => void;
   onError: (msg: string) => void;
 }) {
+  const { canField } = usePermissions();
+  const locked = (field: string) => !!slide && !canField("hero-slides", field);
+  const lockButtons = locked("buttons");
   const [badge, setBadge] = useState(slide?.badge ?? "");
   const [title, setTitle] = useState(slide?.title ?? "");
   const [description, setDescription] = useState(slide?.description ?? "");
@@ -416,21 +427,21 @@ function SlideModal({ slide, onClose, onSaved, onError }: {
                     <label className="form-label" htmlFor="slideBadge">Badge</label>
                     <span className="ct-char-count">{badge.length}/100</span>
                   </div>
-                  <input id="slideBadge" className="form-input" maxLength={100} value={badge} onChange={(e) => setBadge(e.target.value)} placeholder="e.g. Professional-grade CAD software" />
+                  <input id="slideBadge" className="form-input" maxLength={100} value={badge} disabled={locked("badge")} onChange={(e) => setBadge(e.target.value)} placeholder="e.g. Professional-grade CAD software" />
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <div className="ct-label-row">
                     <label className="form-label" htmlFor="slideTitle">Title *</label>
                     <span className="ct-char-count">{title.length}/200</span>
                   </div>
-                  <input id="slideTitle" className="form-input" required autoFocus maxLength={200} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. nanoCAD Platform" />
+                  <input id="slideTitle" className="form-input" required autoFocus maxLength={200} value={title} disabled={locked("title")} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. nanoCAD Platform" />
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <div className="ct-label-row">
                     <label className="form-label" htmlFor="slideDescription">Description</label>
                     <span className="ct-char-count">{description.length}/1000</span>
                   </div>
-                  <textarea id="slideDescription" className="form-input" rows={3} maxLength={1000} value={description} onChange={(e) => setDescription(e.target.value)} style={{ resize: "vertical" }} />
+                  <textarea id="slideDescription" className="form-input" rows={3} maxLength={1000} value={description} disabled={locked("description")} onChange={(e) => setDescription(e.target.value)} style={{ resize: "vertical" }} />
                 </div>
               </div>
 
@@ -439,15 +450,15 @@ function SlideModal({ slide, onClose, onSaved, onError }: {
                   <label className="form-label" htmlFor="slideDuration">Duration (seconds)</label>
                   <div className="hs-duration">
                     <input id="slideDuration" type="number" className="form-input" required min={2} max={60} step={1}
-                      value={duration} onChange={(e) => setDuration(e.target.value)} />
+                      value={duration} disabled={locked("duration")} onChange={(e) => setDuration(e.target.value)} />
                     <span className="ct-hint" style={{ margin: 0 }}>How long this slide stays (2–60).</span>
                   </div>
                 </div>
                 <span className="form-label">Image</span>
                 <div className="hs-image-picker">
-                  <label className="btn-ghost" style={{ cursor: "pointer" }}>
+                  <label className={`btn-ghost ${locked("image") ? "is-disabled" : ""}`} style={{ cursor: locked("image") ? "not-allowed" : "pointer", opacity: locked("image") ? 0.6 : 1 }}>
                     {imagePreview ? "Change image" : "Choose image"}
-                    <input type="file" accept="image/*" hidden onChange={(e) => { pickImage(e.target.files?.[0]); e.target.value = ""; }} />
+                    <input type="file" accept="image/*" hidden disabled={locked("image")} onChange={(e) => { pickImage(e.target.files?.[0]); e.target.value = ""; }} />
                   </label>
                   {imageFile && <span className="ct-hint" style={{ margin: 0 }}>Uploads when you save.</span>}
                 </div>
@@ -474,26 +485,26 @@ function SlideModal({ slide, onClose, onSaved, onError }: {
               {buttons.map((b, i) => (
                 <div key={i} className="hs-button-row">
                   <div className="ct-order-btns">
-                    <button type="button" className="pr-icon-btn" onClick={() => moveButton(i, -1)} disabled={i === 0} aria-label="Move button up"><Svg size={12}>{Icon.up}</Svg></button>
-                    <button type="button" className="pr-icon-btn" onClick={() => moveButton(i, 1)} disabled={i === buttons.length - 1} aria-label="Move button down"><Svg size={12}>{Icon.down}</Svg></button>
+                    <button type="button" className="pr-icon-btn" onClick={() => moveButton(i, -1)} disabled={lockButtons || i === 0} aria-label="Move button up"><Svg size={12}>{Icon.up}</Svg></button>
+                    <button type="button" className="pr-icon-btn" onClick={() => moveButton(i, 1)} disabled={lockButtons || i === buttons.length - 1} aria-label="Move button down"><Svg size={12}>{Icon.down}</Svg></button>
                   </div>
                   <input className="form-input" required maxLength={60} placeholder="Text, e.g. Browse Products" aria-label={`Button ${i + 1} text`}
-                    value={b.text} onChange={(e) => setButton(i, { text: e.target.value })} />
+                    value={b.text} disabled={lockButtons} onChange={(e) => setButton(i, { text: e.target.value })} />
                   <input className="form-input" required maxLength={500} placeholder="/products, #contact or www.site.com" aria-label={`Button ${i + 1} link`}
-                    value={b.url} onChange={(e) => setButton(i, { url: e.target.value })} />
-                  <select className="form-input" aria-label={`Button ${i + 1} icon`} value={b.icon} onChange={(e) => setButton(i, { icon: e.target.value })} style={{ appearance: "auto" }}>
+                    value={b.url} disabled={lockButtons} onChange={(e) => setButton(i, { url: e.target.value })} />
+                  <select className="form-input" aria-label={`Button ${i + 1} icon`} value={b.icon} disabled={lockButtons} onChange={(e) => setButton(i, { icon: e.target.value })} style={{ appearance: "auto" }}>
                     <option value="">No icon</option>
                     {Object.entries(HERO_ICONS).map(([key, icon]) => <option key={key} value={key}>{icon.label}</option>)}
                   </select>
                   <div className="hs-variant" role="radiogroup" aria-label={`Button ${i + 1} style`}>
-                    <button type="button" role="radio" aria-checked={b.variant === "primary"} className={b.variant === "primary" ? "is-active" : ""} onClick={() => setButton(i, { variant: "primary" })}>Filled</button>
-                    <button type="button" role="radio" aria-checked={b.variant === "secondary"} className={b.variant === "secondary" ? "is-active" : ""} onClick={() => setButton(i, { variant: "secondary" })}>Outline</button>
+                    <button type="button" role="radio" aria-checked={b.variant === "primary"} className={b.variant === "primary" ? "is-active" : ""} disabled={lockButtons} onClick={() => setButton(i, { variant: "primary" })}>Filled</button>
+                    <button type="button" role="radio" aria-checked={b.variant === "secondary"} className={b.variant === "secondary" ? "is-active" : ""} disabled={lockButtons} onClick={() => setButton(i, { variant: "secondary" })}>Outline</button>
                   </div>
-                  <IconButton title="Remove button" tone="danger" onClick={() => setButtons((prev) => prev.filter((_, j) => j !== i))}>{Icon.trash}</IconButton>
+                  <IconButton title="Remove button" tone="danger" disabled={lockButtons} onClick={() => setButtons((prev) => prev.filter((_, j) => j !== i))}>{Icon.trash}</IconButton>
                 </div>
               ))}
 
-              {buttons.length < MAX_BUTTONS && (
+              {buttons.length < MAX_BUTTONS && !lockButtons && (
                 <button type="button" className="btn-ghost hs-add-button" onClick={() => setButtons((prev) => [...prev, newButton(prev.length)])}>
                   <Svg>{Icon.plus}</Svg>Add button
                 </button>

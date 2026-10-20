@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { getIdentityRoles, postIdentityRoles, putIdentityRolesByRoleId, deleteIdentityRolesByRoleId } from "@/client";
 import { client } from "@/client/client.gen";
 import type { RoleDto } from "@/client/types.gen";
+import { usePermissions } from "@/components/AuthProvider";
+import { P } from "@/lib/permissions";
 
 const errorText = (data: unknown, fallback: string) => {
   const d = data as { errors?: unknown; title?: string } | undefined;
@@ -17,6 +19,10 @@ const errorText = (data: unknown, fallback: string) => {
  * Built-in roles (isSystem) can be renamed, after a warning, but not deleted: the code checks them by name.
  */
 export default function RolesPage() {
+  const { can } = usePermissions();
+  const canCreate = can(P.roles.create);
+  const canUpdate = can(P.roles.update);
+  const canDelete = can(P.roles.delete);
   const router = useRouter();
   const [roles, setRoles] = useState<RoleDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -122,7 +128,7 @@ export default function RolesPage() {
         </div>
       )}
 
-      <form onSubmit={addRole} style={{ display: "flex", gap: "0.6rem", marginBottom: "0.5rem", maxWidth: 520 }}>
+      {canCreate && <form onSubmit={addRole} style={{ display: "flex", gap: "0.6rem", marginBottom: "0.5rem", maxWidth: 520 }}>
         <input
           className="form-input"
           placeholder="New role name, e.g. Support"
@@ -135,7 +141,7 @@ export default function RolesPage() {
         <button type="submit" className="btn-primary" disabled={adding || !newName.trim()}>
           {adding ? "Adding…" : "Add role"}
         </button>
-      </form>
+      </form>}
       <p style={{ margin: "0 0 1.25rem", fontSize: "0.82rem", color: "var(--text-muted)" }}>
         A new role has no permissions of its own yet; assign it to users from the Users page. Built-in roles can't be deleted, and renaming one affects its users' access.
       </p>
@@ -206,15 +212,15 @@ export default function RolesPage() {
                         </div>
                       ) : (
                         <div className="table-actions">
-                          <button
+                          {canUpdate && <button
                             type="button"
                             className="btn-ghost"
                             style={{ color: "var(--accent-light)", borderColor: "var(--accent-border)" }}
                             onClick={() => { setEditingId(role.id!); setEditName(role.name ?? ""); setConfirmDeleteId(null); }}
                           >
                             Rename
-                          </button>
-                          {!role.isSystem && (
+                          </button>}
+                          {canDelete && !role.isSystem && (
                             <button type="button" className="btn-danger-ghost" onClick={() => { setConfirmDeleteId(role.id!); setEditingId(null); }}>
                               Delete
                             </button>

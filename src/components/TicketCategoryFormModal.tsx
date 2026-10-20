@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { postApiTicketCategories, putApiTicketCategoriesById } from "@/client";
+import { usePermissions } from "@/components/AuthProvider";
 
 type TicketCategoryFormModalProps = {
   initialData?: any;
@@ -11,6 +12,8 @@ type TicketCategoryFormModalProps = {
 
 export default function TicketCategoryFormModal({ initialData, onClose, onSuccess }: TicketCategoryFormModalProps) {
   const isEditing = !!initialData;
+  const { canField } = usePermissions();
+  const locked = (field: string) => isEditing && !canField("ticket-categories", field);
   const [categoryData, setCategoryData] = useState({
     name: initialData?.name || "",
     description: initialData?.description || "",
@@ -80,14 +83,14 @@ export default function TicketCategoryFormModal({ initialData, onClose, onSucces
               
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label htmlFor="name" className="form-label">Name</label>
-                <input id="name" type="text" className="form-input" value={categoryData.name} onChange={(e) => setCategoryData({ ...categoryData, name: e.target.value })} required />
+                <input id="name" type="text" className="form-input" value={categoryData.name} onChange={(e) => setCategoryData({ ...categoryData, name: e.target.value })} required disabled={locked("name")} />
               </div>
 
               {isEditing && (
                 <>
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label htmlFor="description" className="form-label">Description</label>
-                    <textarea id="description" className="form-input" value={categoryData.description} onChange={(e) => setCategoryData({ ...categoryData, description: e.target.value })} rows={3} style={{ resize: "vertical" }} />
+                    <textarea id="description" className="form-input" value={categoryData.description} onChange={(e) => setCategoryData({ ...categoryData, description: e.target.value })} rows={3} style={{ resize: "vertical" }} disabled={locked("description")} />
                   </div>
                 </>
               )}
