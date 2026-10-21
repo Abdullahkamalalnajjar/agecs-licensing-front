@@ -68,8 +68,8 @@ export async function createFamily(name: string): Promise<FamilyDto> {
 }
 
 /** Creates a company and adds it to the shared list. Throws with the API's message on failure. */
-export async function createCompany(name: string): Promise<CompanyDto> {
-  const res = await postApiCompanies({ baseUrl, body: { name }, throwOnError: false });
+export async function createCompany(name: string, manualFulfillment?: boolean): Promise<CompanyDto> {
+  const res = await postApiCompanies({ baseUrl, body: { name, manualFulfillment }, throwOnError: false });
   const company = res.data?.value;
   if (!company || res.data?.isError) throw new Error(errorText(res.data ?? res.error, "Failed to add company."));
   emit({ companies: [...state.companies, company] });

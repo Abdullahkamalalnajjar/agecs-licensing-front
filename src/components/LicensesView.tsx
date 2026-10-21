@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import {
   getApiLicenses,
+  getApiLicensesMySupportRequests,
   getApiProducts,
   getIdentityUsers,
   deleteApiLicensesById,
@@ -22,7 +23,8 @@ import HwidListModal from "@/components/HwidListModal";
 import DiagnosticModal from "@/components/DiagnosticModal";
 import PackageLicensesModal from "@/components/PackageLicensesModal";
 import PackageLicenseEditModal from "@/components/PackageLicenseEditModal";
-import type { LicenseDto, ProductDto } from "@/client/types.gen";
+import SupportRequestsPanel, { requestProduct } from "@/components/SupportRequestsPanel";
+import type { LicenseDto, ProductDto, SupportRequestDto } from "@/client/types.gen";
 import { useAuth, usePermissions } from "@/components/AuthProvider";
 import { P } from "@/lib/permissions";
 import { useToast } from "@/components/ToastProvider";
@@ -184,6 +186,8 @@ export default function LicensesView({ embedded = false }: { embedded?: boolean 
   const [products, setProducts] = useState<ProductDto[]>([]);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [users, setUsers] = useState<any[]>([]);
+  // The customer's purchases still waiting for support to issue their license.
+  const [waiting, setWaiting] = useState<SupportRequestDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [now, setNow] = useState(0);
@@ -236,11 +240,14 @@ export default function LicensesView({ embedded = false }: { embedded?: boolean 
       if (!token) { router.push("/login"); return; }
       client.setConfig({ baseUrl: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5004", auth: token });
 
-      const [licensesRes, productsRes, usersRes] = await Promise.all([
+      const [licensesRes, productsRes, usersRes, supportRes] = await Promise.all([
         getApiLicenses({ throwOnError: false }),
         getApiProducts({ throwOnError: false }),
         isStaff ? getIdentityUsers({ throwOnError: false }) : Promise.resolve(null),
+        isStaff ? Promise.resolve(null) : getApiLicensesMySupportRequests({ throwOnError: false }).catch(() => null),
       ]);
+
+      setWaiting(supportRes?.data?.isSuccess ? (supportRes.data.value || []).filter((r) => r.status === "awaiting_support") : []);
 
       if (usersRes?.data) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -500,6 +507,27 @@ export default function LicensesView({ embedded = false }: { embedded?: boolean 
         </div>
       )}
 
+      {isStaff && <SupportRequestsPanel ready={now > 0} onFulfilled={fetchLicenses} />}
+
+      {!isStaff && waiting.length > 0 && (
+        <section className="pr-panel" style={{ marginBottom: "1.25rem", padding: "1rem 1.25rem" }}>
+          <h2 style={{ margin: "0 0 0.75rem", fontSize: "1rem", fontWeight: 700, color: "var(--text-primary)" }}>Waiting for support</h2>
+          <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+            {waiting.map((r) => (
+              <li key={r.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", flexWrap: "wrap", padding: "0.75rem 1rem", borderRadius: "var(--radius-md)", border: "1px solid var(--border)", background: "var(--bg-elevated)" }}>
+                <span className="pr-row-text">
+                  <span className="lc-product">{requestProduct(r)}</span>
+                  <span className="pr-row-sub">
+                    {r.packageName ? `${r.packageName} · ` : ""}Purchased {fmtDate(r.createdAtUtc)} · Our support team will contact you within 48 hours
+                  </span>
+                </span>
+                <span className="pr-badge pr-badge-soon"><span className="pr-dot" />Awaiting support</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {/* ---------- Stats (double as status filters) ---------- */}
       {(loading || licenses.length > 0) && (
         <div className="pr-stats">
@@ -580,7 +608,7 @@ export default function LicensesView({ embedded = false }: { embedded?: boolean 
             {Array.from({ length: 3 }).map((_, i) => <div key={i} className="skeleton" style={{ height: 230, borderRadius: "var(--radius-lg)" }} />)}
           </div>
         )
-      ) : licenses.length === 0 ? (
+      ) : licenses.length === 0 && waiting.length > 0 ? null : licenses.length === 0 ? (
         <div className="pr-panel">
           <div className="empty-state">
             <svg className="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">{Icon.lock}</svg>

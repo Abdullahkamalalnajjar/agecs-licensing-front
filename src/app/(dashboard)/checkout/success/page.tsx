@@ -15,6 +15,7 @@ export default function CheckoutSuccessPage() {
   const searchParams = useSearchParams();
   const [state, setState] = useState<PollState>("polling");
   const [serials, setSerials] = useState<string[]>([]);
+  const [awaitingSupport, setAwaitingSupport] = useState<string[]>([]);
   const [copiedSerial, setCopiedSerial] = useState<string | null>(null);
   const attemptsRef = useRef(0);
 
@@ -55,8 +56,12 @@ export default function CheckoutSuccessPage() {
 
         if (cancelled) return;
 
-        if (payment?.confirmed && payment.licenseSerials && payment.licenseSerials.length > 0) {
-          setSerials(payment.licenseSerials.filter((s): s is string => !!s));
+        const paidSerials = (payment?.licenseSerials ?? []).filter((s): s is string => !!s);
+        const supportItems = (payment?.awaitingSupportProducts ?? []).filter((s): s is string => !!s);
+        // Items issued by support have no serial, so a confirmed payment with only those is done too.
+        if (payment?.confirmed && (paidSerials.length > 0 || supportItems.length > 0)) {
+          setSerials(paidSerials);
+          setAwaitingSupport(supportItems);
           setState("confirmed");
           try {
             sessionStorage.removeItem("lastPaymentId");
@@ -161,9 +166,34 @@ export default function CheckoutSuccessPage() {
             </svg>
           </div>
           <h1 style={{ margin: 0, fontSize: "1.6rem", fontWeight: 800, color: "var(--text-primary)" }}>Thank you! Payment successful</h1>
+          {awaitingSupport.length > 0 && (
+            <div
+              style={{
+                maxWidth: "460px",
+                padding: "0.9rem 1.1rem",
+                borderRadius: "10px",
+                border: "1px solid rgba(59,130,246,0.3)",
+                background: "rgba(59,130,246,0.08)",
+                color: "var(--text-primary)",
+                fontSize: "0.92rem",
+                lineHeight: 1.55,
+                textAlign: "left",
+              }}
+            >
+              <div>
+                Your order for <strong>{awaitingSupport.join(", ")}</strong> has been received. These licenses are activated by our support team — they&apos;ll contact you within 48 hours.
+              </div>
+              <div dir="rtl" style={{ marginTop: "0.4rem", color: "var(--text-secondary)", textAlign: "right" }}>
+                تم استلام طلبك، وفريق الدعم هيتواصل معاك خلال 48 ساعة لتفعيل الترخيص.
+              </div>
+            </div>
+          )}
+          {serials.length > 0 && (
           <p style={{ margin: 0, maxWidth: "420px", color: "var(--text-secondary)", fontSize: "0.95rem" }}>
             Your license {serials.length > 1 ? "keys are" : "key is"} ready:
           </p>
+          )}
+          {serials.length > 0 && (
           <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem", width: "100%", maxWidth: "360px" }}>
             {serials.map((serial) => (
               <button
@@ -194,6 +224,7 @@ export default function CheckoutSuccessPage() {
               </button>
             ))}
           </div>
+          )}
           <Link
             href="/profile?tab=licenses"
             style={{

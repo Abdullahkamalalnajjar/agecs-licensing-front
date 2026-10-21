@@ -11,6 +11,9 @@ import {
   getApiProductsByProductIdOffers,
   postApiProductsByProductIdOffers,
   deleteApiProductsOffersByOfferId,
+  putApiProductsOffersByOfferId,
+  putApiPackagesOffersByOfferId,
+  deleteApiPackagesOffersByOfferId,
 } from "@/client";
 import { client } from "@/client/client.gen";
 import type { OfferDto, PackageDto, ProductDto } from "@/client/types.gen";
@@ -97,9 +100,10 @@ const offerPrice = (offer: OfferDto, price: number) =>
     : Math.max(0, price - (offer.discountValue ?? 0));
 
 export default function OffersPage() {
-  const { can, canField } = usePermissions();
+  const { can, canField, canUpdateAny } = usePermissions();
   const canCreate = can(P.offers.create);
   const canToggleActive = canField("offers", "active");
+  const canEdit = canUpdateAny("offers");
   const canDelete = can(P.offers.delete);
   const router = useRouter();
   const { success, error: toastError } = useToast();
@@ -121,6 +125,8 @@ export default function OffersPage() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  // The offer being edited; null when the modal creates a new one.
+  const [editing, setEditing] = useState<OfferDto | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -241,10 +247,13 @@ export default function OffersPage() {
     }
   };
 
-  const handleDelete = async (offerId: string) => {
+  const handleDelete = async (offer: OfferDto) => {
+    const offerId = offer.id!;
     setBusyId(offerId);
     try {
-      const res = await deleteApiProductsOffersByOfferId({ path: { offerId }, throwOnError: false });
+      const res = offer.packageId
+        ? await deleteApiPackagesOffersByOfferId({ path: { offerId }, throwOnError: false })
+        : await deleteApiProductsOffersByOfferId({ path: { offerId }, throwOnError: false });
       if (res.data?.isSuccess) {
         setOffers((list) => list.filter((o) => o.id !== offerId));
         success("Offer deleted.");
@@ -259,11 +268,23 @@ export default function OffersPage() {
     }
   };
 
-  const openModal = () => {
-    setForm(emptyForm());
+  const openModal = (offer?: OfferDto) => {
+    setEditing(offer ?? null);
+    setForm(offer
+      ? {
+          discountType: (offer.discountType === 0 ? 0 : 1) as 0 | 1,
+          discountValue: String(offer.discountValue ?? ""),
+          startDate: offer.startDate ? toLocalInput(new Date(offer.startDate)) : toLocalInput(new Date()),
+          endDate: offer.endDate ? toLocalInput(new Date(offer.endDate)) : "",
+          isActive: !!offer.isActive,
+        }
+      : emptyForm());
     setFormError("");
     setIsModalOpen(true);
   };
+
+  // When editing, only the parts the user may change are shown (create shows everything).
+  const show = (field: "discount" | "schedule" | "active") => !editing || canField("offers", field);
 
   const applyPreset = (days: number) => {
     const start = form.startDate ? new Date(form.startDate) : new Date();
@@ -284,13 +305,30 @@ export default function OffersPage() {
     setSaving(true);
     setFormError("");
     try {
+      // An unchanged date goes back exactly as saved (the picker drops seconds), so it doesn't count as an edit.
+      const dateOf = (input: string, saved?: string | null) =>
+        saved && toLocalInput(new Date(saved)) === input ? saved : new Date(input).toISOString();
       const offerBody = {
         discountType: form.discountType,
         discountValue: value,
-        startDate: new Date(form.startDate).toISOString(),
-        endDate: new Date(form.endDate).toISOString(),
+        startDate: dateOf(form.startDate, editing?.startDate),
+        endDate: dateOf(form.endDate, editing?.endDate),
         isActive: form.isActive,
       };
+      if (editing?.id) {
+        const offerId = editing.id;
+        const res = editing.packageId
+          ? await putApiPackagesOffersByOfferId({ path: { offerId }, body: offerBody, throwOnError: false })
+          : await putApiProductsOffersByOfferId({ path: { offerId }, body: { id: offerId, ...offerBody }, throwOnError: false });
+        if (res.data?.isSuccess) {
+          setIsModalOpen(false);
+          success("Offer updated.");
+          fetchOffers();
+        } else {
+          setFormError(errorText(res.data?.errors, "Failed to update offer."));
+        }
+        return;
+      }
       const res = target === "package"
         ? await postApiPackagesByIdOffers({ path: { id: activeProductId }, body: offerBody, throwOnError: false })
         : await postApiProductsByProductIdOffers({
@@ -307,7 +345,7 @@ export default function OffersPage() {
         setFormError(errorText(res.data?.errors, "Failed to create offer."));
       }
     } catch (err) {
-      setFormError(messageOf(err, "Failed to create offer."));
+      setFormError(messageOf(err, editing ? "Failed to update offer." : "Failed to create offer."));
     } finally {
       setSaving(false);
     }
@@ -323,7 +361,7 @@ export default function OffersPage() {
           <p className="page-subtitle">Schedule time-limited discounts for products, their variations and packages.</p>
         </div>
         {canCreate && (
-          <button className="btn-primary" onClick={openModal} disabled={!activeProductId}>
+          <button className="btn-primary" onClick={() => openModal()} disabled={!activeProductId}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
             </svg>
@@ -466,7 +504,7 @@ export default function OffersPage() {
                     : "Try a different filter."}
                 </p>
                 {filter === "all" ? (
-                  canCreate && <button className="btn-primary" style={{ marginTop: "1rem" }} onClick={openModal}>Create offer</button>
+                  canCreate && <button className="btn-primary" style={{ marginTop: "1rem" }} onClick={() => openModal()}>Create offer</button>
                 ) : (
                   <button className="btn-ghost" style={{ marginTop: "1rem" }} onClick={() => setFilter("all")}>Show all offers</button>
                 )}
@@ -551,18 +589,30 @@ export default function OffersPage() {
                           <span className="of-muted">Delete this offer?</span>
                           <div className="of-foot-actions">
                             <button className="btn-ghost of-btn-sm" onClick={() => setConfirmDeleteId(null)} disabled={busy}>Cancel</button>
-                            <button className="btn-danger-ghost of-btn-sm of-btn-danger" onClick={() => handleDelete(offer.id!)} disabled={busy}>
+                            <button className="btn-danger-ghost of-btn-sm of-btn-danger" onClick={() => handleDelete(offer)} disabled={busy}>
                               {busy ? "Deleting…" : "Delete"}
                             </button>
                           </div>
                         </>
-                      ) : canDelete && (
-                        <button className="of-link-danger" onClick={() => setConfirmDeleteId(offer.id!)} disabled={busy}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                          </svg>
-                          Delete
-                        </button>
+                      ) : (canEdit || canDelete) && (
+                        <div className="of-foot-actions">
+                          {canEdit && (
+                            <button className="btn-ghost of-btn-sm" onClick={() => openModal(offer)} disabled={busy}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                              </svg>
+                              Edit
+                            </button>
+                          )}
+                          {canDelete && (
+                            <button className="of-link-danger" onClick={() => setConfirmDeleteId(offer.id!)} disabled={busy}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                              </svg>
+                              Delete
+                            </button>
+                          )}
+                        </div>
                       )}
                     </footer>
                   </article>
@@ -579,7 +629,7 @@ export default function OffersPage() {
           <div className="modal-container medium" role="dialog" aria-modal="true" aria-labelledby="of-modal-title">
             <div className="modal-header">
               <div>
-                <h2 className="modal-title" id="of-modal-title">New Offer</h2>
+                <h2 className="modal-title" id="of-modal-title">{editing ? "Edit Offer" : "New Offer"}</h2>
                 <p className="of-muted" style={{ margin: "0.25rem 0 0" }}>for {activeProductName}</p>
               </div>
               <button type="button" className="modal-close" onClick={() => setIsModalOpen(false)} aria-label="Close">
@@ -598,6 +648,7 @@ export default function OffersPage() {
               )}
 
               <form id="of-form" onSubmit={handleCreate} className="of-form">
+                {show("discount") && <>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <span className="form-label">Discount type</span>
                   <div className="of-segment" role="radiogroup">
@@ -637,7 +688,9 @@ export default function OffersPage() {
                     <span>{form.discountType === 0 ? "%" : "per currency"}</span>
                   </div>
                 </div>
+                </>}
 
+                {show("schedule") && <>
                 <div className="of-form-row">
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label className="form-label" htmlFor="of-start">Starts</label>
@@ -657,14 +710,15 @@ export default function OffersPage() {
                     </button>
                   ))}
                 </div>
+                </>}
 
-                <label className="of-check">
+                {show("active") && <label className="of-check">
                   <input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} />
                   <span>
                     <strong>Enable offer</strong>
                     <small>It goes live automatically on the start date. Turn off to save it as paused.</small>
                   </span>
-                </label>
+                </label>}
 
                 {Number(form.discountValue) > 0 && formDays > 0 && (
                   <div className="of-summary">
@@ -678,7 +732,7 @@ export default function OffersPage() {
             <div className="modal-footer">
               <button type="button" className="btn-ghost" onClick={() => setIsModalOpen(false)} disabled={saving}>Cancel</button>
               <button type="submit" form="of-form" className="btn-primary" disabled={saving}>
-                {saving ? "Creating…" : "Create Offer"}
+                {editing ? (saving ? "Saving…" : "Save Changes") : (saving ? "Creating…" : "Create Offer")}
               </button>
             </div>
           </div>

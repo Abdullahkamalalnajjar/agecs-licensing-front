@@ -258,8 +258,8 @@ const modalCloseIcon = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor
 
 /* ---------------- Companies ---------------- */
 
-type CompanyForm = { name: string; icon: string; tagline: string; headline: string; description: string };
-const emptyCompanyForm: CompanyForm = { name: "", icon: "", tagline: "", headline: "", description: "" };
+type CompanyForm = { name: string; icon: string; tagline: string; headline: string; description: string; manualFulfillment: boolean };
+const emptyCompanyForm: CompanyForm = { name: "", icon: "", tagline: "", headline: "", description: "", manualFulfillment: false };
 
 function CompaniesList({ companies, loaded, creating, onCloseCreate, onCreate }: {
   companies: CompanyDto[]; loaded: boolean; creating: boolean; onCloseCreate: () => void; onCreate: () => void;
@@ -286,7 +286,7 @@ function CompaniesList({ companies, loaded, creating, onCloseCreate, onCreate }:
   // Creating saves the name first (the API needs it), then the site text in the same submit.
   const save = async (form: CompanyForm) => {
     let target = editing;
-    if (!target) target = await createCompany(form.name);
+    if (!target) target = await createCompany(form.name, form.manualFulfillment);
     const res = await putApiCompaniesById({ baseUrl, path: { id: target.id! }, body: form, throwOnError: false });
     if (res.error || res.data?.isError || !res.data?.value) throw new Error(errorText(res.data, "Failed to save company."));
     const updated = res.data.value;
@@ -312,6 +312,7 @@ function CompaniesList({ companies, loaded, creating, onCloseCreate, onCreate }:
                 <div className="ct-name-line">
                   <span className="ct-name">{company.name}</span>
                   {company.tagline && <span className="ct-tagline">{company.tagline}</span>}
+                  {company.manualFulfillment && <span className="pr-badge pr-badge-soon" title="Licenses issued by support">Support</span>}
                 </div>
                 <div className={`ct-sub ${company.headline ? "" : "is-missing"}`}>
                   {company.headline || "No home page text yet: the section shows the company name only"}
@@ -357,13 +358,14 @@ function CompanyModal({ company, onClose, onSave, onError }: {
   const show = (field: keyof CompanyForm) => !locked(field);
   const showBasics = show("name") || show("icon");
   const showSection = show("tagline") || show("headline") || show("description");
-  const noFields = !showBasics && !showSection;
+  const noFields = !showBasics && !showSection && !show("manualFulfillment");
   const [form, setForm] = useState<CompanyForm>(company ? {
     name: company.name || "",
     icon: company.icon || "",
     tagline: company.tagline || "",
     headline: company.headline || "",
     description: company.description || "",
+    manualFulfillment: !!company.manualFulfillment,
   } : emptyCompanyForm);
   const [saving, setSaving] = useState(false);
   const set = (patch: Partial<CompanyForm>) => setForm((f) => ({ ...f, ...patch }));
@@ -476,6 +478,21 @@ function CompanyModal({ company, onClose, onSave, onError }: {
                   <textarea id="companyDescription" className="form-input" rows={4} maxLength={2000} value={form.description} onChange={(e) => set({ description: e.target.value })} placeholder="A sentence or two about what this company offers" style={{ resize: "vertical" }} />
                 </div>
                 )}
+              </fieldset>
+              )}
+
+              {show("manualFulfillment") && (
+              <fieldset className="ct-fieldset">
+                <legend className="ct-section-label">Licensing</legend>
+                <label style={{ display: "flex", alignItems: "flex-start", gap: "0.6rem", cursor: "pointer" }}>
+                  <input type="checkbox" checked={form.manualFulfillment} onChange={(e) => set({ manualFulfillment: e.target.checked })} style={{ marginTop: "0.2rem" }} />
+                  <span>
+                    <span className="form-label" style={{ display: "block", marginBottom: "0.2rem" }}>Licenses issued by support</span>
+                    <span className="ct-hint" style={{ margin: 0, display: "block" }}>
+                      Buyers get no license automatically; support contacts them within 48 hours and issues it by hand (e.g. NanoCAD).
+                    </span>
+                  </span>
+                </label>
               </fieldset>
               )}
             </div>

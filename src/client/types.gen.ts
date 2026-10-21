@@ -168,6 +168,7 @@ export type CompanyDto = {
     headline?: string | null;
     description?: string | null;
     order?: number;
+    manualFulfillment?: boolean;
     productCount?: number;
 };
 
@@ -212,6 +213,7 @@ export type CreateCompanyCommand = {
     tagline?: string | null;
     headline?: string | null;
     description?: string | null;
+    manualFulfillment?: boolean;
 };
 
 export type CreateFamilyCommand = {
@@ -237,6 +239,16 @@ export type PatchApiProductsOffersByOfferIdActiveResponses = { 200: UpdatedResul
 export type PatchApiPackagesOffersByOfferIdActiveData = { body?: SetOfferActiveRequest; path: { offerId: string }; query?: never; url: '/api/packages/offers/{offerId}/active' };
 export type PatchApiPackagesOffersByOfferIdActiveResponses = { 200: UpdatedResult };
 
+export type SupportRequestDto = { id?: string; userId?: string; userEmail?: string | null; productId?: string; productName?: string | null; parentProductName?: string | null; packageId?: string | null; packageName?: string | null; paymentId?: string | null; periodDays?: number; licenseCount?: number; status?: string | null; createdAtUtc?: string; licenseId?: string | null };
+export type SupportRequestDtoListResult = { readonly isSuccess?: boolean; readonly isError?: boolean; readonly value?: Array<SupportRequestDto> | null; readonly errors?: Array<Error> | null };
+export type FulfillSupportRequestRequest = { serial?: string | null; expiryDate?: string | null; licenseCount?: number | null };
+export type GetApiLicensesMySupportRequestsData = { body?: never; path?: never; query?: never; url: '/api/licenses/my/support-requests' };
+export type GetApiLicensesMySupportRequestsResponses = { 200: SupportRequestDtoListResult };
+export type GetApiLicensesSupportRequestsData = { body?: never; path?: never; query?: { status?: string }; url: '/api/licenses/support-requests' };
+export type GetApiLicensesSupportRequestsResponses = { 200: SupportRequestDtoListResult };
+export type PostApiLicensesSupportRequestsByIdFulfillData = { body?: FulfillSupportRequestRequest; path: { id: string }; query?: never; url: '/api/licenses/support-requests/{id}/fulfill' };
+export type PostApiLicensesSupportRequestsByIdFulfillResponses = { 200: GuidResult };
+
 export type PackageOfferRequest = {
     discountType?: DiscountType;
     discountValue?: number;
@@ -247,7 +259,11 @@ export type PackageOfferRequest = {
 
 export type GetApiPackagesByIdOffersData = { body?: never; path: { id: string }; query?: never; url: '/api/packages/{id}/offers' };
 export type GetApiPackagesByIdOffersResponses = { 200: OfferDtoListResult };
-export type PostApiPackagesByIdOffersData = { body?: PackageOfferRequest; path: { id: string }; query?: never; url: '/api/packages/{id}/offers' };
+export type PutApiPackagesOffersByOfferIdData = { body?: PackageOfferRequest; path: { offerId: string }; query?: never; url: '/api/packages/offers/{offerId}' };
+export type PutApiPackagesOffersByOfferIdResponses = { 200: UpdatedResult };
+export type DeleteApiPackagesOffersByOfferIdData = { body?: never; path: { offerId: string }; query?: never; url: '/api/packages/offers/{offerId}' };
+export type DeleteApiPackagesOffersByOfferIdResponses = { 200: DeletedResult };
+export type PostApiPackagesByIdOffersData ={ body?: PackageOfferRequest; path: { id: string }; query?: never; url: '/api/packages/{id}/offers' };
 export type PostApiPackagesByIdOffersResponses = { 201: OfferDtoResult };
 
 export type CreateOfferCommand = {
@@ -800,6 +816,7 @@ export type PaymentStatusDto = {
     status?: string | null;
     confirmed?: boolean;
     licenseSerials?: Array<string> | null;
+    awaitingSupportProducts?: Array<string> | null;
 };
 
 export type PaymentStatusDtoResult = {
@@ -1232,6 +1249,7 @@ export type UpdateCompanyRequest = {
     tagline?: string | null;
     headline?: string | null;
     description?: string | null;
+    manualFulfillment?: boolean | null;
 };
 
 export type UpdateFamilyRequest = {
