@@ -1,0 +1,147 @@
+/* ============================================================
+   OVERVIEWS ADMIN — builds on products (.pr-*) and catalog (.ct-*) styles
+   ============================================================ */
+
+.ov-panel { padding: 1.25rem; }
+
+.ov-status {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  color: var(--pr-green);
+  background: var(--pr-green-dim);
+}
+.ov-status.is-hidden { color: var(--text-muted); background: var(--pr-neutral-dim); }
+.ov-status.is-new { color: var(--pr-amber); background: var(--pr-neutral-dim); }
+
+.ov-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.ov-form { display: flex; flex-direction: column; gap: 1rem; }
+
+/* ---------- Cards editor ---------- */
+.ov-cards-editor { display: flex; flex-direction: column; gap: 0.75rem; }
+
+.ov-card-row {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  padding: 0.75rem;
+  border: 1px solid var(--pr-border);
+  border-radius: 12px;
+  background: var(--pr-surface);
+}
+
+.ov-card-side { display: flex; flex-direction: column; align-items: center; gap: 0.35rem; }
+
+.ov-card-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--accent);
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-border);
+}
+
+.ov-card-fields { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+
+.ov-add-card { align-self: flex-start; display: inline-flex; align-items: center; gap: 0.4rem; }
+
+.ov-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--pr-border);
+}
+
+.ov-delete { display: inline-flex; align-items: center; gap: 0.4rem; margin-right: auto; }
+.ov-delete-confirm { display: inline-flex; align-items: center; gap: 0.5rem; margin-right: auto; font-size: 0.85rem; color: var(--text-secondary); }
+
+/* ---------- Preview (mirrors the public site, so it keeps the site's light colors) ---------- */
+.ov-preview-wrap { position: sticky; top: 1rem; }
+
+.ov-preview {
+  position: relative;
+  padding: 1.5rem 1rem;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #0f172a;
+  text-align: center;
+}
+.ov-preview.is-hidden > :not(.ov-preview-hidden) { opacity: 0.45; }
+
+.ov-preview-head { display: flex; align-items: center; justify-content: center; gap: 0.75rem; }
+.ov-preview-line { width: 2.5rem; height: 2px; background: #4a90e2; flex-shrink: 0; }
+
+.ov-preview-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #1e3a8a;
+  overflow-wrap: anywhere;
+}
+
+.ov-preview-sub { margin: 0.6rem auto 0; max-width: 32rem; font-size: 0.78rem; line-height: 1.55; color: #64748b; }
+
+.ov-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.6rem;
+  margin-top: 1.25rem;
+  text-align: left;
+}
+
+.ov-preview-card {
+  padding: 0.8rem;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-top: 3px solid #4a90e2;
+}
+
+.ov-preview-card h4 { margin: 0.55rem 0 0.3rem; font-size: 0.82rem; font-weight: 700; color: #0f172a; }
+.ov-preview-card p { margin: 0; font-size: 0.7rem; line-height: 1.5; color: #475569; white-space: pre-line; }
+
+.ov-preview-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 8px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #1e3a8a;
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+}
+
+.ov-preview-hidden {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  color: #fff;
+  background: #64748b;
+}
+
+@media (max-width: 1000px) {
+  .ov-layout { grid-template-columns: minmax(0, 1fr); }
+  .ov-preview-wrap { position: static; }
+}

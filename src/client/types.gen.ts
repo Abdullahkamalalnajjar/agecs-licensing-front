@@ -186,6 +186,46 @@ export type CompanyDtoResult = {
     readonly errors?: Array<Error> | null;
 };
 
+export type CompanyOverviewCardDto = {
+    title?: string | null;
+    description?: string | null;
+};
+
+export type CompanyOverviewDto = {
+    id?: string;
+    companyId?: string;
+    companyName?: string | null;
+    title?: string | null;
+    subtitle?: string | null;
+    cards?: Array<CompanyOverviewCardDto> | null;
+    hidden?: boolean;
+};
+
+export type CompanyOverviewDtoListResult = {
+    readonly isSuccess?: boolean;
+    readonly isError?: boolean;
+    readonly value?: Array<CompanyOverviewDto> | null;
+    readonly errors?: Array<Error> | null;
+};
+
+export type CompanyOverviewDtoResult = {
+    readonly isSuccess?: boolean;
+    readonly isError?: boolean;
+    value?: CompanyOverviewDto;
+    readonly errors?: Array<Error> | null;
+};
+
+/**
+ * A company's overview section, e.g. Title "AGECS OVERVIEW", a subtitle and up to 12 cards
+ * ({ "title": "Official nanoCAD Provider", "description": "…" }).
+ */
+export type CompanyOverviewRequest = {
+    title?: string | null;
+    subtitle?: string | null;
+    cards?: Array<CompanyOverviewCardDto> | null;
+    hidden?: boolean;
+};
+
 export type CreateChildProductRequest = {
     name?: string | null;
     fullName?: string | null;
@@ -5814,3 +5854,106 @@ export type PostIdentityResetPasswordResponses = {
 };
 
 export type PostIdentityResetPasswordResponse = PostIdentityResetPasswordResponses[keyof PostIdentityResetPasswordResponses];
+
+export type GetApiCompanyOverviewsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        includeHidden?: boolean;
+    };
+    url: '/api/company-overviews';
+};
+
+export type GetApiCompanyOverviewsResponses = {
+    /**
+     * OK
+     */
+    200: CompanyOverviewDtoListResult;
+};
+
+export type GetApiCompanyOverviewsResponse = GetApiCompanyOverviewsResponses[keyof GetApiCompanyOverviewsResponses];
+
+export type GetApiCompaniesByCompanyIdOverviewData = {
+    body?: never;
+    path: {
+        companyId: string;
+    };
+    query?: never;
+    url: '/api/companies/{companyId}/overview';
+};
+
+export type GetApiCompaniesByCompanyIdOverviewErrors = {
+    /**
+     * Not Found
+     */
+    404: ObjectResult;
+};
+
+export type GetApiCompaniesByCompanyIdOverviewError = GetApiCompaniesByCompanyIdOverviewErrors[keyof GetApiCompaniesByCompanyIdOverviewErrors];
+
+export type GetApiCompaniesByCompanyIdOverviewResponses = {
+    /**
+     * OK
+     */
+    200: CompanyOverviewDtoResult;
+};
+
+export type GetApiCompaniesByCompanyIdOverviewResponse = GetApiCompaniesByCompanyIdOverviewResponses[keyof GetApiCompaniesByCompanyIdOverviewResponses];
+
+export type PutApiCompaniesByCompanyIdOverviewData = {
+    body?: CompanyOverviewRequest;
+    path: {
+        companyId: string;
+    };
+    query?: never;
+    url: '/api/companies/{companyId}/overview';
+};
+
+export type PutApiCompaniesByCompanyIdOverviewErrors = {
+    /**
+     * Bad Request
+     */
+    400: ObjectResult;
+    /**
+     * Not Found
+     */
+    404: ObjectResult;
+};
+
+export type PutApiCompaniesByCompanyIdOverviewError = PutApiCompaniesByCompanyIdOverviewErrors[keyof PutApiCompaniesByCompanyIdOverviewErrors];
+
+export type PutApiCompaniesByCompanyIdOverviewResponses = {
+    /**
+     * OK
+     */
+    200: CompanyOverviewDtoResult;
+};
+
+export type PutApiCompaniesByCompanyIdOverviewResponse = PutApiCompaniesByCompanyIdOverviewResponses[keyof PutApiCompaniesByCompanyIdOverviewResponses];
+
+export type DeleteApiCompaniesByCompanyIdOverviewData = {
+    body?: never;
+    path: {
+        companyId: string;
+    };
+    query?: never;
+    url: '/api/companies/{companyId}/overview';
+};
+
+export type DeleteApiCompaniesByCompanyIdOverviewErrors = {
+    /**
+     * Not Found
+     */
+    404: ObjectResult;
+};
+
+export type DeleteApiCompaniesByCompanyIdOverviewError = DeleteApiCompaniesByCompanyIdOverviewErrors[keyof DeleteApiCompaniesByCompanyIdOverviewErrors];
+
+export type DeleteApiCompaniesByCompanyIdOverviewResponses = {
+    /**
+     * OK
+     */
+    200: DeletedResult;
+};
+
+export type DeleteApiCompaniesByCompanyIdOverviewResponse = DeleteApiCompaniesByCompanyIdOverviewResponses[keyof DeleteApiCompaniesByCompanyIdOverviewResponses];
