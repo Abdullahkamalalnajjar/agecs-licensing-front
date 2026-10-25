@@ -5,6 +5,7 @@ import { getIdentityRoles, postIdentityRoles, putIdentityRolesByRoleId, deleteId
 import { client } from "@/client/client.gen";
 import type { RoleDto } from "@/client/types.gen";
 import { usePermissions } from "@/components/AuthProvider";
+import RolePermissionsModal from "@/components/RolePermissionsModal";
 import { P } from "@/lib/permissions";
 
 const errorText = (data: unknown, fallback: string) => {
@@ -19,10 +20,13 @@ const errorText = (data: unknown, fallback: string) => {
  * Built-in roles (isSystem) can be renamed, after a warning, but not deleted: the code checks them by name.
  */
 export default function RolesPage() {
-  const { can } = usePermissions();
+  const { can, canField } = usePermissions();
   const canCreate = can(P.roles.create);
-  const canUpdate = can(P.roles.update);
+  const canRename = canField("roles", "name");
   const canDelete = can(P.roles.delete);
+  const canViewPermissions = can(P.roles.read);
+  const canEditPermissions = canField("roles", "permissions");
+  const [permissionsRole, setPermissionsRole] = useState<RoleDto | null>(null);
   const router = useRouter();
   const [roles, setRoles] = useState<RoleDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -143,7 +147,7 @@ export default function RolesPage() {
         </button>
       </form>}
       <p style={{ margin: "0 0 1.25rem", fontSize: "0.82rem", color: "var(--text-muted)" }}>
-        A new role has no permissions of its own yet; assign it to users from the Users page. Built-in roles can't be deleted, and renaming one affects its users' access.
+        A new role starts with no permissions: set them with 🔑, then assign the role to users from the Users page. Built-in roles can&apos;t be deleted, and renaming one affects its users&apos; access.
       </p>
 
       <div className="data-table-wrapper">
@@ -212,7 +216,23 @@ export default function RolesPage() {
                         </div>
                       ) : (
                         <div className="table-actions">
-                          {canUpdate && <button
+                          {canViewPermissions && (
+                            <button
+                              type="button"
+                              onClick={() => setPermissionsRole(role)}
+                              title="Permissions"
+                              aria-label={`Permissions for ${role.name}`}
+                              style={{
+                                display: "inline-flex", alignItems: "center", justifyContent: "center",
+                                width: 34, height: 34, borderRadius: "var(--radius-md)",
+                                border: "1px solid var(--border-strong)", background: "var(--bg-elevated)",
+                                color: "var(--text-secondary)", cursor: "pointer",
+                              }}
+                            >
+                              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="7.5" cy="15.5" r="5.5" /><path d="m21 2-9.6 9.6" /><path d="m15.5 7.5 3 3L22 7l-3-3" /></svg>
+                            </button>
+                          )}
+                          {canRename && <button
                             type="button"
                             className="btn-ghost"
                             style={{ color: "var(--accent-light)", borderColor: "var(--accent-border)" }}
@@ -235,6 +255,10 @@ export default function RolesPage() {
           </tbody>
         </table>
       </div>
+
+      {permissionsRole && (
+        <RolePermissionsModal role={permissionsRole} canEdit={canEditPermissions} onClose={() => setPermissionsRole(null)} />
+      )}
     </div>
   );
 }

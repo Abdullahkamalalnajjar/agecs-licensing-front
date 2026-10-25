@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { postApiPromocodes, putApiPromocodesById, getApiProducts, getApiPackages } from "@/client";
-import type { ProductDto, PromocodeDiscountType, PromocodeDto } from "@/client/types.gen";
+import { postApiPromocodes, putApiPromocodesById, getApiProducts, getApiPackages, getApiPromocodesUsers, getApiAcademicDomains } from "@/client";
+import type { ClientDto, ProductDto, PromocodeDiscountType, PromocodeDto } from "@/client/types.gen";
 import { usePermissions } from "@/components/AuthProvider";
 
 type PromocodeFormModalProps = {
@@ -50,6 +50,14 @@ const previewTotal = (type: PromocodeDiscountType, value: number) => {
   return Math.min(value, SAMPLE_TOTAL);
 };
 
+type PickedUser = { userId: string; label: string };
+
+const savedUsers = (p: PromocodeDto): PickedUser[] =>
+  (p.allowedUserIds ?? p.allowedUsers?.map((u) => u.userId!).filter(Boolean) ?? []).map((id) => {
+    const u = p.allowedUsers?.find((x) => x.userId === id);
+    return { userId: id, label: u?.email || u?.userName || id };
+  });
+
 const errorText = (data: unknown, fallback: string) =>
   (data as { errors?: { description?: string | null }[] | null } | undefined)?.errors
     ?.map((e) => e.description)
@@ -77,14 +85,33 @@ export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promoco
   const [products, setProducts] = useState<ProductDto[]>([]);
   const [packageIds, setPackageIds] = useState<string[]>([]);
   const [packages, setPackages] = useState<{ id: string; name: string }[]>([]);
-  // Who can use it: everyone, or accounts that verified one of these emails (OTP); plus academic / once-per-account limits.
-  const [specificEmails, setSpecificEmails] = useState(false);
-  const [emailsText, setEmailsText] = useState("");
+  // Who can use it: everyone, or picked accounts (plus legacy verified emails); plus academic / once-per-account limits.
+  const [specificUsers, setSpecificUsers] = useState(false);
+  const [users, setUsers] = useState<PickedUser[]>([]);
+  const [legacyEmails, setLegacyEmails] = useState<string[]>([]);
+  const [userSearch, setUserSearch] = useState("");
+  const [userResults, setUserResults] = useState<ClientDto[]>([]);
+  const [userSearchOpen, setUserSearchOpen] = useState(false);
   const [academicOnly, setAcademicOnly] = useState(false);
+  const [specificDomains, setSpecificDomains] = useState(false);
+  const [domains, setDomains] = useState<string[]>([]);
+  const [academicDomains, setAcademicDomains] = useState<string[] | null>(null);
   const [oncePerUser, setOncePerUser] = useState(false);
 
   useEffect(() => {
+    if (!isOpen || !specificUsers || !userSearchOpen) return;
+    let cancelled = false;
+    const t = setTimeout(() => {
+      getApiPromocodesUsers({ query: { search: userSearch.trim(), take: 20 }, throwOnError: false }).then((res) => {
+        if (!cancelled) setUserResults(res.data?.value ?? []);
+      });
+    }, 300);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [isOpen, specificUsers, userSearchOpen, userSearch]);
+
+  useEffect(() => {
     if (!isOpen) return;
+    getApiAcademicDomains({ throwOnError: false }).then((res) => setAcademicDomains(res.data?.value ?? []));
     getApiProducts({ query: { includeHidden: true }, throwOnError: false }).then((res) => {
       if (res.data?.value) setProducts(res.data.value);
     });
@@ -105,9 +132,13 @@ export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promoco
       setProductIds(promocode.productIds ?? []);
       setPackageIds(promocode.packageIds ?? []);
       setSpecificProducts((promocode.productIds?.length ?? 0) + (promocode.packageIds?.length ?? 0) > 0);
-      setSpecificEmails((promocode.allowedEmails?.length ?? 0) > 0);
-      setEmailsText((promocode.allowedEmails ?? []).join("\n"));
+      const picked = savedUsers(promocode);
+      setUsers(picked);
+      setLegacyEmails(promocode.allowedEmails ?? []);
+      setSpecificUsers(picked.length + (promocode.allowedEmails?.length ?? 0) > 0);
       setAcademicOnly(!!promocode.academicOnly);
+      setDomains(promocode.allowedDomains ?? []);
+      setSpecificDomains((promocode.allowedDomains?.length ?? 0) > 0);
       setOncePerUser(!!promocode.oncePerUser);
     } else {
       setCode("");
@@ -120,12 +151,18 @@ export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promoco
       setProductIds([]);
       setPackageIds([]);
       setSpecificProducts(false);
-      setSpecificEmails(false);
-      setEmailsText("");
+      setSpecificUsers(false);
+      setUsers([]);
+      setLegacyEmails([]);
       setAcademicOnly(false);
+      setDomains([]);
+      setSpecificDomains(false);
       setOncePerUser(false);
     }
     setProductSearch("");
+    setUserSearch("");
+    setUserResults([]);
+    setUserSearchOpen(false);
     setError("");
   }, [promocode, isOpen]);
 
@@ -150,20 +187,25 @@ export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promoco
   const togglePackage = (id: string, on: boolean) =>
     setPackageIds((prev) => on ? Array.from(new Set([...prev, id])) : prev.filter((x) => x !== id));
 
-  // One per line or comma-separated.
-  const allowedEmails = Array.from(new Set(emailsText.split(/[\s,;]+/).map((e) => e.trim().toLowerCase()).filter(Boolean)));
-  const badEmail = allowedEmails.find((e) => !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e));
-  const emailsProblem = !specificEmails || locked("allowedEmails") ? null
-    : allowedEmails.length === 0 ? "Add at least one email, or let everyone use the code."
-    : badEmail ? `"${badEmail}" isn't a valid email.`
-    : null;
+  const usersProblem = specificUsers && !locked("allowedEmails") && users.length + legacyEmails.length === 0
+    ? "Add at least one user, or let everyone use the code." : null;
+  const addUser = (c: ClientDto) => {
+    if (!c.userId) return;
+    setUsers((prev) => prev.some((u) => u.userId === c.userId) ? prev : [...prev, { userId: c.userId!, label: c.email || c.userName || c.userId! }]);
+  };
+  const domainsProblem = academicOnly && specificDomains && !locked("academicOnly") && domains.length === 0
+    ? "Pick at least one university, or allow all academic domains." : null;
+  // Saved domains stay pickable even if they were removed from the list since.
+  const domainOptions = Array.from(new Set([...(academicDomains ?? []), ...domains]));
+  const toggleDomain = (d: string, on: boolean) =>
+    setDomains((prev) => on ? Array.from(new Set([...prev, d])) : prev.filter((x) => x !== d));
 
   const toggleProducts = (ids: string[], on: boolean) =>
     setProductIds((prev) => on ? Array.from(new Set([...prev, ...ids])) : prev.filter((id) => !ids.includes(id)));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (noneEditable || !hasValue || valueProblem || productsProblem || emailsProblem) return;
+    if (noneEditable || !hasValue || valueProblem || productsProblem || usersProblem || domainsProblem) return;
     setLoading(true);
     setError("");
 
@@ -180,7 +222,9 @@ export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promoco
       productIds: specificProducts ? productIds : [],
       packageIds: specificProducts ? packageIds : [],
       // Empty list = anyone can use it.
-      allowedEmails: locked("allowedEmails") ? promocode?.allowedEmails ?? [] : specificEmails ? allowedEmails : [],
+      allowedUserIds: locked("allowedEmails") ? promocode?.allowedUserIds ?? [] : specificUsers ? users.map((u) => u.userId) : [],
+      allowedEmails: locked("allowedEmails") ? promocode?.allowedEmails ?? [] : specificUsers ? legacyEmails : [],
+      allowedDomains: locked("academicOnly") ? promocode?.allowedDomains ?? [] : academicOnly && specificDomains ? domains : [],
       academicOnly,
       oncePerUser,
     };
@@ -412,10 +456,10 @@ export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promoco
                 {!locked("allowedEmails") && (
                 <>
                 <div role="radiogroup" aria-label="Who can use it" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "0.5rem" }}>
-                  {[{ specific: false, label: "Everyone" }, { specific: true, label: "Specific emails" }].map((o) => {
-                    const selected = o.specific === specificEmails;
+                  {[{ specific: false, label: "Everyone" }, { specific: true, label: "Specific users" }].map((o) => {
+                    const selected = o.specific === specificUsers;
                     return (
-                      <button key={o.label} type="button" role="radio" aria-checked={selected} onClick={() => setSpecificEmails(o.specific)}
+                      <button key={o.label} type="button" role="radio" aria-checked={selected} onClick={() => setSpecificUsers(o.specific)}
                         style={{
                           padding: "0.6rem 0.5rem", borderRadius: "var(--radius-md)", cursor: "pointer",
                           font: "inherit", fontSize: "0.85rem", fontWeight: 600,
@@ -429,18 +473,59 @@ export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promoco
                   })}
                 </div>
 
-                {specificEmails && (
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <textarea
-                      value={emailsText}
-                      onChange={(e) => setEmailsText(e.target.value)}
-                      className="form-input"
-                      rows={4}
-                      placeholder={"student1@cu.edu.eg\nstudent2@aun.edu.eg"}
-                      style={{ fontFamily: "var(--font-mono)", fontSize: "0.82rem", resize: "vertical", borderColor: emailsProblem ? "var(--danger)" : undefined }}
-                    />
-                    <p style={{ margin: "0.4rem 0 0", fontSize: "0.78rem", color: emailsProblem ? "var(--danger)" : "var(--text-muted)" }}>
-                      {emailsProblem ?? `${allowedEmails.length} email${allowedEmails.length !== 1 ? "s" : ""}. One per line. The account must have verified one of them with a code (Profile → Emails).`}
+                {specificUsers && (
+                  <div className="form-group" style={{ marginBottom: 0, display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                    <div style={{ position: "relative" }}>
+                      <input
+                        type="search"
+                        value={userSearch}
+                        onChange={(e) => { setUserSearch(e.target.value); setUserSearchOpen(true); }}
+                        onFocus={() => setUserSearchOpen(true)}
+                        onBlur={() => setUserSearchOpen(false)}
+                        className="form-input"
+                        placeholder="Search accounts by email, name or phone…"
+                        style={{ borderColor: usersProblem ? "var(--danger)" : undefined }}
+                      />
+                      {userSearchOpen && (
+                        <div style={{ position: "absolute", zIndex: 10, top: "calc(100% + 4px)", left: 0, right: 0, maxHeight: "220px", overflowY: "auto", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", background: "var(--bg-surface)", boxShadow: "0 8px 24px rgba(0,0,0,0.25)" }}>
+                          {userResults.length === 0 ? (
+                            <p style={{ margin: 0, padding: "0.75rem", fontSize: "0.82rem", color: "var(--text-muted)" }}>No accounts found.</p>
+                          ) : userResults.map((c) => {
+                            const added = users.some((u) => u.userId === c.userId);
+                            return (
+                              <button
+                                key={c.userId}
+                                type="button"
+                                // mousedown fires before the input's blur closes the list
+                                onMouseDown={(e) => { e.preventDefault(); addUser(c); }}
+                                style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", width: "100%", padding: "0.45rem 0.75rem", border: "none", borderBottom: "1px solid var(--border)", background: added ? "var(--accent-dim)" : "transparent", cursor: "pointer", font: "inherit", textAlign: "left" }}
+                              >
+                                <span style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--text-primary)" }}>{c.email || c.userName || c.userId}{added ? " ✓" : ""}</span>
+                                {c.userName && c.email && <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{c.userName}</span>}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                    {users.length + legacyEmails.length > 0 && (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
+                        {users.map((u) => (
+                          <span key={u.userId} style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", padding: "0.25rem 0.5rem", borderRadius: "999px", fontSize: "0.8rem", border: "1px solid var(--accent)", background: "var(--accent-dim)", color: "var(--accent)" }}>
+                            {u.label}
+                            <button type="button" aria-label={`Remove ${u.label}`} onClick={() => setUsers((prev) => prev.filter((x) => x.userId !== u.userId))} style={{ border: "none", background: "none", color: "inherit", cursor: "pointer", padding: 0, font: "inherit", fontWeight: 700 }}>×</button>
+                          </span>
+                        ))}
+                        {legacyEmails.map((em) => (
+                          <span key={em} title="Saved before user picking; works once an account verifies this email." style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", padding: "0.25rem 0.5rem", borderRadius: "999px", fontSize: "0.8rem", border: "1px dashed var(--border)", background: "var(--bg-surface)", color: "var(--text-secondary)" }}>
+                            {em} <span style={{ color: "var(--text-muted)" }}>(no account)</span>
+                            <button type="button" aria-label={`Remove ${em}`} onClick={() => setLegacyEmails((prev) => prev.filter((x) => x !== em))} style={{ border: "none", background: "none", color: "inherit", cursor: "pointer", padding: 0, font: "inherit", fontWeight: 700 }}>×</button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <p style={{ margin: 0, fontSize: "0.78rem", color: usersProblem ? "var(--danger)" : "var(--text-muted)" }}>
+                      {usersProblem ?? `${users.length} user${users.length !== 1 ? "s" : ""}${legacyEmails.length ? ` and ${legacyEmails.length} email${legacyEmails.length !== 1 ? "s" : ""}` : ""}. Only these accounts can use the code.`}
                     </p>
                   </div>
                 )}
@@ -448,10 +533,54 @@ export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promoco
                 )}
 
                 {!locked("academicOnly") && (
+                <>
                 <label style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", fontSize: "0.875rem", cursor: "pointer", color: "var(--text-primary)" }}>
                   <input type="checkbox" checked={academicOnly} onChange={(e) => setAcademicOnly(e.target.checked)} style={{ width: "16px", height: "16px", marginTop: "2px" }} />
                   <span>Academic accounts only<br /><span style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>Needs a verified university email whose domain is in the academic domains list.</span></span>
                 </label>
+                {academicOnly && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem", paddingLeft: "1.5rem" }}>
+                    <div role="radiogroup" aria-label="Universities" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "0.5rem" }}>
+                      {[{ specific: false, label: "All academic domains" }, { specific: true, label: "Specific universities" }].map((o) => {
+                        const selected = o.specific === specificDomains;
+                        return (
+                          <button key={o.label} type="button" role="radio" aria-checked={selected} onClick={() => setSpecificDomains(o.specific)}
+                            style={{
+                              padding: "0.5rem 0.5rem", borderRadius: "var(--radius-md)", cursor: "pointer",
+                              font: "inherit", fontSize: "0.82rem", fontWeight: 600,
+                              border: `1px solid ${selected ? "var(--accent)" : "var(--border)"}`,
+                              background: selected ? "var(--accent-dim)" : "var(--bg-surface)",
+                              color: selected ? "var(--accent)" : "var(--text-secondary)",
+                            }}>
+                            {o.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {specificDomains && (
+                      <>
+                        {domainOptions.length === 0 ? (
+                          <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--text-muted)" }}>
+                            {academicDomains === null ? "Loading academic domains…" : "No academic domains yet. Add them in the Academic domains card first."}
+                          </p>
+                        ) : (
+                          <div style={{ maxHeight: "180px", overflowY: "auto", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", background: "var(--bg-surface)" }}>
+                            {domainOptions.map((d) => (
+                              <label key={d} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.35rem 0.75rem", fontSize: "0.82rem", cursor: "pointer", color: "var(--text-primary)", fontFamily: "var(--font-mono)" }}>
+                                <input type="checkbox" checked={domains.includes(d)} onChange={(e) => toggleDomain(d, e.target.checked)} style={{ width: "15px", height: "15px" }} />
+                                {d}
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                        <p style={{ margin: 0, fontSize: "0.78rem", color: domainsProblem ? "var(--danger)" : "var(--text-muted)" }}>
+                          {domainsProblem ?? `${domains.length} universit${domains.length !== 1 ? "ies" : "y"} selected. Subdomains count too; manage the list in the Academic domains card.`}
+                        </p>
+                      </>
+                    )}
+                  </div>
+                )}
+                </>
                 )}
                 {!locked("oncePerUser") && (
                 <label style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", fontSize: "0.875rem", cursor: "pointer", color: "var(--text-primary)" }}>
@@ -502,7 +631,7 @@ export default function PromocodeFormModal({ isOpen, onClose, onSuccess, promoco
 
         <div className="modal-footer">
           <button type="button" className="btn-ghost" onClick={onClose} disabled={loading}>Cancel</button>
-          <button type="submit" form="promocodeForm" className="btn-primary" disabled={loading || noneEditable || !hasValue || !!valueProblem || !!productsProblem}>
+          <button type="submit" form="promocodeForm" className="btn-primary" disabled={loading || noneEditable || !hasValue || !!valueProblem || !!productsProblem || !!usersProblem || !!domainsProblem}>
             {loading ? "Saving..." : "Save Promocode"}
           </button>
         </div>

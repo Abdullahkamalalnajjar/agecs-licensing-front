@@ -73,6 +73,12 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
     }
   };
 
+  // A percentage code shows its own value; other kinds show what they come to as a percent of what they discount.
+  const applied = cart?.appliedPromocode;
+  const percent = applied?.discountType === "Percentage" ? applied.discountValue ?? 0 : applied?.discountPercent ?? 0;
+  const discountPercentLabel = `${Number(percent.toFixed(2))}%`;
+  const discountedNames = (cart?.items ?? []).filter((i) => i.promocodeApplied).map((i) => i.itemName ?? "item");
+
   const handleApplyPromo = async () => {
     if (!promoCode.trim()) return;
     try {
@@ -253,7 +259,7 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                     <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
                   </svg>
                   <span style={{ fontSize: '1.1rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Your cart is empty</span>
-                  <span style={{ fontSize: '0.85rem', marginTop: '0.4rem' }}>Looks like you haven't added anything yet.</span>
+                  <span style={{ fontSize: '0.85rem', marginTop: '0.4rem' }}>Looks like you haven&apos;t added anything yet.</span>
                 </div>
               ) : (
                 cart.items.map((item) => (
@@ -276,9 +282,23 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                       <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--text-secondary)", fontWeight: 600, letterSpacing: '0.02em', textTransform: 'uppercase' }}>
                         Qty: {item.quantity}{!isPackage(item) && <> • Period: {formatPeriod(item.period)}</>}
                       </p>
-                      <p style={{ margin: "0.5rem 0 0 0", fontWeight: 800, fontSize: '1.15rem', color: "var(--primary-color)" }}>
-                        ${item.unitPrice?.toFixed(2)}
-                      </p>
+                      {item.promocodeApplied && (item.discountAmount ?? 0) > 0 ? (
+                        <div style={{ margin: "0.5rem 0 0 0", display: "flex", alignItems: "baseline", gap: "0.5rem", flexWrap: "wrap" }}>
+                          <span style={{ fontWeight: 800, fontSize: '1.15rem', color: "var(--primary-color)" }}>
+                            ${(item.totalAfterDiscount ?? 0).toFixed(2)}
+                          </span>
+                          <s style={{ fontSize: '0.85rem', color: "var(--text-muted)" }}>
+                            ${((item.unitPrice ?? 0) * (item.quantity ?? 1)).toFixed(2)}
+                          </s>
+                          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: "#16a34a", background: "rgba(22,163,74,0.1)", padding: "0.15rem 0.45rem", borderRadius: "999px" }}>
+                            -{discountPercentLabel} · {cart?.appliedPromocode?.code}
+                          </span>
+                        </div>
+                      ) : (
+                        <p style={{ margin: "0.5rem 0 0 0", fontWeight: 800, fontSize: '1.15rem', color: "var(--primary-color)" }}>
+                          ${item.unitPrice?.toFixed(2)}
+                        </p>
+                      )}
                     </div>
                     <button
                       onClick={() => handleRemoveItem(item.id)}
@@ -360,11 +380,33 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                     {promoError}
                   </p>
                 )}
+                {cart?.appliedPromocode ? (
+                  <p style={{ margin: "0.6rem 0 0 0", color: "#16a34a", fontSize: "0.8rem", fontWeight: 600 }}>
+                    {discountPercentLabel} off (−${(cart.discountAmount ?? 0).toFixed(2)})
+                    {" "}on {discountedNames.length === (cart.items?.length ?? 0) ? "your whole cart" : discountedNames.join(", ")}
+                  </p>
+                ) : cart?.promocode && (
+                  <p style={{ margin: "0.6rem 0 0 0", color: "var(--text-muted)", fontSize: "0.8rem" }}>
+                    This code doesn&apos;t discount anything in your cart.
+                  </p>
+                )}
               </div>
             )}
 
             {/* Total & Checkout */}
             <div style={{ borderTop: "1px solid var(--border)", paddingTop: "1.5rem", paddingBottom: "1rem" }}>
+              {(cart?.discountAmount ?? 0) > 0 && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem", marginBottom: "0.9rem", fontSize: "0.9rem" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", color: "var(--text-secondary)" }}>
+                    <span>Subtotal</span>
+                    <span>${(cart?.subtotal ?? 0).toFixed(2)}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", color: "#16a34a", fontWeight: 600 }}>
+                    <span>Discount ({cart?.appliedPromocode?.code} · {discountPercentLabel})</span>
+                    <span>−${(cart?.discountAmount ?? 0).toFixed(2)}</span>
+                  </div>
+                </div>
+              )}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "1.5rem" }}>
                 <span style={{ fontSize: "1rem", color: "var(--text-secondary)", fontWeight: 500 }}>Total amount</span>
                 <span style={{ fontSize: "2rem", fontWeight: 800, color: "var(--text-primary)", lineHeight: 1, letterSpacing: '-0.02em' }}>

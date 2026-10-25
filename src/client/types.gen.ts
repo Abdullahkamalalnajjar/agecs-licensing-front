@@ -90,6 +90,22 @@ export type CartDto = {
     promocode?: string | null;
     calculatedTotal?: number | null;
     items?: Array<CartItemDto> | null;
+    /** Sum of the lines before the promocode. */
+    subtotal?: number;
+    /** What the promocode takes off. */
+    discountAmount?: number;
+    /** Subtotal minus discountAmount. */
+    total?: number;
+    appliedPromocode?: CartPromocodeDto | null;
+};
+
+export type CartPromocodeDto = {
+    code?: string | null;
+    discountType?: PromocodeDiscountType | null;
+    discountValue?: number | null;
+    /** The discount as a percent of what it applies to (any kind of code). */
+    discountPercent?: number;
+    itemSpecific?: boolean;
 };
 
 export type CartDtoResult = {
@@ -107,6 +123,10 @@ export type CartItemDto = {
     quantity?: number;
     unitPrice?: number | null;
     period?: number | null;
+    /** The cart's promocode discounts this line. */
+    promocodeApplied?: boolean;
+    discountAmount?: number;
+    totalAfterDiscount?: number | null;
 };
 
 export type ChangeRoleRequest = {
@@ -370,6 +390,14 @@ export type CreatePromocodeCommand = {
      * Only accounts that verified (OTP) one of these emails can use it; empty = everyone.
      */
     allowedEmails?: Array<string> | null;
+    /**
+     * Only these accounts can use it; empty = everyone.
+     */
+    allowedUserIds?: Array<string> | null;
+    /**
+     * Only accounts with a verified email on one of these academic domains; forces academicOnly.
+     */
+    allowedDomains?: Array<string> | null;
     /**
      * Only accounts with a verified academic email.
      */
@@ -1098,6 +1126,18 @@ export type PromocodeDto = {
      */
     allowedEmails?: Array<string> | null;
     /**
+     * Only these accounts can use it (or a verified email in allowedEmails); empty = everyone.
+     */
+    allowedUserIds?: Array<string> | null;
+    /**
+     * The allowed accounts, for display.
+     */
+    allowedUsers?: Array<PromocodeAllowedUserDto> | null;
+    /**
+     * Only accounts with a verified email on one of these academic domains (or subdomains); empty = any.
+     */
+    allowedDomains?: Array<string> | null;
+    /**
      * Only accounts with a verified academic email.
      */
     academicOnly?: boolean;
@@ -1105,6 +1145,12 @@ export type PromocodeDto = {
      * Each account can pay with it once.
      */
     oncePerUser?: boolean;
+};
+
+export type PromocodeAllowedUserDto = {
+    userId?: string;
+    email?: string | null;
+    userName?: string | null;
 };
 
 export type PromocodeDtoListResult = {
@@ -1373,6 +1419,14 @@ export type UpdatePromocodeCommand = {
      * Only accounts that verified (OTP) one of these emails can use it; empty = everyone.
      */
     allowedEmails?: Array<string> | null;
+    /**
+     * Only these accounts can use it; empty = everyone.
+     */
+    allowedUserIds?: Array<string> | null;
+    /**
+     * Only accounts with a verified email on one of these academic domains; forces academicOnly.
+     */
+    allowedDomains?: Array<string> | null;
     /**
      * Only accounts with a verified academic email.
      */
@@ -2065,6 +2119,89 @@ export type PutIdentityUsersByUserIdPermissionsResponses = {
 };
 
 export type PutIdentityUsersByUserIdPermissionsResponse = PutIdentityUsersByUserIdPermissionsResponses[keyof PutIdentityUsersByUserIdPermissionsResponses];
+
+/**
+ * A role's permissions: what its users get unless they have their own custom permissions.
+ */
+export type RolePermissionDetails = {
+    roleId?: string | null;
+    name?: string | null;
+    /**
+     * Admin always has every permission and can't be changed.
+     */
+    isAdmin?: boolean;
+    /**
+     * The role's permissions were changed from the built-in defaults.
+     */
+    isCustom?: boolean;
+    defaultPermissions?: Array<string> | null;
+    permissions?: Array<string> | null;
+    userCount?: number;
+};
+
+export type RolePermissionDetailsResult = {
+    readonly isSuccess?: boolean;
+    readonly isError?: boolean;
+    value?: RolePermissionDetails;
+    readonly errors?: Array<Error> | null;
+};
+
+export type GetIdentityRolesByRoleIdPermissionsData = {
+    body?: never;
+    path: { roleId: string };
+    query?: never;
+    url: '/identity/roles/{roleId}/permissions';
+};
+
+export type GetIdentityRolesByRoleIdPermissionsResponses = { 200: RolePermissionDetailsResult };
+
+export type DeleteIdentityRolesByRoleIdPermissionsData = {
+    body?: never;
+    path: { roleId: string };
+    query?: never;
+    url: '/identity/roles/{roleId}/permissions';
+};
+
+export type DeleteIdentityRolesByRoleIdPermissionsResponses = { 200: UpdatedResult };
+
+export type PutIdentityRolesByRoleIdPermissionsData = {
+    body?: Array<string>;
+    path: {
+        roleId: string;
+    };
+    query?: never;
+    url: '/identity/roles/{roleId}/permissions';
+};
+
+export type PutIdentityRolesByRoleIdPermissionsErrors = {
+    /**
+     * Bad Request
+     */
+    400: ObjectResult;
+    /**
+     * Unauthorized
+     */
+    401: ObjectResult;
+    /**
+     * Forbidden
+     */
+    403: ObjectResult;
+    /**
+     * Not Found
+     */
+    404: ObjectResult;
+};
+
+export type PutIdentityRolesByRoleIdPermissionsError = PutIdentityRolesByRoleIdPermissionsErrors[keyof PutIdentityRolesByRoleIdPermissionsErrors];
+
+export type PutIdentityRolesByRoleIdPermissionsResponses = {
+    /**
+     * OK
+     */
+    200: UpdatedResult;
+};
+
+export type PutIdentityRolesByRoleIdPermissionsResponse = PutIdentityRolesByRoleIdPermissionsResponses[keyof PutIdentityRolesByRoleIdPermissionsResponses];
 
 export type GetIdentityMyPermissionsData = {
     body?: never;
@@ -5370,6 +5507,44 @@ export type GetApiPromocodesResponses = {
 };
 
 export type GetApiPromocodesResponse = GetApiPromocodesResponses[keyof GetApiPromocodesResponses];
+
+export type GetApiPromocodesUsersData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Part of an email, user name or phone number. Empty returns the first accounts by email.
+         */
+        search?: string;
+        /**
+         * Maximum results (1-50).
+         */
+        take?: number;
+    };
+    url: '/api/promocodes/users';
+};
+
+export type GetApiPromocodesUsersErrors = {
+    /**
+     * Unauthorized
+     */
+    401: ObjectResult;
+    /**
+     * Forbidden
+     */
+    403: ObjectResult;
+};
+
+export type GetApiPromocodesUsersError = GetApiPromocodesUsersErrors[keyof GetApiPromocodesUsersErrors];
+
+export type GetApiPromocodesUsersResponses = {
+    /**
+     * OK
+     */
+    200: ClientDtoListResult;
+};
+
+export type GetApiPromocodesUsersResponse = GetApiPromocodesUsersResponses[keyof GetApiPromocodesUsersResponses];
 
 export type PostApiPromocodesData = {
     /**

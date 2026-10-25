@@ -110,6 +110,8 @@ export default function PromocodesPage() {
           productIds: promo.productIds ?? [],
           packageIds: promo.packageIds ?? [],
           allowedEmails: promo.allowedEmails ?? [],
+          allowedUserIds: promo.allowedUserIds ?? [],
+          allowedDomains: promo.allowedDomains ?? [],
           academicOnly: !!promo.academicOnly,
           oncePerUser: !!promo.oncePerUser,
         },
@@ -240,12 +242,21 @@ export default function PromocodesPage() {
                         return <span title={names.join("\n")}>Only: {shown}{names.length > 2 && ` +${names.length - 2} more`}</span>;
                       })() : "Whole cart"}
                     </div>
-                    {(promo.allowedEmails?.length > 0 || promo.academicOnly || promo.oncePerUser) && (
+                    {(promo.allowedUserIds?.length > 0 || promo.allowedEmails?.length > 0 || promo.academicOnly || promo.oncePerUser) && (
                       <div style={{ display: "flex", gap: "0.3rem", flexWrap: "wrap", marginTop: "0.35rem", fontFamily: "var(--font-sans, inherit)" }}>
-                        {promo.allowedEmails?.length > 0 && (
-                          <span className="badge badge-neutral" title={promo.allowedEmails.join("\n")}>{promo.allowedEmails.length} email{promo.allowedEmails.length !== 1 ? "s" : ""}</span>
+                        {(promo.allowedUserIds?.length ?? 0) + (promo.allowedEmails?.length ?? 0) > 0 && (() => {
+                          const n = (promo.allowedUserIds?.length ?? 0) + (promo.allowedEmails?.length ?? 0);
+                          const names = [
+                            ...(promo.allowedUsers ?? []).map((u: { email?: string | null; userName?: string | null; userId?: string }) => u.email || u.userName || u.userId),
+                            ...(promo.allowedEmails ?? []).map((e: string) => `${e} (no account)`),
+                          ];
+                          return <span className="badge badge-neutral" title={names.join("\n")}>{n} user{n !== 1 ? "s" : ""}</span>;
+                        })()}
+                        {promo.academicOnly && (
+                          <span className="badge badge-warning" title={promo.allowedDomains?.length ? promo.allowedDomains.join("\n") : undefined}>
+                            {promo.allowedDomains?.length ? `Academic: ${promo.allowedDomains.slice(0, 2).join(", ")}${promo.allowedDomains.length > 2 ? ` +${promo.allowedDomains.length - 2}` : ""}` : "Academic"}
+                          </span>
                         )}
-                        {promo.academicOnly && <span className="badge badge-warning">Academic</span>}
                         {promo.oncePerUser && <span className="badge badge-neutral">Once / account</span>}
                       </div>
                     )}
