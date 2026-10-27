@@ -299,9 +299,10 @@ export type PatchApiProductsOffersByOfferIdActiveResponses = { 200: UpdatedResul
 export type PatchApiPackagesOffersByOfferIdActiveData = { body?: SetOfferActiveRequest; path: { offerId: string }; query?: never; url: '/api/packages/offers/{offerId}/active' };
 export type PatchApiPackagesOffersByOfferIdActiveResponses = { 200: UpdatedResult };
 
-export type SupportRequestDto = { id?: string; userId?: string; userEmail?: string | null; productId?: string; productName?: string | null; parentProductName?: string | null; packageId?: string | null; packageName?: string | null; paymentId?: string | null; periodDays?: number; licenseCount?: number; status?: string | null; createdAtUtc?: string; licenseId?: string | null };
+export type SupportRequestDto = { id?: string; userId?: string; userEmail?: string | null; productId?: string; productName?: string | null; parentProductName?: string | null; packageId?: string | null; packageName?: string | null; paymentId?: string | null; periodDays?: number; licenseCount?: number; status?: string | null; createdAtUtc?: string; licenseId?: string | null; userName?: string | null; suggestedLicenseName?: string | null };
 export type SupportRequestDtoListResult = { readonly isSuccess?: boolean; readonly isError?: boolean; readonly value?: Array<SupportRequestDto> | null; readonly errors?: Array<Error> | null };
-export type FulfillSupportRequestRequest = { serial?: string | null; expiryDate?: string | null; licenseCount?: number | null };
+/** platform: network | workstation | standalone. issuedAt defaults to now; the default expiry counts from it. */
+export type FulfillSupportRequestRequest = { serial?: string | null; expiryDate?: string | null; licenseCount?: number | null; licenseFullName?: string | null; vendorUsername?: string | null; vendorPassword?: string | null; platform?: string | null; issuedAt?: string | null };
 export type GetApiLicensesMySupportRequestsData = { body?: never; path?: never; query?: never; url: '/api/licenses/my/support-requests' };
 export type GetApiLicensesMySupportRequestsResponses = { 200: SupportRequestDtoListResult };
 export type GetApiLicensesSupportRequestsData = { body?: never; path?: never; query?: { status?: string }; url: '/api/licenses/support-requests' };
@@ -650,6 +651,15 @@ export type LicenseDto = {
      * The devices (HWIDs) registered on this license.
      */
     hwids?: Array<string> | null;
+    /**
+     * Set on a license support issued by hand (e.g. NanoCAD): its full name, the vendor login made for the
+     * customer, the platform (network | workstation | standalone) and when the vendor issued it.
+     */
+    licenseFullName?: string | null;
+    vendorUsername?: string | null;
+    vendorPassword?: string | null;
+    platform?: string | null;
+    issuedAt?: string | null;
 };
 
 export type LicenseDtoListResult = {

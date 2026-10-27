@@ -160,6 +160,21 @@ export default function LicenseDetailsModal({ license, isOpen, onClose }: Licens
             </div>
           </Card>
 
+          {/* Vendor details: licenses support issued by hand (e.g. NanoCAD) */}
+          {(license.licenseFullName || license.vendorUsername || license.platform) && (
+            <Card>
+              <SectionLabel>Vendor account</SectionLabel>
+              {license.licenseFullName && <Row label="License" value={license.licenseFullName} />}
+              {license.platform && <Row label="Platform" value={license.platform.charAt(0).toUpperCase() + license.platform.slice(1)} />}
+              <Row label="Number of licenses" value={String(license.licenseCount ?? 1)} />
+              {license.vendorUsername && <Row label="Username" value={license.vendorUsername} mono />}
+              {license.vendorPassword && <Row label="Password" value={license.vendorPassword} mono />}
+              {license.issuedAt && (
+                <Row label="Created on" value={new Date(license.issuedAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })} />
+              )}
+            </Card>
+          )}
+
           {/* 2-col details */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
 

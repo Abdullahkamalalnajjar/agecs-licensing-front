@@ -145,21 +145,35 @@ export default function SupportRequestsPanel({ ready, onFulfilled }: { ready: bo
   );
 }
 
+const PLATFORMS: [string, string][] = [["network", "Network"], ["workstation", "Workstation"], ["standalone", "Standalone"]];
+
+const toDateInput = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
 function FulfillModal({ request, onClose, onSuccess }: { request: SupportRequestDto; onClose: () => void; onSuccess: () => void }) {
   const { success } = useToast();
+  const [licenseFullName, setLicenseFullName] = useState(request.suggestedLicenseName || requestProduct(request));
+  const [vendorUsername, setVendorUsername] = useState("");
+  const [vendorPassword, setVendorPassword] = useState("");
   const [serial, setSerial] = useState("");
-  // Filled with the purchased period from today; change it to the vendor's date if that differs.
-  const [expiryDate, setExpiryDate] = useState(() => {
-    if (!request.periodDays) return "";
-    const d = new Date(Date.now() + request.periodDays * 24 * 60 * 60 * 1000);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  });
+  const [platform, setPlatform] = useState("");
   const [seats, setSeats] = useState(String(request.licenseCount ?? 1));
+  const [issuedAt, setIssuedAt] = useState(() => toDateInput(new Date()));
+  // Follows the creation date (plus the purchased period) until edited by hand.
+  const [expiryEdited, setExpiryEdited] = useState(false);
+  const [expiryInput, setExpiryInput] = useState("");
+  const defaultExpiry = (() => {
+    if (!request.periodDays || !issuedAt) return "";
+    const d = new Date(`${issuedAt}T00:00:00`);
+    d.setDate(d.getDate() + request.periodDays);
+    return toDateInput(d);
+  })();
+  const expiryDate = expiryEdited ? expiryInput : defaultExpiry;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (expiryDate && issuedAt && expiryDate <= issuedAt) { setError("The expiry date must be after the creation date."); return; }
     setLoading(true);
     setError("");
     try {
@@ -167,14 +181,19 @@ function FulfillModal({ request, onClose, onSuccess }: { request: SupportRequest
       const res = await postApiLicensesSupportRequestsByIdFulfill({
         path: { id: request.id! },
         body: {
+          licenseFullName: licenseFullName.trim(),
+          vendorUsername: vendorUsername.trim(),
+          vendorPassword,
           serial: serial.trim(),
-          expiryDate: expiryDate ? new Date(`${expiryDate}T23:59:59`).toISOString() : null,
+          platform,
           licenseCount: Number.isFinite(count) && count > 0 ? count : null,
+          issuedAt: issuedAt ? new Date(`${issuedAt}T00:00:00`).toISOString() : null,
+          expiryDate: expiryDate ? new Date(`${expiryDate}T23:59:59`).toISOString() : null,
         },
         throwOnError: false,
       });
       if (res.data?.isSuccess) {
-        success("License issued to the customer.");
+        success("License issued and emailed to the customer.");
         onSuccess();
       } else {
         setError(errorText(res.data ?? res.error, res.response?.status === 409 ? "This request was already fulfilled." : "Failed to fulfill the request."));
@@ -186,14 +205,17 @@ function FulfillModal({ request, onClose, onSuccess }: { request: SupportRequest
     }
   };
 
+  const hint = { margin: "0.3rem 0 0", fontSize: "0.75rem", color: "var(--text-muted)" } as const;
+  const row = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "1rem" } as const;
+
   return (
     <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget && !loading) onClose(); }}>
-      <div className="modal-container" style={{ maxWidth: 440, overflow: "hidden" }}>
+      <div className="modal-container" style={{ maxWidth: 520, overflow: "hidden" }}>
         <div className="modal-header">
           <div>
             <h2 className="modal-title" style={{ fontSize: "1.1rem", margin: 0 }}>Fulfill support request</h2>
             <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--text-muted)" }}>
-              {requestProduct(request)}{request.userEmail ? ` · ${request.userEmail}` : ""}
+              {requestProduct(request)}{request.userEmail ? ` · ${request.userEmail}` : ""}{request.userName ? ` (${request.userName})` : ""}
             </p>
           </div>
           <button type="button" className="modal-close" onClick={onClose} disabled={loading} aria-label="Close">
@@ -204,26 +226,55 @@ function FulfillModal({ request, onClose, onSuccess }: { request: SupportRequest
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="modal-body" style={{ padding: "1.5rem 1.75rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
+          <div className="modal-body" style={{ padding: "1.5rem 1.75rem", display: "flex", flexDirection: "column", gap: "1rem", maxHeight: "70vh", overflowY: "auto" }}>
             {error && <div className="alert-error">{error}</div>}
             <div>
-              <label className="form-label" htmlFor="fulfill-serial">Serial</label>
-              <input id="fulfill-serial" className="form-input" value={serial} onChange={(e) => setSerial(e.target.value)} placeholder="Serial from the vendor" required autoFocus />
-              <p style={{ margin: "0.3rem 0 0", fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                The customer gets it by email and sees it in their licenses.
-              </p>
+              <label className="form-label" htmlFor="fulfill-name">License full name</label>
+              <input id="fulfill-name" className="form-input" value={licenseFullName} onChange={(e) => setLicenseFullName(e.target.value)} required autoFocus />
+              <p style={hint}>Filled from the request; change it to the vendor&apos;s name for the license.</p>
+            </div>
+            <div style={row}>
+              <div>
+                <label className="form-label" htmlFor="fulfill-username">Username</label>
+                <input id="fulfill-username" className="form-input" value={vendorUsername} onChange={(e) => setVendorUsername(e.target.value)} placeholder="NanoCAD username" autoComplete="off" required />
+              </div>
+              <div>
+                <label className="form-label" htmlFor="fulfill-password">Password</label>
+                <input id="fulfill-password" className="form-input" value={vendorPassword} onChange={(e) => setVendorPassword(e.target.value)} placeholder="NanoCAD password" autoComplete="new-password" required />
+              </div>
             </div>
             <div>
-              <label className="form-label" htmlFor="fulfill-expiry">Expiry date</label>
-              <input id="fulfill-expiry" type="date" className="form-input" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} />
-              <p style={{ margin: "0.3rem 0 0", fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                The purchased period ({fmtPeriod(request.periodDays)}) from today. Change it to the vendor&apos;s expiry date if it differs.
-              </p>
+              <label className="form-label" htmlFor="fulfill-serial">Serial number</label>
+              <input id="fulfill-serial" className="form-input" value={serial} onChange={(e) => setSerial(e.target.value)} placeholder="Serial from the vendor" required />
             </div>
-            <div>
-              <label className="form-label" htmlFor="fulfill-seats">Seats</label>
-              <input id="fulfill-seats" type="number" min={1} className="form-input" value={seats} onChange={(e) => setSeats(e.target.value)} />
+            <div style={row}>
+              <div>
+                <label className="form-label" htmlFor="fulfill-platform">Platform</label>
+                <select id="fulfill-platform" className="form-input" value={platform} onChange={(e) => setPlatform(e.target.value)} required>
+                  <option value="" disabled>Choose…</option>
+                  {PLATFORMS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="form-label" htmlFor="fulfill-seats">Number of licenses</label>
+                <input id="fulfill-seats" type="number" min={1} className="form-input" value={seats} onChange={(e) => setSeats(e.target.value)} required />
+              </div>
             </div>
+            <div style={row}>
+              <div>
+                <label className="form-label" htmlFor="fulfill-issued">Creation date</label>
+                <input id="fulfill-issued" type="date" className="form-input" value={issuedAt} onChange={(e) => setIssuedAt(e.target.value)} required />
+              </div>
+              <div>
+                <label className="form-label" htmlFor="fulfill-expiry">Expiry date</label>
+                <input id="fulfill-expiry" type="date" className="form-input" value={expiryDate} min={issuedAt || undefined}
+                  onChange={(e) => { setExpiryEdited(true); setExpiryInput(e.target.value); }} />
+              </div>
+            </div>
+            <p style={{ ...hint, marginTop: "-0.5rem" }}>
+              Expiry is the purchased period ({fmtPeriod(request.periodDays)}) from the creation date; change it if the vendor&apos;s differs.
+              Everything above is emailed to the customer and shown in their licenses.
+            </p>
           </div>
           <div className="modal-footer">
             <button type="button" className="btn-ghost" onClick={onClose} disabled={loading}>Cancel</button>
