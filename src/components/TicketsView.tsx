@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import TicketFormModal from "@/components/TicketFormModal";
 import { TicketCategoryDto } from "@/client/types.gen";
 import Link from "next/link";
+import { hasSession } from "@/components/AuthProvider";
 
 const getPriorityClass = (priority: string) => {
   switch (priority?.toLowerCase()) {
@@ -41,12 +42,10 @@ export default function TicketsView({ embedded = false }: { embedded?: boolean }
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
-      if (!token) { router.push("/login"); return; }
+      if (!hasSession()) { router.push("/login"); return; }
 
       client.setConfig({
         baseUrl: (process.env.NEXT_PUBLIC_API_URL || "https://localhost:5003"),
-        auth: token,
       });
 
       const [ticketsRes, categoriesRes] = await Promise.all([

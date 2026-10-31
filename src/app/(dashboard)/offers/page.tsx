@@ -18,7 +18,7 @@ import {
 import { client } from "@/client/client.gen";
 import type { OfferDto, PackageDto, ProductDto } from "@/client/types.gen";
 import { useToast } from "@/components/ToastProvider";
-import { usePermissions } from "@/components/AuthProvider";
+import { usePermissions, hasSession } from "@/components/AuthProvider";
 import { P } from "@/lib/permissions";
 import { CURRENCIES } from "@/context/CurrencyContext";
 import "./offers.css";
@@ -138,11 +138,9 @@ export default function OffersPage() {
   }, []);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) { router.push("/login"); return; }
+    if (!hasSession()) { router.push("/login"); return; }
     client.setConfig({
       baseUrl: process.env.NEXT_PUBLIC_API_URL || "https://localhost:5003",
-      auth: token,
     });
 
     (async () => {

@@ -14,7 +14,7 @@ import { AppUserDto } from "@/client/types.gen";
 import UserLicensesModal from "@/components/UserLicensesModal";
 import CreateUserModal from "@/components/CreateUserModal";
 import UserPermissionsModal from "@/components/UserPermissionsModal";
-import { usePermissions } from "@/components/AuthProvider";
+import { usePermissions, hasSession } from "@/components/AuthProvider";
 import { P } from "@/lib/permissions";
 
 // ============================================================
@@ -183,14 +183,12 @@ export default function UsersPage() {
   };
 
   const setupClient = useCallback(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
+    if (!hasSession()) {
       router.push("/login");
       return false;
     }
     client.setConfig({
       baseUrl: (process.env.NEXT_PUBLIC_API_URL || "https://localhost:5003"),
-      auth: token,
     });
     return true;
   }, [router]);

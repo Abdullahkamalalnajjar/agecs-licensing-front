@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { getIdentityRoles, postIdentityRoles, putIdentityRolesByRoleId, deleteIdentityRolesByRoleId } from "@/client";
 import { client } from "@/client/client.gen";
 import type { RoleDto } from "@/client/types.gen";
-import { usePermissions } from "@/components/AuthProvider";
+import { usePermissions, hasSession } from "@/components/AuthProvider";
 import RolePermissionsModal from "@/components/RolePermissionsModal";
 import { P } from "@/lib/permissions";
 
@@ -39,9 +39,8 @@ export default function RolesPage() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const fetchRoles = useCallback(async () => {
-    const token = localStorage.getItem("token");
-    if (!token) { router.push("/login"); return; }
-    client.setConfig({ baseUrl: process.env.NEXT_PUBLIC_API_URL || "https://localhost:5003", auth: token });
+    if (!hasSession()) { router.push("/login"); return; }
+    client.setConfig({ baseUrl: process.env.NEXT_PUBLIC_API_URL || "https://localhost:5003" });
 
     setLoading(true);
     try {

@@ -58,7 +58,7 @@ export default function RegisterPage() {
 
       const token = response.data?.value?.accessToken;
       if (response.data?.isSuccess && token) {
-        login(token, response.data.value?.refreshToken || undefined);
+        login(token, undefined, response.data.value?.expiresOnUtc);
         router.push("/home");
       } else {
         setError(errorText(response.error ?? response.data, "Couldn't create your account."));

@@ -30,10 +30,8 @@ export default function ChangePasswordModal({ onClose, onSuccess }: { onClose: (
 
   useEffect(() => {
     let cancelled = false;
-    const token = localStorage.getItem("token");
     client.setConfig({
       baseUrl: process.env.NEXT_PUBLIC_API_URL || "https://localhost:5003",
-      ...(token ? { auth: token } : {}),
     });
     getIdentityCurrentUser({ throwOnError: false })
       // If the check fails, assume a password exists: asking for it is the safe side, and the API checks anyway.

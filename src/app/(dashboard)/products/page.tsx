@@ -132,10 +132,8 @@ export default function ProductsPage() {
     setLoading(true);
     setError("");
     try {
-      const token = localStorage.getItem("token");
       client.setConfig({
         baseUrl: process.env.NEXT_PUBLIC_API_URL || "https://localhost:5003",
-        ...(token ? { auth: token } : {}),
       });
 
       const response = await getApiProducts({ query: { includeHidden: isAdmin }, throwOnError: false });

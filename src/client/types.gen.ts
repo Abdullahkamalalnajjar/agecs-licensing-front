@@ -1184,9 +1184,10 @@ export type PublicRegisterRequest = {
     phoneNumber: string;
 };
 
+/** Both optional for a browser: an empty body refreshes from the session cookies. */
 export type RefreshTokenRequest = {
-    accessToken: string;
-    refreshToken: string;
+    accessToken?: string | null;
+    refreshToken?: string | null;
 };
 
 export type RegisterUserRequest = {
@@ -1330,6 +1331,8 @@ export type TokenResponse = {
     accessToken?: string | null;
     refreshToken?: string | null;
     expiresOnUtc?: string;
+    /** When the refresh token (and so the session) expires. */
+    refreshTokenExpiresOnUtc?: string;
 };
 
 export type TokenResponseResult = {

@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import { getApiTicketsById, postApiTicketsByIdComments, putApiTicketsByIdStatus } from "@/client";
 import { client } from "@/client/client.gen";
 import { useRouter, useParams } from "next/navigation";
-import { useAuth, usePermissions } from "@/components/AuthProvider";
+import { useAuth, usePermissions, hasSession } from "@/components/AuthProvider";
 import { useToast } from "@/components/ToastProvider";
 import Link from "next/link";
 
@@ -29,15 +29,13 @@ export default function TicketDetailsPage() {
   const fetchTicket = useCallback(async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
+      if (!hasSession()) {
         router.push("/login");
         return;
       }
 
       client.setConfig({
         baseUrl: (process.env.NEXT_PUBLIC_API_URL || "https://localhost:5003"),
-        auth: token
       });
 
       const response = await getApiTicketsById({ path: { id: ticketId }, throwOnError: false });

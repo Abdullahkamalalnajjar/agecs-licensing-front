@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import TicketCategoryFormModal from "@/components/TicketCategoryFormModal";
 import { TicketCategoryDto } from "@/client/types.gen";
 import "@/components/product-form.css";
-import { usePermissions } from "@/components/AuthProvider";
+import { usePermissions, hasSession } from "@/components/AuthProvider";
 import { P } from "@/lib/permissions";
 
 export default function TicketCategoriesPage() {
@@ -28,12 +28,10 @@ export default function TicketCategoriesPage() {
   const fetchCategories = useCallback(async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
-      if (!token) { router.push("/login"); return; }
+      if (!hasSession()) { router.push("/login"); return; }
 
       client.setConfig({
         baseUrl: (process.env.NEXT_PUBLIC_API_URL || "https://localhost:5003"),
-        auth: token,
       });
 
       const response = await getApiTicketCategories({ throwOnError: false });

@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { usePermissions } from "@/components/AuthProvider";
+import { usePermissions, hasSession } from "@/components/AuthProvider";
 import { P } from "@/lib/permissions";
 import { getApiPackages, deleteApiPackagesById, patchApiPackagesByIdHidden, putApiPackagesReorder } from "@/client";
 import { client } from "@/client/client.gen";
@@ -35,12 +35,10 @@ export default function PackagesPage() {
   const fetchPackages = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
-      if (!token) { router.push("/login"); return; }
+      if (!hasSession()) { router.push("/login"); return; }
 
       client.setConfig({
         baseUrl: process.env.NEXT_PUBLIC_API_URL || "https://localhost:5003",
-        auth: token,
       });
 
       const response = await getApiPackages({ query: { includeHidden: true }, throwOnError: false });

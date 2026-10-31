@@ -35,11 +35,9 @@ export default function DashboardPage() {
       try {
         setLoading(true);
         setError("");
-        const token = localStorage.getItem("token");
         client.setConfig({
           baseUrl: process.env.NEXT_PUBLIC_API_URL || "https://localhost:5003",
-          auth: token || undefined,
-        });
+                  });
 
         if (isAdmin) {
           const { data, error } = await getStats({ throwOnError: false });

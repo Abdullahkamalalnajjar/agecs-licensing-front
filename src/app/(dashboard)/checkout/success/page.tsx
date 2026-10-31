@@ -20,16 +20,7 @@ export default function CheckoutSuccessPage() {
   const attemptsRef = useRef(0);
 
   useEffect(() => {
-    client.setConfig({
-      baseUrl: process.env.NEXT_PUBLIC_API_URL || "https://localhost:5003",
-      auth: (() => {
-        try {
-          return localStorage.getItem("token") || undefined;
-        } catch {
-          return undefined;
-        }
-      })(),
-    });
+    client.setConfig({ baseUrl: process.env.NEXT_PUBLIC_API_URL || "https://localhost:5003" });
 
     const paymentId =
       searchParams.get("paymentId") ||

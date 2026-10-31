@@ -36,10 +36,9 @@ export default function LoginPage() {
 
       if (response.data?.isSuccess && response.data?.value?.accessToken) {
         const token = response.data.value.accessToken;
-        const refreshToken = response.data.value.refreshToken;
         
         // Use the auth context login method to update global state immediately
-        login(token, refreshToken || undefined);
+        login(token, undefined, response.data.value.expiresOnUtc);
         
         try {
           const decoded: any = jwtDecode(token);
@@ -85,10 +84,9 @@ export default function LoginPage() {
 
       if (response.data?.isSuccess && response.data?.value?.accessToken) {
         const token = response.data.value.accessToken;
-        const refreshToken = response.data.value.refreshToken;
         
         // Use the auth context login method to update global state immediately
-        login(token, refreshToken || undefined);
+        login(token, undefined, response.data.value.expiresOnUtc);
         
         try {
           const decoded: any = jwtDecode(token);

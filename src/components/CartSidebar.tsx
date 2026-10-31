@@ -124,7 +124,7 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
     try {
       setIsCheckingOut(true);
 
-      const amountInMinorUnits = Math.round((cart.calculatedTotal ?? 0) * 100);
+      const amountInMinorUnits = Math.round((cart.total ?? cart.calculatedTotal ?? 0) * 100);
       const [firstName, ...rest] = (user?.email?.split("@")[0] ?? "Customer").split(".");
 
       const res = await postApiPaymentsCheckout({
@@ -410,7 +410,7 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "1.5rem" }}>
                 <span style={{ fontSize: "1rem", color: "var(--text-secondary)", fontWeight: 500 }}>Total amount</span>
                 <span style={{ fontSize: "2rem", fontWeight: 800, color: "var(--text-primary)", lineHeight: 1, letterSpacing: '-0.02em' }}>
-                  ${cart?.calculatedTotal?.toFixed(2) || "0.00"}
+                  ${(cart?.total ?? cart?.calculatedTotal ?? 0).toFixed(2)}
                 </span>
               </div>
               <button

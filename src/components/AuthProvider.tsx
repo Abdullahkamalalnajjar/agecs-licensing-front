@@ -2,14 +2,48 @@
 
 import { createContext, useContext, useEffect, useState, useRef, ReactNode } from "react";
 import { jwtDecode } from "jwt-decode";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { client } from "@/client/client.gen";
-import { postIdentityTokenRefreshToken, getIdentityMyPermissions } from "@/client";
+import { postIdentityTokenRefreshToken, getIdentityMyPermissions, getIdentityCurrentUser } from "@/client";
 import { isStaff as hasStaffPermission } from "@/lib/permissions";
 
 // The generated client starts with a placeholder base URL; set the API's once for the whole app, so calls made
 // before a page configures the client (like loading the user's permissions) don't go to the wrong address.
-client.setConfig({ baseUrl: process.env.NEXT_PUBLIC_API_URL || "https://localhost:5003" });
+// The session lives in HttpOnly cookies the API sets (page scripts can't read them), so every call sends
+// cookies, plus the header the API requires on cookie requests that change something (CSRF protection).
+client.setConfig({
+  baseUrl: process.env.NEXT_PUBLIC_API_URL || "https://localhost:5003",
+  credentials: "include",
+  headers: { "X-Requested-With": "XMLHttpRequest" },
+});
+
+// Not secrets: whether this browser has a session (so guests don't try to refresh one) and when its access token expires.
+const SESSION_KEY = "signedIn";
+const EXPIRES_KEY = "sessionExpiresAt";
+
+const storage = {
+  get: (key: string) => { try { return localStorage.getItem(key); } catch { return null; } },
+  set: (key: string, value: string) => { try { localStorage.setItem(key, value); } catch { /* ignore */ } },
+  remove: (key: string) => { try { localStorage.removeItem(key); } catch { /* ignore */ } },
+};
+
+/** Whether this browser is signed in (its session cookie can't be read from script, so this flag tracks it). */
+export function hasSession() {
+  return storage.get(SESSION_KEY) === "1";
+}
+
+// Tokens from before the session moved to cookies.
+storage.remove("token");
+storage.remove("refreshToken");
+
+const roleOf = (roles: unknown): Role => {
+  let role = Array.isArray(roles) ? roles[0] : roles;
+  // Tokens issued before NormalUser was merged into User still say NormalUser until they expire.
+  if (!role || role === "NormalUser") role = "User";
+  return role as Role;
+};
+
+const API_URL = () => process.env.NEXT_PUBLIC_API_URL || "https://localhost:5003";
 
 export type Role = "Admin" | "Sales" | "Student" | "User" | string;
 
@@ -27,7 +61,8 @@ export interface AuthUser {
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
-  login: (token: string, refreshToken?: string) => void;
+  /** After a successful sign-in: the API has set the session cookies; the token is only read for the user's details. */
+  login: (token: string, refreshToken?: string, expiresOnUtc?: string) => void;
   logout: () => void;
 }
 
@@ -71,254 +106,120 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // The permissions of the signed-in user id they were loaded for (null until loaded).
   const [loaded, setLoaded] = useState<{ userId: string; permissions: string[] } | null>(null);
   const router = useRouter();
-  const pathname = usePathname();
+  const proactiveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const refreshingRef = useRef<Promise<boolean> | null>(null);
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      try {
-        const decoded: any = jwtDecode(token);
-        
-        // Extract role - might be in a different claim key depending on backend Identity config
-        let role = decoded.role || decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
-        if (Array.isArray(role)) role = role[0]; // If multiple roles, just take the first for simplicity
-        // Tokens issued before NormalUser was merged into User still say NormalUser until they expire.
-        if (!role || role === "NormalUser") role = "User";
-        
-        // Extract email - might be in array
-        let email = decoded.email || decoded.unique_name || "";
-        if (Array.isArray(email)) email = email[0];
-        
-        setUser({
-          id: decoded.sub || decoded.nameid || "",
-          email: email,
-          role: role,
-          permissions: [],
-        });
-
-        // Set the client config globally
-        client.setConfig({
-          auth: token
-        });
-      } catch (err) {
-        console.error("Failed to decode token", err);
-        localStorage.removeItem("token");
-        setUser(null);
-      }
-    } else {
-      setUser(null);
-    }
-    setLoading(false);
-  }, [pathname]);
-
-  const login = (token: string, refreshToken?: string) => {
-    localStorage.setItem("token", token);
-    if (refreshToken) {
-      localStorage.setItem("refreshToken", refreshToken);
-    }
-    try {
-      const decoded: any = jwtDecode(token);
-      let role = decoded.role || decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
-      if (Array.isArray(role)) role = role[0];
-      if (!role || role === "NormalUser") role = "User";
-      
-      let email = decoded.email || decoded.unique_name || "";
-      if (Array.isArray(email)) email = email[0];
-      
-      setUser({
-        id: decoded.sub || decoded.nameid || "",
-        email: email,
-        role: role,
-        permissions: [],
-      });
-
-      // Set the client config globally
-      client.setConfig({
-        auth: token
-      });
-    } catch (err) {
-      console.error("Failed to decode token", err);
-    }
+  const clearSession = () => {
+    storage.remove(SESSION_KEY);
+    storage.remove(EXPIRES_KEY);
+    if (proactiveTimerRef.current) clearTimeout(proactiveTimerRef.current);
+    setUser(null);
   };
 
   const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("refreshToken");
-    setUser(null);
-    client.setConfig({ auth: undefined });
+    // Ends the session on the API and clears its cookies; the UI signs out either way.
+    client.post({ url: "/identity/logout", throwOnError: false }).catch(() => {});
+    clearSession();
     router.push("/login");
   };
 
-  // ── Proactive refresh: refresh token 60s before it expires ──
-  const proactiveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const scheduleProactiveRefresh = (token: string) => {
+  // ── Proactive refresh: 60s before the access token expires ──
+  const scheduleProactiveRefresh = (expiresOnUtc?: string | null) => {
     if (proactiveTimerRef.current) clearTimeout(proactiveTimerRef.current);
+    const expiresAt = expiresOnUtc ? Date.parse(expiresOnUtc) : NaN;
+    if (!Number.isFinite(expiresAt)) return;
+    storage.set(EXPIRES_KEY, new Date(expiresAt).toISOString());
+    const delay = expiresAt - Date.now() - 60_000;
+    proactiveTimerRef.current = setTimeout(() => { doRefresh(); }, Math.max(delay, 0));
+  };
+
+  /** Renews the session cookies; one refresh at a time, shared by everyone waiting on it. */
+  const doRefresh = (): Promise<boolean> => {
+    if (!refreshingRef.current) {
+      refreshingRef.current = (async () => {
+        try {
+          // An empty body: the API takes both tokens from the session cookies.
+          const res = await postIdentityTokenRefreshToken({ body: {}, throwOnError: false });
+          const data = res.data as any;
+          if (data?.isSuccess) {
+            scheduleProactiveRefresh(data.value?.expiresOnUtc);
+            return true;
+          }
+        } catch { /* fall through */ }
+        return false;
+      })().finally(() => { refreshingRef.current = null; });
+    }
+    return refreshingRef.current;
+  };
+
+  // Load the signed-in user from the API (the session cookie can't be read here).
+  useEffect(() => {
+    if (!hasSession()) {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    getIdentityCurrentUser({ throwOnError: false })
+      .then((res) => {
+        if (cancelled) return;
+        const me = res.data?.isSuccess ? res.data.value : null;
+        if (me?.userId) {
+          setUser({ id: me.userId, email: me.email ?? "", role: roleOf(me.roles), permissions: [] });
+          scheduleProactiveRefresh(storage.get(EXPIRES_KEY));
+        } else if (res.response?.status === 401) {
+          clearSession();
+        }
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+    // Once per page load; login() sets the user itself.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const login = (token: string, _refreshToken?: string, expiresOnUtc?: string) => {
+    storage.set(SESSION_KEY, "1");
     try {
       const decoded: any = jwtDecode(token);
-      if (!decoded.exp) return;
-      const expiresInMs = decoded.exp * 1000 - Date.now() - 60_000; // 60s before expiry
-      if (expiresInMs <= 0) return;
-      proactiveTimerRef.current = setTimeout(() => doRefresh(), expiresInMs);
-    } catch { /* ignore */ }
-  };
-
-  const doRefresh = async (): Promise<string | null> => {
-    const accessToken = localStorage.getItem("token");
-    const refreshToken = localStorage.getItem("refreshToken");
-    if (!accessToken || !refreshToken) {
-      logout();
-      return null;
-    }
-    
-    const currentAuth = client.getConfig().auth;
-    client.setConfig({ auth: undefined });
-    
-    let res;
-    try {
-      res = await postIdentityTokenRefreshToken({
-        body: { accessToken, refreshToken },
-        throwOnError: false,
+      let email = decoded.email || decoded.unique_name || "";
+      if (Array.isArray(email)) email = email[0];
+      setUser({
+        id: decoded.sub || decoded.nameid || "",
+        email,
+        role: roleOf(decoded.role || decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"]),
+        permissions: [],
       });
-    } catch {
-       /* fall through */
-    } finally {
-      client.setConfig({ auth: currentAuth });
+      scheduleProactiveRefresh(expiresOnUtc ?? (decoded.exp ? new Date(decoded.exp * 1000).toISOString() : null));
+    } catch (err) {
+      console.error("Failed to decode token", err);
     }
-    
-    if (res) {
-      const data = res.data as any;
-      if (data?.isSuccess && data?.value?.accessToken) {
-        const newToken: string = data.value.accessToken;
-        const newRefresh: string | undefined = data.value.refreshToken;
-        localStorage.setItem("token", newToken);
-        if (newRefresh) localStorage.setItem("refreshToken", newRefresh);
-        client.setConfig({ auth: newToken });
-        scheduleProactiveRefresh(newToken);
-        return newToken;
-      }
-    }
-    logout();
-    return null;
+    setLoading(false);
   };
 
-  // Schedule proactive refresh whenever user/token changes
+  useEffect(() => () => { if (proactiveTimerRef.current) clearTimeout(proactiveTimerRef.current); }, []);
+
+  // ── Reactive refresh: on a 401, renew the session once and retry ──
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) scheduleProactiveRefresh(token);
-    return () => {
-      if (proactiveTimerRef.current) clearTimeout(proactiveTimerRef.current);
-    };
-  }, [user]);
-
-  // ── Reactive refresh: 401 interceptor ────────────────────────
-  useEffect(() => {
-    let isRefreshing = false;
-    let refreshSubscribers: ((token: string) => void)[] = [];
-
-    const subscribeTokenRefresh = (cb: (token: string) => void) => {
-      refreshSubscribers.push(cb);
-    };
-
-    const onRefreshed = (token: string) => {
-      refreshSubscribers.forEach((cb) => cb(token));
-      refreshSubscribers = [];
-    };
-
     const interceptorId = client.interceptors.response.use(async (response, request) => {
-      // Prevent infinite loops if the refresh token endpoint itself returns 401
-      if (response.status === 401 && !request.url.includes("/identity/token/refresh-token")) {
-        const refreshToken = localStorage.getItem("refreshToken");
-        const accessToken = localStorage.getItem("token");
+      const isAuthCall = /\/identity\/(token\/|logout)/.test(request.url);
+      if (response.status !== 401 || isAuthCall || !hasSession()) return response;
 
-        if (!refreshToken || !accessToken) {
-          logout();
+      if (await doRefresh()) {
+        // The original body may already be consumed, so a retried POST is sent without it; GETs retry fine,
+        // and an action that fails this way can just be clicked again.
+        try {
+          return await fetch(new Request(request.url, { method: request.method, headers: request.headers, credentials: "include" }));
+        } catch {
           return response;
         }
-
-        if (!isRefreshing) {
-          isRefreshing = true;
-          try {
-            // Bypass the client's auth header for the refresh request by specifying an empty Authorization header.
-            // Using postIdentityTokenRefreshToken directly will use the expired token if client.setConfig({auth}) is set,
-            // which causes API Gateways (like port 5003) to return 401 before hitting the refresh endpoint.
-            const currentAuth = client.getConfig().auth;
-            client.setConfig({ auth: undefined });
-            
-            let res;
-            try {
-              res = await postIdentityTokenRefreshToken({
-                body: { accessToken, refreshToken },
-                throwOnError: false,
-              });
-            } finally {
-              client.setConfig({ auth: currentAuth });
-            }
-            
-            const data = res.data as any;
-
-            if (data?.isSuccess && data?.value?.accessToken) {
-              const newToken: string = data.value.accessToken;
-              const newRefresh: string | undefined = data.value.refreshToken;
-              localStorage.setItem("token", newToken);
-              if (newRefresh) localStorage.setItem("refreshToken", newRefresh);
-              client.setConfig({ auth: newToken });
-              scheduleProactiveRefresh(newToken);
-              onRefreshed(newToken);
-              isRefreshing = false;
-
-              // To safely retry the request, we must clone it BEFORE it's consumed, or recreate it.
-              // Since hey-api gives us a Request object that might be consumed, we recreate it using RequestInit.
-              // We can't perfectly recreate POST bodies if consumed, but for most GET requests this is fine.
-              const newHeaders = new Headers(request.headers);
-              newHeaders.set("Authorization", `Bearer ${newToken}`);
-              
-              // Note: If original request had a body, it was consumed. Retrying it via fetch() might fail for POSTs.
-              // For robustness in SPA, we often let the component retry or reload. But we attempt a GET retry or empty POST retry:
-              try {
-                  const retryRequest = new Request(request.url, {
-                    method: request.method,
-                    headers: newHeaders,
-                    // Cannot copy body from a consumed Request, so we omit it. This means POST retries might fail,
-                    // but they won't hang the app, and the user can just click the action again.
-                  });
-                  return await fetch(retryRequest);
-              } catch (retryErr) {
-                  return response; // Return original 401 if retry fails to construct
-              }
-            }
-
-            logout();
-          } catch {
-            logout();
-          } finally {
-            isRefreshing = false;
-          }
-        } else {
-          // Queue: wait until current refresh finishes then retry
-          return new Promise((resolve) => {
-            subscribeTokenRefresh(async (newToken) => {
-              const newHeaders = new Headers(request.headers);
-              newHeaders.set("Authorization", `Bearer ${newToken}`);
-              try {
-                const retryRequest = new Request(request.url, {
-                  method: request.method,
-                  headers: newHeaders,
-                });
-                resolve(await fetch(retryRequest));
-              } catch {
-                resolve(response);
-              }
-            });
-          });
-        }
       }
+
+      logout();
       return response;
     });
-
-    return () => {
-      client.interceptors.response.eject(interceptorId);
-    };
+    return () => { client.interceptors.response.eject(interceptorId); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Permissions come from the API rather than the token: the API recomputes them on every request, so a token
@@ -327,7 +228,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!userId) return;
     let cancelled = false;
-    getIdentityMyPermissions({ baseUrl: process.env.NEXT_PUBLIC_API_URL || "https://localhost:5003", throwOnError: false })
+    getIdentityMyPermissions({ baseUrl: API_URL(), throwOnError: false })
       .then((res) => { if (!cancelled) setLoaded({ userId, permissions: res.data?.isSuccess ? res.data.value ?? [] : [] }); })
       .catch(() => { if (!cancelled) setLoaded({ userId, permissions: [] }); });
     return () => { cancelled = true; };

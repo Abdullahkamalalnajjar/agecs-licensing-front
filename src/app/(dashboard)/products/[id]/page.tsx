@@ -157,10 +157,8 @@ export default function ProductDetailsPage() {
     if (!productId) return;
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
       client.setConfig({
         baseUrl: process.env.NEXT_PUBLIC_API_URL || "https://localhost:5003",
-        ...(token ? { auth: token } : {}),
       });
 
       const response = await getApiProductsById({ path: { id: productId }, throwOnError: false });

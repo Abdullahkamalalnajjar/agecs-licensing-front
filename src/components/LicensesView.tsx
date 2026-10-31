@@ -25,7 +25,7 @@ import PackageLicensesModal from "@/components/PackageLicensesModal";
 import PackageLicenseEditModal from "@/components/PackageLicenseEditModal";
 import SupportRequestsPanel, { requestProduct } from "@/components/SupportRequestsPanel";
 import type { LicenseDto, ProductDto, SupportRequestDto } from "@/client/types.gen";
-import { useAuth, usePermissions } from "@/components/AuthProvider";
+import { useAuth, usePermissions, hasSession } from "@/components/AuthProvider";
 import { P } from "@/lib/permissions";
 import { useToast } from "@/components/ToastProvider";
 import "@/app/(dashboard)/products/products.css";
@@ -236,9 +236,8 @@ export default function LicensesView({ embedded = false }: { embedded?: boolean 
     setLoading(true);
     setError("");
     try {
-      const token = localStorage.getItem("token");
-      if (!token) { router.push("/login"); return; }
-      client.setConfig({ baseUrl: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5004", auth: token });
+      if (!hasSession()) { router.push("/login"); return; }
+      client.setConfig({ baseUrl: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5004" });
 
       const [licensesRes, productsRes, usersRes, supportRes] = await Promise.all([
         getApiLicenses({ throwOnError: false }),
